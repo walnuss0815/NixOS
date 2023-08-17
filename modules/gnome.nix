@@ -1,30 +1,27 @@
+{ config, pkgs, ... }:
+
 {
-  pkgs,
-  gnome,
-  config,
-  ...
-}:
-{
-  services.xserver.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
+  environment.systemPackages = with pkgs; [
+    gnome3.gnome-tweaks
+    gnome3.dconf-editor
+    gnomeExtensions.dash-to-dock
+    gnomeExtensions.appindicator
+    gnomeExtensions.clipboard-indicator
+    gnomeExtensions.system-monitor
+    arc-icon-theme
 
-  environment.gnome.excludePackages = (with pkgs; [
-    gnome-tour
-  ]) ++ (with pkgs.gnome; [
-    gnome-music
-    epiphany # web browser
-    totem # video player
-    tali # poker game
-    iagno # go game
-    hitori # sudoku game
-    atomix # puzzle game
-  ]);
+    # Config
+    xbindkeys # xbindkeys-config
+    xdotool
+  ];
 
-  environment.systemPackages = (with pkgs; [ gnomeExtensions.appindicator ]) ++ [ gnome.adwaita-icon-theme ];
+  services.xserver = {
+    displayManager.gdm = {
+      enable = true;
+    };
+    desktopManager = {
+      gnome.enable = true;
+    };
+  };
 
-  programs.dconf.enable = true;
-
-  services.udev.packages = with pkgs; [ gnome.gnome-settings-daemon ];
-  services.dbus.packages = with pkgs; [ gnome2.GConf ];
 }
