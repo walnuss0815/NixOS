@@ -56,6 +56,7 @@
   services.xserver.libinput.enable = true;
 
   users.users.alexander = {
+    description  = "Alexander Weidemann";
     isNormalUser = true;
     extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [
