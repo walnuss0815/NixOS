@@ -8,7 +8,7 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ./nixos/modules/gnome.nix
+      ../modules/gnome.nix
     ];
 
   # Use the systemd-boot EFI boot loader.
@@ -21,52 +21,48 @@
   # networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
 
   # Set your time zone.
-  # time.timeZone = "Europe/Amsterdam";
+  time.timeZone = "Europe/Berlin";
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
   # Select internationalisation properties.
-  # i18n.defaultLocale = "en_US.UTF-8";
-  # console = {
+  i18n.defaultLocale = "en_US.UTF-8";
+  console = {
   #   font = "Lat2-Terminus16";
-  #   keyMap = "us";
+    keyMap = "de";
   #   useXkbConfig = true; # use xkbOptions in tty.
-  # };
+  };
 
   # Enable the X11 windowing system.
-  # services.xserver.enable = true;
-
-  services.openssh.enable = true;
-  services.openssh.permitRootLogin = "yes";
+  services.xserver.enable = true;
 
   # Configure keymap in X11
-  # services.xserver.layout = "us";
+  services.xserver.layout = "de";
   # services.xserver.xkbOptions = {
   #   "eurosign:e";
   #   "caps:escape" # map caps to escape.
   # };
 
   # Enable CUPS to print documents.
-  # services.printing.enable = true;
+  services.printing.enable = true;
 
   # Enable sound.
-  # sound.enable = true;
-  # hardware.pulseaudio.enable = true;
+  sound.enable = true;
+  hardware.pulseaudio.enable = true;
 
   # Enable touchpad support (enabled default in most desktopManager).
-  # services.xserver.libinput.enable = true;
+  services.xserver.libinput.enable = true;
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  # users.users.jane = {
-  #   isNormalUser = true;
-  #   extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
-  #   packages = with pkgs; [
-  #     firefox
-  #     thunderbird
-  #   ];
-  # };
+  users.users.alexander = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
+    packages = with pkgs; [
+      firefox
+      thunderbird
+    ];
+  };
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
