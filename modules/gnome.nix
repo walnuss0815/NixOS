@@ -16,7 +16,11 @@
   ];
 
   services.xserver = {
+    # Enable the X11 windowing system.
+    enable = true;
+
     displayManager.gdm = {
+      wayland = false;
       enable = true;
     };
     desktopManager = {
