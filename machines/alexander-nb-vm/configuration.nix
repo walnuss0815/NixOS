@@ -85,6 +85,8 @@
   # Enable the OpenSSH daemon.
   # services.openssh.enable = true;
 
+  networking.hostName = "alexander-nb-vm";
+
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
