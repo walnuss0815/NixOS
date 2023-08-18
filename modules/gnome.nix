@@ -15,6 +15,18 @@
     xdotool
   ];
 
+  environment.gnome.excludePackages = (with pkgs; [
+    gnome-tour
+  ]) ++ (with pkgs.gnome; [
+    gnome-music
+    epiphany # web browser
+    totem # video player
+    tali # poker game
+    iagno # go game
+    hitori # sudoku game
+    atomix # puzzle game
+  ]);
+
   services.xserver = {
     displayManager.gdm = {
       wayland = false;
