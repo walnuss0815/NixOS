@@ -9,7 +9,7 @@
     nix-direnv = { enable = true; };
   };
 
-  programs.thefuck = { enable = true; };
+  programs.pay-respects = { enable = true; };
 
   programs.zsh = {
     enable = true;
@@ -19,7 +19,7 @@
 
     oh-my-zsh = {
       enable = true;
-      plugins = [ "git" "thefuck" "direnv" ];
+      plugins = [ "git" "direnv" ];
       theme = "robbyrussell";
     };
 

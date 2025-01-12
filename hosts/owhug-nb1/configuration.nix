@@ -33,7 +33,7 @@
   networking.networkmanager.wifi.powersave = false;
   networking.networkmanager.wifi.scanRandMacAddress = false;
 
-  networking.networkmanager.fccUnlockScripts = [
+  networking.modemmanager.fccUnlockScripts = [
     {
       id = "1eac:1001";
       path = "${pkgs.modemmanager}/share/ModemManager/fcc-unlock.available.d/1eac:1001";
@@ -111,9 +111,9 @@
   services.printing.enable = true;
 
   # Enable sound with pipewire.
-  hardware.pulseaudio.enable = false;
   hardware.alsa.enablePersistence = true;
   security.rtkit.enable = true;
+  services.pulseaudio.enable = false;
   services.pipewire = {
     enable = true;
     alsa.enable = true;

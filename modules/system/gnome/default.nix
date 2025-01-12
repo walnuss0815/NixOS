@@ -1,13 +1,17 @@
 { pkgs, config, ... }: {
-  services.xserver = {
-    # Enable the X11 windowing system.
-    enable = true;
-    excludePackages = [ pkgs.xterm ];
-
+  services = {
     # Enable the GNOME Desktop Environment.
     displayManager.gdm.enable = true;
     desktopManager.gnome.enable = true;
+
+    xserver = {
+      # Enable the X11 windowing system.
+      enable = true;
+      excludePackages = [ pkgs.xterm ];
+    };
   };
+
+
 
   services.udev.packages = with pkgs; [ gnome-settings-daemon ];
 
