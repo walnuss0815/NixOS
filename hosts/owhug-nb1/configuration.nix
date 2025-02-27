@@ -79,12 +79,19 @@
     gnome-boxes
     gnomeExtensions.battery-health-charging
 
+    # eSIM
+    pcsclite
+    nur.repos.linyinfeng.lpac
+
     # Nix Home Manager
     home-manager
 
     # VM
     qemu
   ];
+
+  # eSIM
+  services.pcscd.enable = true;
 
   #  environment.variables.EDITOR = "vim";
 
