@@ -121,7 +121,7 @@
   users.users.alexander = {
     isNormalUser = true;
     description = "Alexander Weidemann";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "libvirtd" ];
     shell = pkgs.zsh;
     packages = with pkgs;
       [
@@ -155,6 +155,17 @@
 
   # Fingerprint reader: login and unlock with fingerprint (if you add one with `fprintd-enroll`)
   services.fprintd.enable = true;
+
+  virtualisation = {
+    libvirtd = {
+      enable = true;
+      # qemu = {
+      #   swtpm.enable = true;
+      #   ovmf.enable = true;
+      #   ovmf.packages = [ pkgs.OVMFFull.fd ];
+      # };
+    };
+  };
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
