@@ -8,9 +8,13 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware }:
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur }:
 
     let
       system = "x86_64-linux";
@@ -44,6 +48,7 @@
             ./hosts/owhug-nb1/configuration.nix
             nixos-hardware.nixosModules.lenovo-thinkpad-t14-amd-gen2
             nixos-hardware.nixosModules.common-pc-laptop-ssd
+            nur.modules.nixos.default
             ./modules/system/gnome
             ./modules/system/docker
             ./modules/system/netbird
