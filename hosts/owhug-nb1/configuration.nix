@@ -30,6 +30,8 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
+  networking.networkmanager.wifi.powersave = false;
+
   networking.networkmanager.fccUnlockScripts = [
     {
       id = "1eac:1001";
