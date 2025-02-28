@@ -31,6 +31,7 @@
   networking.networkmanager.enable = true;
 
   networking.networkmanager.wifi.powersave = false;
+  networking.networkmanager.wifi.scanRandMacAddress = false;
 
   networking.networkmanager.fccUnlockScripts = [
     {
