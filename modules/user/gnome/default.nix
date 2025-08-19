@@ -2,12 +2,7 @@
   home.packages = with pkgs; [
     gnomeExtensions.appindicator
     gnomeExtensions.tailscale-qs
-    gnomeExtensions.user-themes
-
-    # Themes
-    flat-remix-gtk
-    flat-remix-gnome
-    flat-remix-icon-theme
+    adwaita-icon-theme
   ];
 
   dconf = {
@@ -31,15 +26,6 @@
       };
       "org/gnome/shell/window-switcher" = {
         current-workspace-only = false;
-      };
-      "org/gnome/shell/extensions/user-theme" = {
-        name = "Flat-Remix-Dark-fullPanel";
-      };
-      "org/gnome/desktop/interface/gtk-theme" = {
-        name = "Flat-Remix-GTK-White-Dark";
-      };
-      "org/gnome/desktop/interface/icon-theme" = {
-        name = "Flat-Remix-Black-Light";
       };
     };
   };
