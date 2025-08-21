@@ -2,6 +2,7 @@
   home.packages = with pkgs; [
     gnomeExtensions.appindicator
     gnomeExtensions.tailscale-qs
+    gnomeExtensions.forge
     adwaita-icon-theme
   ];
 
@@ -14,7 +15,7 @@
         cursor-theme = "Adwaita";
       };
       "org/gnome/desktop/wm/preferences" = {
-        button-layout = "appmenu:minimize,maximize,close";
+        button-layout = "appmenu:minimize,close";
       };
       "org/gnome/desktop/peripherals/touchpad" = {
         tap-to-click = true;
