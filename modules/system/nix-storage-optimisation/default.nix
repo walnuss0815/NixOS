@@ -8,8 +8,7 @@
     # Trigger even if the system was powered down during the scheduled time
     persistent = true;
     dates = "weekly";
-    # Retain last 5 generations for boot repair,
-    # even older ones can be reconstructed from git as needed
-    options = "--delete-older-than +5";
+    # Delete all generation older than 30 days
+    options = "--delete-older-than 30d";
   };
 }
