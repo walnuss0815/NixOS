@@ -22,6 +22,7 @@
           "editor.detectIndentation" = true;
         };
         extensions = [
+          pkgs.vscode-extensions.mkhl.direnv
           pkgs.vscode-extensions.eamodio.gitlens
           pkgs.vscode-extensions.oderwat.indent-rainbow
           pkgs.vscode-extensions.streetsidesoftware.code-spell-checker
