@@ -7,7 +7,7 @@
         email = "walnuss0815@gmail.com";
       };
       lfs.enable = true;
-      aliases = {
+      alias = {
         co = "checkout";
         br = "branch";
         ci = "commit";
