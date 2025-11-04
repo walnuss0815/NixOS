@@ -4,6 +4,7 @@
     gnomeExtensions.tailscale-qs
     gnomeExtensions.forge
     papirus-icon-theme
+    whitesur-cursors
   ];
 
   dconf = {
@@ -12,7 +13,7 @@
       "org/gnome/desktop/interface" = {
         color-scheme = "prefer-dark";
         enable-hot-corners = false;
-        cursor-theme = "Adwaita";
+        cursor-theme = "WhiteSur-cursors";
         icon-theme = "Papirus-Dark";
       };
       "org/gnome/desktop/wm/preferences" = {
