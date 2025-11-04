@@ -110,6 +110,9 @@
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
+  # Enable firmware update tool
+  services.fwupd.enable = true;
+
   # Enable sound with pipewire.
   hardware.alsa.enablePersistence = true;
   security.rtkit.enable = true;
