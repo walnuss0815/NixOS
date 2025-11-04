@@ -3,7 +3,7 @@
     gnomeExtensions.appindicator
     gnomeExtensions.tailscale-qs
     gnomeExtensions.forge
-    adwaita-icon-theme
+    papirus-icon-theme
   ];
 
   dconf = {
@@ -13,6 +13,7 @@
         color-scheme = "prefer-dark";
         enable-hot-corners = false;
         cursor-theme = "Adwaita";
+        icon-theme = "Papirus-Dark";
       };
       "org/gnome/desktop/wm/preferences" = {
         button-layout = "appmenu:minimize,close";
