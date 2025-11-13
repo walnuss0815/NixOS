@@ -62,7 +62,7 @@
 
   environment.systemPackages = with pkgs; [
     # LibreOffice
-    libreoffice-qt
+    libreoffice-qt6-fresh
     hunspell
     hunspellDicts.de_DE
 
