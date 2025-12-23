@@ -169,6 +169,9 @@
   # Fingerprint reader: login and unlock with fingerprint (if you add one with `fprintd-enroll`)
   services.fprintd.enable = true;
 
+  # Enable flatpak
+  services.flatpak.enable = true;
+
   virtualisation = {
     libvirtd = {
       enable = true;

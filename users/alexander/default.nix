@@ -131,6 +131,8 @@
     restic
 
     firefox
+
+    gnome-software
   ];
 
   # This value determines the home Manager release that your
