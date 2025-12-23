@@ -127,6 +127,9 @@
     glab # Gitlab CLI
     ghorg # Clone GitHub orgs and Gitlab groups
 
+    restic-browser
+    restic
+
     firefox
     (bambu-studio.overrideAttrs (oldAttrs: {
       cmakeFlags = oldAttrs.cmakeFlags ++ [ "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" ];
