@@ -11,7 +11,9 @@
     };
   };
 
-
+  environment.gnome.excludePackages = with pkgs; [
+    epiphany # Browser
+  ];
 
   services.udev.packages = with pkgs; [ gnome-settings-daemon ];
 
