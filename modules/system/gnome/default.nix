@@ -13,6 +13,7 @@
 
   environment.gnome.excludePackages = with pkgs; [
     epiphany # Browser
+    gnome-tour # Tour
   ];
 
   services.udev.packages = with pkgs; [ gnome-settings-daemon ];
