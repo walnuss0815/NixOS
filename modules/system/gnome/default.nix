@@ -7,7 +7,9 @@
     xserver = {
       # Enable the X11 windowing system.
       enable = true;
-      excludePackages = [ pkgs.xterm ];
+      excludePackages = with pkgs; [
+        xterm
+      ];
     };
   };
 
