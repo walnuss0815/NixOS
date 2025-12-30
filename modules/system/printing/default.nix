@@ -13,24 +13,7 @@
   environment.systemPackages = [ pkgs.simple-scan ];
 
   hardware.printers = {
-    ensurePrinters = [
-      {
-        name = "Alexander_BW";
-        description = "Alexander BW";
-        location = "Alexander's Office";
-        deviceUri = "lpd://192.168.10.174/binary_p1";
-        model = "brother-MFCL2750DW-cups-en.ppd";
-        ppdOptions = {
-          PageSize = "A4";
-          BrMediaType = "PLAIN";
-          Resolution = "600dpi";
-          InputSlot = "TRAY1";
-          Duplex = "None";
-          BRPassword = "False";
-          TonerSaveMode = "OFF";
-        };
-      }
-    ];
-    ensureDefaultPrinter = "Alexander_BW";
+    ensurePrinters = [];
+    # ensureDefaultPrinter = "Alexander_Laser";
   };
 }
