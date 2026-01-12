@@ -20,6 +20,9 @@
           "editor.insertSpaces" = true;
           "editor.tabSize" = 2;
           "editor.detectIndentation" = true;
+          "terminal.integrated.suggest.enabled" = false;
+          "terminal.integrated.shellIntegration.enabled" = false;
+
         };
         extensions = [
           pkgs.vscode-extensions.mkhl.direnv
