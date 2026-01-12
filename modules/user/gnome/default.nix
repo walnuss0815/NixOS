@@ -33,7 +33,7 @@
       "org/gnome/mutter" = {
         workspaces-only-on-primary = false;
       };
-      "/org/gnome/shell/app-switcher" = {
+      "org/gnome/shell/app-switcher" = {
         current-workspace-only = true;
       };
     };
