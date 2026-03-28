@@ -1,6 +1,6 @@
 { pkgs, config, ... }: {
   home.packages = with pkgs; [
-    neofetch
+    fastfetch
     nnn # terminal file manager
   ];
 
