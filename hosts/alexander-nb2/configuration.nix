@@ -48,7 +48,7 @@
 
   environment.systemPackages = with pkgs; [
     # LibreOffice
-    libreoffice-qt
+    libreoffice-qt-stable
     hunspell
     hunspellDicts.de_DE
 
