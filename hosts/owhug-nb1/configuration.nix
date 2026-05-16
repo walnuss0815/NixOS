@@ -134,7 +134,7 @@
   users.users.alexander = {
     isNormalUser = true;
     description = "Alexander Weidemann";
-    extraGroups = [ "networkmanager" "wheel" "libvirtd" "dialout" ];
+    extraGroups = [ "networkmanager" "wheel" "libvirtd" "dialout" "netbird-personal"];
     shell = pkgs.zsh;
     packages = with pkgs;
       [
