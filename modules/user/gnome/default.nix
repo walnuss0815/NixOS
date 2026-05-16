@@ -18,6 +18,7 @@
       };
       "org/gnome/desktop/wm/preferences" = {
         button-layout = "appmenu:minimize,close";
+        action-double-click-titlebar = "none";
       };
       "org/gnome/desktop/peripherals/touchpad" = {
         tap-to-click = true;
@@ -32,6 +33,8 @@
       };
       "org/gnome/mutter" = {
         workspaces-only-on-primary = false;
+        auto-maximize = false;
+        edge-tiling = false;
       };
       "org/gnome/shell/app-switcher" = {
         current-workspace-only = true;
