@@ -76,6 +76,7 @@
     # UI applications
     google-chrome
     firefox
+    thunderbird
     spotify
     calls
     vesktop
