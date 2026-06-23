@@ -1,19 +1,27 @@
 { config, pkgs, ... }: {
-  services.printing.enable = true;
-  services.printing.drivers = [ pkgs.cups-brother-mfcl2750dw ];
-  services.avahi.enable = true;
-  services.avahi.nssmdns4 = true;
-  # for a WiFi printer
-  services.avahi.openFirewall = true;
 
-  # Enable scanner support
-  hardware.sane.enable = true;
-  hardware.sane.extraBackends = [ ];
-  # Simple graphical scanning utility
-  environment.systemPackages = [ pkgs.simple-scan ];
+  services.printing = {
+    enable = true;
+    browsing = true;
+    drivers = with pkgs; [ cups-filters ];
+  };
 
   hardware.printers = {
-    ensurePrinters = [];
-    # ensureDefaultPrinter = "Alexander_Laser";
+    ensureDefaultPrinter = "Alexander_Laser_BW";
+    ensurePrinters = [
+      {
+        name = "Alexander_Laser_BW";
+        location = "Office";
+        deviceUri = "ipp://192.168.10.174/ipp";
+        model = "everywhere";
+      }
+    ];
   };
+
+  # Enable scanner support
+  hardware.sane = {
+    enable = true;
+    extraBackends = [ ];
+  };
+  environment.systemPackages = [ pkgs.simple-scan ];
 }
