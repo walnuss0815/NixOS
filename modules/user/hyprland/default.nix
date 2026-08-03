@@ -151,12 +151,13 @@ in
       exec-once = ${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent
       exec-once = ${pkgs.pasystray}/bin/pasystray
       exec-once = wl-paste --type text --watch cliphist store
+      exec-once = hyprctl setcursor WhiteSur-cursors 24
 
       # --- Environment ---
       env = XCURSOR_THEME,WhiteSur-cursors
       env = XCURSOR_SIZE,24
       env = GTK_THEME,Adwaita-dark
-      exec-once = hyprctl setcursor WhiteSur-cursors 24
+      env = ELECTRON_OZONE_PLATFORM_HINT,auto
 
       # --- Monitors ---
       monitor = ,preferred,auto,auto
