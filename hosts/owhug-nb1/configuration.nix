@@ -88,6 +88,7 @@
     vesktop
     gnome-boxes
     gnomeExtensions.battery-health-charging
+    bambu-studio
 
     # eSIM
     pcsclite
