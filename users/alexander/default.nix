@@ -80,6 +80,12 @@
     unzip
     p7zip
 
+    # AI
+    opencode
+    opencode-claude-auth
+    claude-code
+    vscode-extensions.anthropic.claude-code
+
     # networking tools
     mtr # A network diagnostic tool
     iperf3
