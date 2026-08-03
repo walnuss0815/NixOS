@@ -28,10 +28,16 @@
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
   # Enable networking
-  networking.networkmanager.enable = true;
-
-  networking.networkmanager.wifi.powersave = false;
-  networking.networkmanager.wifi.scanRandMacAddress = false;
+  networking.networkmanager = {
+    enable = true;
+    wifi = {
+    powersave = false;
+    scanRandMacAddress = false;
+    };
+    plugins = with pkgs; [
+      networkmanager-openvpn
+    ];
+  };
 
   networking.modemmanager.fccUnlockScripts = [
     {
@@ -131,6 +137,14 @@
     #media-session.enable = true;
   };
 
+  services.udev.packages = [
+    (pkgs.writeTextDir "lib/udev/rules.d/70-stm32-dfu.rules" ''
+      # DFU (Internal bootloader for STM32 and AT32 MCUs)
+      SUBSYSTEM=="usb", ATTRS{idVendor}=="2e3c", ATTRS{idProduct}=="df11", TAG+="uaccess"
+      SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", TAG+="uaccess"
+    '')
+  ];
+
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.alexander = {
     isNormalUser = true;
@@ -162,6 +176,9 @@
 
   # Latest Linux kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  # Fix micro SD card reader
+  boot.kernelModules = [ "rtsx_pci_sdmmc" ];
 
   # Touchscreen
   services.xserver.wacom.enable = true;
@@ -202,6 +219,8 @@
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
+  networking.resolvconf.enable = false;
+  services.resolved.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
