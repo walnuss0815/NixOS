@@ -212,21 +212,23 @@ in
       bind = $mainMod, B, exec, firefox
       bind = $mainMod, E, exec, nautilus --new-window
 
+      bind = $mainMod, K, exec, [workspace special:music] spotify
+
       # Screenshots
       bind = , PRINT, exec, hyprshot -m region -o ~/Pictures/Screenshots
       bind = $mainMod SHIFT, PRINT, exec, hyprshot -m output -o ~/Pictures/Screenshots
 
-      # Window focus (Vim-style HJKL)
-      bind = $mainMod, H, movefocus, l
-      bind = $mainMod, L, movefocus, r
-      bind = $mainMod, K, movefocus, u
-      bind = $mainMod, J, movefocus, d
+      # Window focus (arrow keys)
+      bind = $mainMod, left, movefocus, l
+      bind = $mainMod, right, movefocus, r
+      bind = $mainMod, up, movefocus, u
+      bind = $mainMod, down, movefocus, d
 
       # Window movement
-      bind = $mainMod SHIFT, H, movewindow, l
-      bind = $mainMod SHIFT, L, movewindow, r
-      bind = $mainMod SHIFT, K, movewindow, u
-      bind = $mainMod SHIFT, J, movewindow, d
+      bind = $mainMod SHIFT, left, movewindow, l
+      bind = $mainMod SHIFT, right, movewindow, r
+      bind = $mainMod SHIFT, up, movewindow, u
+      bind = $mainMod SHIFT, down, movewindow, d
 
       # Workspaces 1-5
       bind = $mainMod, 1, workspace, 1
