@@ -39,6 +39,10 @@
     ];
   };
 
+  # Bluetooth
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+
   networking.modemmanager.fccUnlockScripts = [
     {
       id = "1eac:1001";
@@ -86,8 +90,6 @@
     spotify
     calls
     vesktop
-    gnome-boxes
-    gnomeExtensions.battery-health-charging
     bambu-studio
 
     # eSIM
@@ -150,7 +152,7 @@
   users.users.alexander = {
     isNormalUser = true;
     description = "Alexander Weidemann";
-    extraGroups = [ "networkmanager" "wheel" "libvirtd" "dialout" "netbird-personal"];
+    extraGroups = [ "networkmanager" "wheel" "libvirtd" "dialout" "netbird-personal" "video" ];
     shell = pkgs.zsh;
     packages = with pkgs;
       [

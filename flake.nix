@@ -12,9 +12,13 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    silentSDDM = {
+      url = "github:uiriansan/SilentSDDM";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur }:
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur, silentSDDM }:
 
     let
       system = "x86_64-linux";
@@ -49,7 +53,8 @@
             nixos-hardware.nixosModules.lenovo-thinkpad-t14-amd-gen2
             nixos-hardware.nixosModules.common-pc-laptop-ssd
             nur.modules.nixos.default
-            ./modules/system/gnome
+            silentSDDM.nixosModules.default
+            ./modules/system/hyprland
             ./modules/system/docker
             ./modules/system/netbird
             ./modules/system/printing
@@ -64,7 +69,7 @@
 
           modules = [
             ./users/alexander
-            ./modules/user/gnome
+            ./modules/user/hyprland
             ./modules/user/shell
             ./modules/user/git
             ./modules/user/vscode

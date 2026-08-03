@@ -27,17 +27,19 @@
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
-      # Browser
       "text/html" = "org.mozilla.firefox.desktop";
       "x-scheme-handler/http" = "org.mozilla.firefox.desktop";
       "x-scheme-handler/https" = "org.mozilla.firefox.desktop";
       "x-scheme-handler/about" = "org.mozilla.firefox.desktop";
       "x-scheme-handler/unknown" = "org.mozilla.firefox.desktop";
 
-      # PDF
       "application/pdf" = "org.gnome.Evince.desktop";
 
-      # Images
+      "text/plain" = "org.gnome.TextEditor.desktop";
+      "text/markdown" = "org.gnome.TextEditor.desktop";
+      "text/x-shellscript" = "org.gnome.TextEditor.desktop";
+      "application/x-shellscript" = "org.gnome.TextEditor.desktop";
+
       "image/jpeg" = "org.gnome.Loupe.desktop";
       "image/png" = "org.gnome.Loupe.desktop;";
       "image/gif" = "org.gnome.Loupe.desktop;";
@@ -138,7 +140,6 @@
 
     firefox
 
-    gnome-software
   ];
 
   # This value determines the home Manager release that your

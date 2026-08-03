@@ -1,0 +1,45 @@
+// Waybar status-bar configuration for Hyprland
+{
+    "layer": "top",
+    "position": "top",
+    "height": 30,
+    "spacing": 4,
+
+    // Left: workspace indicators
+    "modules-left": ["hyprland/workspaces"],
+
+    // Center: clock with calendar tooltip
+    "modules-center": ["clock"],
+
+    // Right: battery + system tray
+    "modules-right": ["battery", "tray"],
+
+    // --- Module-specific settings ---
+
+    "hyprland/workspaces": {
+        "disable-scroll": true,
+        "all-outputs": false,
+        "format": "{id}"
+    },
+
+    "clock": {
+        "format": "{:%a %d.%m.%Y  %H:%M}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    },
+
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{capacity}% {icon}",
+        "format-icons": ["", "", "", "", ""],
+        "format-charging": "{capacity}% \uf1e6 ",
+        "format-plugged": "{capacity}% \uf1e6 "
+    },
+
+    "tray": {
+        "spacing": 10,
+        "icon-size": 18
+    }
+}
