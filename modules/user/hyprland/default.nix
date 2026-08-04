@@ -286,7 +286,7 @@ in
       bindl = , switch:off:Lid Switch, exec, ${lidSwitchHandler} open
 
       # --- Misc ---
-      suppressevent = maximize
+      windowrule = match:class .*, suppress_event maximize fullscreen
     '';
 
     # -- Standalone config files (static, no nix interpolation needed) --
