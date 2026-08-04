@@ -27,16 +27,6 @@ let
       --post-cmd 'systemctl poweroff'
   '';
 
-  # Clipboard history picker: list cliphist entries in fuzzel and paste the
-  # selection back into the clipboard.  fuzzel --dmenu prints the selected
-  # entry on stdout, which feeds the decode/copy pipeline.
-  clipboardPicker = pkgs.writeShellScript "clipboard-picker" ''
-    selected=$(${pkgs.cliphist}/bin/cliphist list |
-      ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt 'Clipboard')
-    [ -n "$selected" ] || exit 0
-    printf '%s' "$selected" | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy
-  '';
-
   # Dynamically detect the internal laptop display and disable/enable it when
   # the lid is closed/opened -- useful when docked to an external monitor.
   lidSwitchHandler = pkgs.writeShellScript "lid-switch-handler" ''
@@ -151,7 +141,7 @@ in
       exec-once = blueman-applet
       exec-once = ${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent
       exec-once = ${pkgs.pasystray}/bin/pasystray
-      exec-once = wl-paste --type text --watch cliphist store
+      exec-once = wl-paste --watch cliphist store
       exec-once = hyprctl setcursor WhiteSur-cursors 24
 
       # --- Environment ---
@@ -280,7 +270,7 @@ in
       bind = $mainMod, X, exec, ${powerOff}
 
       # Clipboard history
-      bind = $mainMod SHIFT, V, exec, ${clipboardPicker}
+      bind = $mainMod, V, exec, cliphist list | fuzzel --dmenu --prompt 'Clipboard' | cliphist decode | wl-copy
 
       # --- Lid-switch handler (dynamically detects internal display) ---
       bindl = , switch:on:Lid Switch, exec, ${lidSwitchHandler} close
