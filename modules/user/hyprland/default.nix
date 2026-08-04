@@ -27,6 +27,20 @@ let
       --post-cmd 'systemctl poweroff'
   '';
 
+  # Open app on its special workspace the first time, then toggle it.
+  dynamicSpecialWorkspace = pkgs.writeShellScript "special-workspace" ''
+    APP=$1
+    APP_CLASS=$2
+    WORKSPACE=$3
+
+    # Check if client exists using hyprctl
+    if ${pkgs.hyprland}/bin/hyprctl clients -j | ${pkgs.jq}/bin/jq -e --arg class "$APP_CLASS" '.[] | select(.class == $class)' > /dev/null; then
+      ${pkgs.hyprland}/bin/hyprctl dispatch togglespecialworkspace "$WORKSPACE"
+    else
+      ${pkgs.hyprland}/bin/hyprctl dispatch exec "[workspace special:$WORKSPACE] $APP"
+    fi
+  '';
+
   # Dynamically detect the internal laptop display and disable/enable it when
   # the lid is closed/opened -- useful when docked to an external monitor.
   lidSwitchHandler = pkgs.writeShellScript "lid-switch-handler" ''
@@ -204,7 +218,8 @@ in
       bind = $mainMod, B, exec, firefox
       bind = $mainMod, E, exec, nautilus --new-window
 
-      bind = $mainMod, K, exec, [workspace special:music] spotify
+      # Special Workspaces
+      bind = $mainMod, S, exec, ${dynamicSpecialWorkspace} spotify Spotify spotify
 
       # Screenshots
       bind = , PRINT, exec, hyprshot -m region -o ~/Pictures/Screenshots
