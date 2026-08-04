@@ -16,17 +16,6 @@ let
     fi
   '';
 
-  # Gracefully close all apps, exit Hyprland, then power off the machine.
-  # hyprshutdown only logs out (returning to the display manager), so a
-  # --post-cmd is required to actually shut the system down.
-  # NOTE: hyprshutdown is referenced by its store path here (and in the
-  # launcher desktop entry below), so it does NOT need to be in home.packages.
-  powerOff = pkgs.writeShellScript "power-off" ''
-    ${pkgs.hyprshutdown}/bin/hyprshutdown \
-      --top-label 'Shutting down...' \
-      --post-cmd 'systemctl poweroff'
-  '';
-
   # Open app on its special workspace the first time, then toggle it.
   dynamicSpecialWorkspace = pkgs.writeShellScript "special-workspace" ''
     APP=$1
@@ -69,6 +58,7 @@ in
     hypridle
     hyprshot
     hyprpolkitagent
+    hyprshutdown
     cliphist
     jq
 
@@ -103,13 +93,20 @@ in
 
   fonts.fontconfig.enable = true;
 
-  # Expose hyprshutdown in the launcher -- it ships no .desktop.
   xdg.desktopEntries = {
-    hyprshutdown = {
+    shutdown = {
       name = "Shutdown";
-      genericName = "Hyprland power menu";
-      exec = "${powerOff}";
+      icon = "system-shutdown";
+      exec = "hyprshutdown --top-label \"Shutting down...\" --post-cmd \"systemctl poweroff\"";
       categories = [ "System" "Utility" ];
+      terminal = false;
+    };
+    reboot = {
+      name = "Reboot";
+      icon = "system-reboot";
+      exec = "hyprshutdown --top-label \"Restarting...\" --post-cmd \"systemctl reboot\"";
+      categories = [ "System" "Utility" ];
+      terminal = false;
     };
   };
 
@@ -280,9 +277,6 @@ in
 
       # Lock screen
       bind = $mainMod, L, exec, hyprlock
-
-      # Power menu
-      bind = $mainMod, X, exec, ${powerOff}
 
       # Clipboard history
       bind = $mainMod, V, exec, cliphist list | fuzzel --dmenu --prompt 'Clipboard' | cliphist decode | wl-copy
