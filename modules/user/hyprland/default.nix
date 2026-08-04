@@ -108,6 +108,20 @@ in
       categories = [ "System" "Utility" ];
       terminal = false;
     };
+    suspend = {
+      name = "Suspend";
+      icon = "system-suspend";
+      exec = "systemctl suspend";
+      categories = [ "System" "Utility" ];
+      terminal = false;
+    };
+    lock = {
+      name = "Lock";
+      icon = "system-lock-screen";
+      exec = "loginctl lock-session";
+      categories = [ "System" "Utility" ];
+      terminal = false;
+    };
   };
 
   # ---------------------------------------------------------------------------
