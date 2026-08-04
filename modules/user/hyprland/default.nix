@@ -213,7 +213,7 @@ in
       bind = $mainMod, Q, killactive,
       bind = $mainMod, M, exit,
       bind = $mainMod, F, fullscreen,
-      bind = $mainMod, SPACE, togglefloating,
+      bind = $mainMod, SPACE, exec, fuzzel
       bind = $mainMod, R, exec, fuzzel
       bind = $mainMod, B, exec, firefox
       bind = $mainMod, E, exec, nautilus --new-window
