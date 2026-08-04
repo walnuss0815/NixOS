@@ -261,8 +261,8 @@ in
       bind = $mainMod SHIFT, 4, movetoworkspace, 4
       bind = $mainMod SHIFT, 5, movetoworkspace, 5
 
-      bind = $mainMod, mouse_down, workspace, e+1
-      bind = $mainMod, mouse_up, workspace, e-1
+      bind = $mainMod ALT, right, workspace, m+1
+      bind = $mainMod ALT, left, workspace, m-1
 
       # Media keys
       bind = , XF86AudioRaiseVolume, exec, pamixer -i 5
