@@ -281,6 +281,8 @@ in
       # Clipboard history
       bind = $mainMod, V, exec, cliphist list | fuzzel --dmenu --prompt 'Clipboard' | cliphist decode | wl-copy
 
+      bind = $mainMod, W, exec, hyprctl dispatch renameworkspace $(hyprctl activeworkspace -j | jq '.id') "$(fuzzel -d -p 'Rename workspace: ')"
+
       # --- Lid-switch handler (dynamically detects internal display) ---
       bindl = , switch:on:Lid Switch, exec, ${lidSwitchHandler} close
       bindl = , switch:off:Lid Switch, exec, ${lidSwitchHandler} open
