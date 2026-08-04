@@ -40,8 +40,8 @@ let
   # Dynamically detect the internal laptop display and disable/enable it when
   # the lid is closed/opened -- useful when docked to an external monitor.
   lidSwitchHandler = pkgs.writeShellScript "lid-switch-handler" ''
-    monitor=$(${pkgs.hyprland}/bin/hyprctl monitors -j |
-      ${pkgs.jq}/bin/jq -r '.[] | select(.description | test("eDP|LVDS|DSI|unknown")) | .name' |
+    monitor=$(${pkgs.hyprland}/bin/hyprctl monitors all -j |
+      ${pkgs.jq}/bin/jq -r '.[] | select(.name | test("eDP|LVDS|DSI|unknown")) | .name' |
       head -1)
     [ -n "$monitor" ] || exit 0
     case "$1" in
@@ -66,6 +66,7 @@ in
     hyprshot
     hyprpolkitagent
     cliphist
+    jq
 
     # Essential GUI applications (GNOME circle, dark-theme friendly)
     gnome-calculator
