@@ -218,7 +218,7 @@ in
 
       # Screenshots
       bind = , PRINT, exec, hyprshot -m region -o ~/Pictures/Screenshots
-      bind = $mainMod SHIFT, PRINT, exec, hyprshot -m output -o ~/Pictures/Screenshots
+      bind = SHIFT, PRINT, exec, hyprshot -m output -o ~/Pictures/Screenshots
 
       # Window focus (arrow keys)
       bind = $mainMod, left, movefocus, l
