@@ -50,10 +50,7 @@ in
   home.packages = with pkgs; [
     # Tiling compositor and utilities
     kitty
-    hyprshot
-    hyprpolkitagent
     hyprshutdown
-    cliphist
     jq
 
     # Essential GUI applications (GNOME circle, dark-theme friendly)
@@ -65,24 +62,19 @@ in
     # File manager, networking, bluetooth, audio
     nautilus
     ffmpegthumbnailer
-    networkmanagerapplet
-    blueman
     pavucontrol
     pasystray
     pamixer
     brightnessctl
     wl-clipboard
-    udiskie
     playerctl
     grim
     slurp
     wdisplays
 
     # Theming: fonts, icons, cursors
-    noto-fonts
     nerd-fonts.symbols-only
     papirus-icon-theme
-    whitesur-cursors
   ];
 
   fonts.fontconfig.enable = true;
@@ -140,18 +132,14 @@ in
 
   wayland.windowManager.hyprland = {
     enable = true;
+    xwayland.enable = true;
     configType = "hyprlang";
     settings = {
       exec-once = [
         "waybar"
         "mako"
         "udiskie -t"
-        "nm-applet --indicator"
-        "blueman-applet"
-        "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent"
-        "${pkgs.pasystray}/bin/pasystray"
-        "wl-paste --watch cliphist store"
-        "hyprctl setcursor WhiteSur-cursors 24"
+        "syshud"
       ];
 
       env = [
@@ -272,12 +260,44 @@ in
         ", XF86AudioNext, exec, playerctl next"
         ", XF86AudioPrev, exec, playerctl previous"
 
-        # --- Lid-switch handler (dynamically detects internal display) ---
+        # Lid-switch handler (dynamically detects internal display)
         ", switch:on:Lid Switch, exec, ${lidSwitchHandler} close"
         ", switch:off:Lid Switch, exec, ${lidSwitchHandler} open"
       ];
       windowrule = [ "match:class .*, suppress_event maximize fullscreen" ];
     };
+  };
+
+  services.hyprpolkitagent = {
+    enable = true;
+  };
+
+  programs.hyprshot = {
+    enable = true;
+  };
+
+  services.cliphist = {
+    enable = true;
+  };
+
+  services.blueman-applet = {
+    enable = true;
+  };
+
+  services.network-manager-applet = {
+    enable = true;
+  };
+
+  services.udiskie = {
+    enable = true;
+  };
+
+  services.pasystray = {
+    enable = true;
+  };
+
+  services.swayosd = {
+    enable = true;
   };
 
   services.hyprpaper = {
@@ -408,6 +428,15 @@ in
       "urgency=normal" = { default-timeout = 6000; };
       "urgency=critical" = { default-timeout = 0; border-color = "#f38ba8"; text-color = "#f38ba8"; };
     };
+  };
+
+  home.pointerCursor = {
+    enable = true;
+    gtk.enable = true;
+    x11.enable = true;
+    package = pkgs.whitesur-cursors;
+    name = "WhiteSur-cursors";
+    size = 16;
   };
 
   # ---------------------------------------------------------------------------
