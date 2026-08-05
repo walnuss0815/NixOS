@@ -49,13 +49,7 @@ in
   # ---------------------------------------------------------------------------
   home.packages = with pkgs; [
     # Tiling compositor and utilities
-    waybar
-    fuzzel
-    mako
     kitty
-    hyprpaper
-    hyprlock
-    hypridle
     hyprshot
     hyprpolkitagent
     hyprshutdown
@@ -144,176 +138,276 @@ in
     "Pictures/Wallpapers".source = ./wallpapers;
   };
 
-  # ---------------------------------------------------------------------------
-  # XDG configuration files (dotfiles)
-  # ---------------------------------------------------------------------------
-  xdg.configFile = {
-    # -- Hyprland compositor config (generated inline because it needs nix
-    #    paths for the custom scripts and polkit agent) --
+  wayland.windowManager.hyprland = {
+    enable = true;
+    configType = "hyprlang";
+    settings = {
+      exec-once = [
+        "waybar"
+        "mako"
+        "udiskie -t"
+        "nm-applet --indicator"
+        "blueman-applet"
+        "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent"
+        "${pkgs.pasystray}/bin/pasystray"
+        "wl-paste --watch cliphist store"
+        "hyprctl setcursor WhiteSur-cursors 24"
+      ];
 
-    "hypr/hyprland.conf".text = ''
-      # Options not listed here (monitor auto-detection, gaps, follow_mouse,
-      # rounding, layout, ...) are intentionally left at their Hyprland
-      # defaults instead of being spelled out.
+      env = [
+        "XCURSOR_THEME,WhiteSur-cursors"
+        "XCURSOR_SIZE,24"
+        "GTK_THEME,Adwaita-dark"
+        "ELECTRON_OZONE_PLATFORM_HINT,auto"
+      ];
+      monitor = [ ",preferred,auto,auto" ];
 
-      # --- Autostart ---
-      exec-once = waybar
-      exec-once = mako
-      exec-once = hypridle
-      exec-once = hyprpaper
-      exec-once = udiskie -t
-      exec-once = nm-applet --indicator
-      exec-once = blueman-applet
-      exec-once = ${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent
-      exec-once = ${pkgs.pasystray}/bin/pasystray
-      exec-once = wl-paste --watch cliphist store
-      exec-once = hyprctl setcursor WhiteSur-cursors 24
+      input = {
+        kb_layout = "de";
+        numlock_by_default = true;
+        follow_mouse = 1;
+        touchpad = {
+          natural_scroll = true;
+          tap-to-click = true;
+        };
+      };
+      general = {
+        gaps_in = 0;
+        gaps_out = 0;
+        border_size = 2;
+        "col.active_border" = "rgba(33ccffee)";
+        "col.inactive_border" = "rgba(595959aa)";
+        layout = "dwindle";
+      };
+      decoration.rounding = 0;
+      animations = {
+        enabled = true;
+        bezier = [ "myBezier, 0.05, 0.9, 0.1, 1.05" ];
+        animation = [
+          "windows, 1, 7, myBezier"
+          "border, 1, 10, default"
+          "fade, 1, 7, default"
+          "workspaces, 1, 6, default"
+        ];
+      };
+      dwindle.preserve_split = true;
 
-      # --- Environment ---
-      env = XCURSOR_THEME,WhiteSur-cursors
-      env = XCURSOR_SIZE,24
-      env = GTK_THEME,Adwaita-dark
-      env = ELECTRON_OZONE_PLATFORM_HINT,auto
+      "$mainMod" = "SUPER";
+      bind = [
+        # Applications
+        "$mainMod, RETURN, exec, kitty"
+        "$mainMod, Q, killactive,"
+        "$mainMod, M, exit,"
+        "$mainMod, F, fullscreen,"
+        "$mainMod, SPACE, exec, fuzzel"
+        "$mainMod, R, exec, fuzzel"
+        "$mainMod, B, exec, firefox"
+        "$mainMod, E, exec, nautilus --new-window"
 
-      # --- Monitors ---
-      monitor = ,preferred,auto,auto
+        # Workspaces
+        "$mainMod, S, exec, ${dynamicSpecialWorkspace} spotify Spotify spotify"
+        "$mainMod, W, exec, hyprctl dispatch renameworkspace $(hyprctl activeworkspace -j | jq '.id') \"$(fuzzel -d -p 'Rename workspace: ')\""
 
-      # --- Input: keyboard layout, touchpad ---
-      input {
-          kb_layout = de
-          numlock_by_default = true
-          follow_mouse = 1
-          touchpad {
-              natural_scroll = true
-              tap-to-click = true
-          }
-      }
+        # Screenshots
+        ", PRINT, exec, hyprshot -m region -o ~/Pictures/Screenshots"
+        "SHIFT, PRINT, exec, hyprshot -m output -o ~/Pictures/Screenshots"
+        # Window focus (arrow keys)
+        "$mainMod, left, movefocus, l"
+        "$mainMod, right, movefocus, r"
+        "$mainMod, up, movefocus, u"
+        "$mainMod, down, movefocus, d"
 
-      # --- Visuals ---
-      general {
-          gaps_in = 0
-          gaps_out = 0
-          border_size = 2
-          col.active_border = rgba(33ccffee)
-          col.inactive_border = rgba(595959aa)
-          layout = dwindle
-      }
+        # Window movement
+        "$mainMod SHIFT, left, movewindow, l"
+        "$mainMod SHIFT, right, movewindow, r"
+        "$mainMod SHIFT, up, movewindow, u"
+        "$mainMod SHIFT, down, movewindow, d"
 
-      decoration {
-          rounding = 0
-      }
+        # Workspaces 1-5
+        "$mainMod, 1, workspace, 1"
+        "$mainMod, 2, workspace, 2"
+        "$mainMod, 3, workspace, 3"
+        "$mainMod, 4, workspace, 4"
+        "$mainMod, 5, workspace, 5"
 
-      animations {
-          enabled = true
-          bezier = myBezier, 0.05, 0.9, 0.1, 1.05
-          animation = windows, 1, 7, myBezier
-          animation = border, 1, 10, default
-          animation = fade, 1, 7, default
-          animation = workspaces, 1, 6, default
-      }
+        "$mainMod SHIFT, 1, movetoworkspace, 1"
+        "$mainMod SHIFT, 2, movetoworkspace, 2"
+        "$mainMod SHIFT, 3, movetoworkspace, 3"
+        "$mainMod SHIFT, 4, movetoworkspace, 4"
+        "$mainMod SHIFT, 5, movetoworkspace, 5"
 
-      dwindle {
-          preserve_split = true
-      }
+        "$mainMod ALT, right, workspace, m+1"
+        "$mainMod ALT, left, workspace, m-1"
 
-      # --- Keybinds ---
-      $mainMod = SUPER
+        # Media keys
+        ", XF86AudioRaiseVolume, exec, pamixer -i 5"
+        ", XF86AudioLowerVolume, exec, pamixer -d 5"
+        ", XF86AudioMute, exec, pamixer -t"
+        ", XF86AudioMicMute, exec, pamixer --default-source -t"
+        ", Pause, exec, playerctl play-pause"
 
-      # Applications
-      bind = $mainMod, RETURN, exec, kitty
-      bind = $mainMod, Q, killactive,
-      bind = $mainMod, M, exit,
-      bind = $mainMod, F, fullscreen,
-      bind = $mainMod, SPACE, exec, fuzzel
-      bind = $mainMod, R, exec, fuzzel
-      bind = $mainMod, B, exec, firefox
-      bind = $mainMod, E, exec, nautilus --new-window
+        # Brightness
+        ", XF86MonBrightnessUp, exec, brightnessctl s +5%"
+        ", XF86MonBrightnessDown, exec, brightnessctl s 5%-"
 
-      # Special Workspaces
-      bind = $mainMod, S, exec, ${dynamicSpecialWorkspace} spotify Spotify spotify
+        # Hardware function keys
+        ", XF86Display, exec, wdisplays"
+        ", XF86WLAN, exec, nmcli radio wifi"
+        ", XF86Bluetooth, exec, bluetoothctl power toggle"
+        ", XF86Favorites, exec, hyprshot -m region -o ~/Pictures/Screenshots"
 
-      # Screenshots
-      bind = , PRINT, exec, hyprshot -m region -o ~/Pictures/Screenshots
-      bind = SHIFT, PRINT, exec, hyprshot -m output -o ~/Pictures/Screenshots
+        # Keyboard backlight (ThinkPad -- single key cycles brightness)
+        ", XF86KbdBrightnessUp, exec, ${kbdBacklightToggle}"
+        ", XF86KbdBrightnessDown, exec, ${kbdBacklightToggle}"
 
-      # Window focus (arrow keys)
-      bind = $mainMod, left, movefocus, l
-      bind = $mainMod, right, movefocus, r
-      bind = $mainMod, up, movefocus, u
-      bind = $mainMod, down, movefocus, d
+        # Lock screen
+        "$mainMod, L, exec, hyprlock"
 
-      # Window movement
-      bind = $mainMod SHIFT, left, movewindow, l
-      bind = $mainMod SHIFT, right, movewindow, r
-      bind = $mainMod SHIFT, up, movewindow, u
-      bind = $mainMod SHIFT, down, movewindow, d
+        # Clipboard history
+        "$mainMod, V, exec, cliphist list | fuzzel --dmenu --prompt 'Clipboard' | cliphist decode | wl-copy"
+      ];
+      bindl = [
+        # Media keys
+        ", XF86AudioPlay, exec, playerctl play-pause"
+        ", XF86AudioNext, exec, playerctl next"
+        ", XF86AudioPrev, exec, playerctl previous"
 
-      # Workspaces 1-5
-      bind = $mainMod, 1, workspace, 1
-      bind = $mainMod, 2, workspace, 2
-      bind = $mainMod, 3, workspace, 3
-      bind = $mainMod, 4, workspace, 4
-      bind = $mainMod, 5, workspace, 5
+        # --- Lid-switch handler (dynamically detects internal display) ---
+        ", switch:on:Lid Switch, exec, ${lidSwitchHandler} close"
+        ", switch:off:Lid Switch, exec, ${lidSwitchHandler} open"
+      ];
+      windowrule = [ "match:class .*, suppress_event maximize fullscreen" ];
+    };
+  };
 
-      bind = $mainMod SHIFT, 1, movetoworkspace, 1
-      bind = $mainMod SHIFT, 2, movetoworkspace, 2
-      bind = $mainMod SHIFT, 3, movetoworkspace, 3
-      bind = $mainMod SHIFT, 4, movetoworkspace, 4
-      bind = $mainMod SHIFT, 5, movetoworkspace, 5
+  services.hyprpaper = {
+    enable = true;
+    settings = {
+      splash = false;
+      wallpaper = [ " ,${config.home.homeDirectory}/Pictures/Wallpapers/, cover" ];
+    };
+  };
 
-      bind = $mainMod ALT, right, workspace, m+1
-      bind = $mainMod ALT, left, workspace, m-1
+  programs.hyprlock = {
+    enable = true;
+    settings = {
+      background = [{ monitor = ""; path = "${config.home.homeDirectory}/Pictures/Wallpapers/"; blur_passes = 3; blur_size = 10; noise = 0.05; }];
+      "input-field" = [{
+        monitor = "";
+        size = "240, 54";
+        outline_thickness = 3;
+        dots_size = 0.2;
+        dots_spacing = 0.2;
+        dots_center = true;
+        outer_color = "rgba(0, 0, 0, 0)";
+        inner_color = "rgba(255, 255, 255, 0.08)";
+        font_color = "rgba(255, 255, 255, 0.9)";
+        fade_on_empty = false;
+        rounding = 14;
+        placeholder_text = "";
+        fail_color = "rgba(255, 100, 100, 1.0)";
+        fail_text = "";
+      }];
+      label = [
+        {
+          monitor = "";
+          text = "cmd[update:1000] echo \"$(date '+%H:%M')\"";
+          color = "rgba(255, 255, 255, 0.9)";
+          font_size = 72;
+          font_family = "Noto Sans";
+          position = "0, -70";
+          halign = "center";
+          valign = "center";
+          shadow_passes = 2;
+          shadow_size = 3;
+          shadow_color = "rgba(0, 0, 0, 0.5)";
+        }
+        {
+          monitor = "";
+          text = "cmd[update:1000] echo \"$(date '+%A, %B %d')\"";
+          color = "rgba(255, 255, 255, 0.6)";
+          font_size = 20;
+          font_family = "Noto Sans";
+          position = "0, -120";
+          halign = "center";
+          valign = "center";
+        }
+      ];
+    };
+  };
 
-      # Media keys
-      bind = , XF86AudioRaiseVolume, exec, pamixer -i 5
-      bind = , XF86AudioLowerVolume, exec, pamixer -d 5
-      bind = , XF86AudioMute, exec, pamixer -t
-      bind = , XF86AudioMicMute, exec, pamixer --default-source -t
+  services.hypridle = {
+    enable = true;
+    settings = {
+      general = {
+        lock_cmd = "pidof hyprlock || hyprlock";
+        before_sleep_cmd = "loginctl lock-session";
+        after_sleep_cmd = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'";
+      };
+      listener = [
+        { timeout = 150; on-timeout = "brightnessctl -s set 10"; on-resume = "brightnessctl -r"; }
+        { timeout = 150; on-timeout = "brightnessctl -sd rgb:kbd_backlight set 0"; on-resume = "brightnessctl -rd rgb:kbd_backlight"; }
+        { timeout = 300; on-timeout = "loginctl lock-session"; }
+        { timeout = 330; on-timeout = "hyprctl dispatch 'hl.dsp.dpms({ action = \"disable\" })'"; on-resume = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })' && brightnessctl -r"; }
+        { timeout = 1800; on-timeout = "systemctl suspend"; }
+      ];
+    };
+  };
 
-      bindl = , XF86AudioPlay, exec, playerctl play-pause
-      bindl = , XF86AudioNext, exec, playerctl next
-      bindl = , XF86AudioPrev, exec, playerctl previous
-      bind = , Pause, exec, playerctl play-pause
-
-      # Brightness
-      bind = , XF86MonBrightnessUp, exec, brightnessctl s +5%
-      bind = , XF86MonBrightnessDown, exec, brightnessctl s 5%-
-
-      # Hardware function keys
-      bind = , XF86Display, exec, wdisplays
-      bind = , XF86WLAN, exec, nmcli radio wifi
-      bind = , XF86Bluetooth, exec, bluetoothctl power toggle
-      bind = , XF86Favorites, exec, hyprshot -m region -o ~/Pictures/Screenshots
-
-      # Keyboard backlight (ThinkPad -- single key cycles brightness)
-      bind = , XF86KbdBrightnessUp, exec, ${kbdBacklightToggle}
-      bind = , XF86KbdBrightnessDown, exec, ${kbdBacklightToggle}
-
-      # Lock screen
-      bind = $mainMod, L, exec, hyprlock
-
-      # Clipboard history
-      bind = $mainMod, V, exec, cliphist list | fuzzel --dmenu --prompt 'Clipboard' | cliphist decode | wl-copy
-
-      bind = $mainMod, W, exec, hyprctl dispatch renameworkspace $(hyprctl activeworkspace -j | jq '.id') "$(fuzzel -d -p 'Rename workspace: ')"
-
-      # --- Lid-switch handler (dynamically detects internal display) ---
-      bindl = , switch:on:Lid Switch, exec, ${lidSwitchHandler} close
-      bindl = , switch:off:Lid Switch, exec, ${lidSwitchHandler} open
-
-      # --- Misc ---
-      windowrule = match:class .*, suppress_event maximize fullscreen
+  programs.waybar = {
+    enable = true;
+    settings = [{
+      layer = "top";
+      position = "top";
+      height = 30;
+      spacing = 4;
+      modules-left = [ "hyprland/workspaces" ];
+      modules-center = [ "clock" ];
+      modules-right = [ "battery" "tray" ];
+      "hyprland/workspaces" = { disable-scroll = true; all-outputs = false; format = "{name}"; };
+      clock = { format = "{:%a %d.%m.%Y  %H:%M}"; tooltip-format = "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"; };
+      battery = { states = { warning = 30; critical = 15; }; format = "{capacity}% {icon}"; format-icons = [ "" "" "" "" "" ]; format-charging = "{capacity}%  "; format-plugged = "{capacity}%  "; };
+      tray = { spacing = 10; icon-size = 18; };
+    }];
+    style = ''
+      * { border: none; border-radius: 0; font-family: "Noto Sans", "Symbols Nerd Font", sans-serif; font-size: 13px; min-height: 0; }
+      window#waybar { background: rgba(30, 30, 30, 0.9); color: #ffffff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+      #workspaces button { padding: 0 5px; background: transparent; color: #ffffff; }
+      #workspaces button.active { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+      #workspaces button:hover { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+      #clock, #battery, #tray { padding: 0 10px; margin: 0 2px; }
+      #battery.warning { color: #f9e2af; }
+      #battery.critical { color: #f38ba8; }
     '';
+  };
 
-    # -- Standalone config files (static, no nix interpolation needed) --
+  programs.fuzzel = {
+    enable = true;
+    settings = {
+      main = { font = "Noto Sans:size=12"; icons-enabled = true; icon-theme = "Papirus-Dark"; prompt = "Apps>"; layer = "overlay"; width = 56; lines = 8; horizontal-pad = 14; vertical-pad = 10; inner-pad = 8; line-height = 28; };
+      colors = { background = "1e1e2eff"; text = "cdd6f4ff"; prompt = "6c7086ff"; input = "cdd6f4ff"; placeholder = "6c7086ff"; selection = "45475aff"; selection-text = "cdd6f4ff"; match = "89b4faff"; border = "45475aff"; };
+      border = { width = 0; radius = 16; };
+    };
+  };
 
-    "hypr/hyprpaper.conf".source = ./hyprpaper.conf;
-    "hypr/hyprlock.conf".source = ./hyprlock.conf;
-    "hypr/hypridle.conf".source = ./hypridle/hypridle.conf;
-    "waybar/config.jsonc".source = ./waybar/config.jsonc;
-    "waybar/style.css".source = ./waybar/style.css;
-    "fuzzel/fuzzel.ini".source = ./fuzzel/fuzzel.ini;
-    "mako/config".source = ./mako/config;
+  services.mako = {
+    enable = true;
+    settings = {
+      font = "Noto Sans 12";
+      margin = 10;
+      width = 320;
+      height = 120;
+      default-timeout = 6000;
+      max-visible = 5;
+      corner-radius = 10;
+      background-color = "#1e1e1e";
+      text-color = "#ffffff";
+      border-color = "#89b4fa";
+      progress-color = "over #89b4fa";
+      "urgency=low" = { default-timeout = 4000; };
+      "urgency=normal" = { default-timeout = 6000; };
+      "urgency=critical" = { default-timeout = 0; border-color = "#f38ba8"; text-color = "#f38ba8"; };
+    };
   };
 
   # ---------------------------------------------------------------------------
