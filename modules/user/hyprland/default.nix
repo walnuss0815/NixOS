@@ -37,10 +37,11 @@ let
       ${pkgs.jq}/bin/jq -r '.[] | select(.name | test("eDP|LVDS|DSI|unknown")) | .name' |
       head -1)
     [ -n "$monitor" ] || exit 0
-    case "$1" in
-      close) ${pkgs.hyprland}/bin/hyprctl keyword monitor "$monitor, disable" ;;
-      open)  ${pkgs.hyprland}/bin/hyprctl keyword monitor "$monitor, preferred, auto, 1" ;;
-    esac
+    if grep -q "closed" /proc/acpi/button/lid/*/state 2>/dev/null; then
+      ${pkgs.hyprland}/bin/hyprctl keyword monitor "$monitor, disable"
+    else
+      ${pkgs.hyprland}/bin/hyprctl keyword monitor "$monitor, preferred, auto, 1"
+    fi
   '';
 in
 {
@@ -140,6 +141,7 @@ in
         "mako"
         "udiskie -t"
         "syshud"
+        "${lidSwitchHandler}"
       ];
 
       env = [
@@ -147,8 +149,16 @@ in
         "XCURSOR_SIZE,24"
         "GTK_THEME,Adwaita-dark"
         "ELECTRON_OZONE_PLATFORM_HINT,auto"
+        "GDK_SCALE,1"
+        "GDK_DPI_SCALE,1.0"
       ];
-      monitor = [ ",preferred,auto,auto" ];
+
+      monitor = [
+        "eDP-1, 1920x1080, 0x1440, 1" # Built-in screen
+        "DP-7,  2560x1440, 0x0,    1" # Left screen
+        "DP-4,  2560x1440, 2560x0, 1" # Right screen
+        ",      preferred, auto,   auto"
+      ];
 
       input = {
         kb_layout = "de";
@@ -261,8 +271,8 @@ in
         ", XF86AudioPrev, exec, playerctl previous"
 
         # Lid-switch handler (dynamically detects internal display)
-        ", switch:on:Lid Switch, exec, ${lidSwitchHandler} close"
-        ", switch:off:Lid Switch, exec, ${lidSwitchHandler} open"
+        ", switch:on:Lid Switch, exec, ${lidSwitchHandler}"
+        ", switch:off:Lid Switch, exec, ${lidSwitchHandler}"
       ];
       windowrule = [ "match:class .*, suppress_event maximize fullscreen" ];
     };
