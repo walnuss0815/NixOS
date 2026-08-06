@@ -59,6 +59,7 @@ in
     evince
     loupe
     gnome-text-editor
+    file-roller
 
     # File manager, networking, bluetooth, audio
     nautilus
