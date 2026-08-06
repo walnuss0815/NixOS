@@ -118,7 +118,11 @@ in
     enable = true;
     settings = {
       "org/gnome/desktop/interface" = {
+        gtk-theme = "Adwaita-dark";
         color-scheme = "prefer-dark";
+        font-name = "Noto Sans Medium 11";
+        document-font-name = "Noto Sans Medium 11";
+        monospace-font-name = "Noto Sans Mono Medium 11";
       };
     };
   };
