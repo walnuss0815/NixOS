@@ -160,8 +160,8 @@ in
 
       monitor = [
         "eDP-1, 1920x1080, 0x1440, 1" # Built-in screen
-        "DP-7,  2560x1440, 0x0,    1" # Left screen
-        "DP-4,  2560x1440, 2560x0, 1" # Right screen
+        "DP-9,  2560x1440, 0x0,    1" # Left screen
+        "DP-5,  2560x1440, 2560x0, 1" # Right screen
         ",      preferred, auto,   auto"
       ];
 
