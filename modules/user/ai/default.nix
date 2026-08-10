@@ -102,6 +102,10 @@
   programs.mcp = {
     enable = true;
     servers = {
+      nixos = {
+        command = "uvx";
+        args = [ "mcp-nixos" ];
+      };
       kubernetes = {
         command = "npx";
         args = [ "-y" "kubernetes-mcp-server" ];
