@@ -82,12 +82,9 @@
     unzip
     p7zip
 
-    # AI
-    opencode
-    opencode-claude-auth
+    # Claude
     claude-code
     vscode-extensions.anthropic.claude-code
-    nodejs_24
 
     # networking tools
     mtr # A network diagnostic tool

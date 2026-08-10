@@ -73,6 +73,7 @@
             ./modules/user/shell
             ./modules/user/git
             ./modules/user/vscode
+            ./modules/user/ai
           ];
         };
       };
