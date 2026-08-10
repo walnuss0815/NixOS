@@ -5,7 +5,24 @@
     gnomeExtensions.forge
     papirus-icon-theme
     whitesur-cursors
+    exiftool
   ];
+
+  # Nautilus right-click script to strip EXIF/metadata from images.
+  # Usage: select one or more images, right-click -> Scripts -> "Strip EXIF Data"
+  home.file.".local/share/nautilus/scripts/Strip EXIF Data" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      # Removes all metadata (EXIF, GPS, IPTC, XMP) from the selected images.
+      # The ICC colour profile is kept so the images do not change appearance.
+      set -e
+      for file in "$@"; do
+        exiftool -overwrite_original -all= --icc_profile:all "$file"
+      done
+      notify-send "Strip EXIF Data" "Stripped metadata from $# image(s)."
+    '';
+  };
 
   dconf = {
     enable = true;
