@@ -46,18 +46,104 @@
 
         # Globally configured MCP servers (programs.mcp.servers below,
         # merged into opencode via enableMcpIntegration). MCP tools are
-        # namespaced "<server>_<tool>", so a "<server>_*" pattern covers
-        # every tool that server exposes. Tiered by blast radius:
-        #   - nixos: read-only nixpkgs/option lookups        -> allow
-        #   - kubernetes: can create/patch/delete cluster
-        #     resources on a live cluster                    -> ask
-        #   - git: can commit/reset/push in whatever repo
-        #     path it's given                                -> ask
-        #   - ssh: runs arbitrary commands on a remote host   -> ask
+        # namespaced "<server>_<tool>" (our config key, "_", then the
+        # tool's own name exactly as the upstream server defines it).
+        #
+        # Rules of thumb applied per the upstream tool docs, most
+        # specific first:
+        #   - read-only lookups                         -> allow
+        #   - anything that can return secret/credential
+        #     material (k8s Secrets, kubeconfig, etc.)   -> ask
+        #   - create/modify/delete operations            -> ask
+        # Anything not explicitly listed below (including tools added by
+        # a future server version) falls through to that server's "ask"
+        # catch-all rather than an unreviewed "allow". Nix's JSON
+        # serializer emits attrset keys alphabetically regardless of the
+        # order written here, but "*" sorts before any letter/digit, so
+        # each catch-all still resolves before its own specific
+        # overrides ("last match wins").
+
+        # mcp-nixos (github:utensils/mcp-nixos): exactly 2 tools, `nix`
+        # and `nix_versions`, both pure query/search against public
+        # NixOS/nixpkgs metadata APIs. No create/update/delete capability
+        # exists in this server at all, so a blanket allow is safe.
         "nixos_*" = "allow";
+
+        # kubernetes-mcp-server (github:containers/kubernetes-mcp-server).
+        # Only the default "config" + "core" toolsets are enabled here
+        # (no --toolsets flag set), so helm/kcp/kiali/kubevirt/netobserv/
+        # tekton tools aren't exposed; if any of those get enabled later
+        # they fall through to "ask" until reviewed.
         "kubernetes_*" = "ask";
+        # config toolset - read-only
+        "kubernetes_configuration_contexts_list" = "allow";
+        "kubernetes_targets_list" = "allow";
+        # configuration_view returns the kubeconfig, which can embed
+        # client certs/tokens for cluster auth -> treated like
+        # credential material, stays on the "ask" catch-all.
+        # core toolset - read-only, typed to Pod/Node/Namespace/Event,
+        # cannot return a Secret object
+        "kubernetes_namespaces_list" = "allow";
+        "kubernetes_projects_list" = "allow";
+        "kubernetes_events_list" = "allow";
+        "kubernetes_nodes_log" = "allow";
+        "kubernetes_nodes_stats_summary" = "allow";
+        "kubernetes_nodes_top" = "allow";
+        "kubernetes_pods_list" = "allow";
+        "kubernetes_pods_list_in_namespace" = "allow";
+        "kubernetes_pods_get" = "allow";
+        "kubernetes_pods_top" = "allow";
+        "kubernetes_pods_log" = "allow";
+        # Stays on "ask": pods_delete/pods_exec/pods_run (delete/exec/
+        # create); resources_get/resources_list (generic - can return
+        # ANY resource kind including v1 Secret, which is exactly the
+        # "always ask before reading secrets" case); resources_create_
+        # or_update, resources_delete, resources_scale (modify/create/
+        # delete).
+
+        # @cyanheads/git-mcp-server (github:cyanheads/git-mcp-server), 28
+        # tools. The server's own tool names already start with "git_",
+        # so namespacing with our "git" server key doubles the prefix
+        # (e.g. "git_git_status"). Double-check the exact literal names
+        # against what actually shows up in an approval prompt or
+        # `opencode mcp list` and adjust if this guess is off - the "ask"
+        # catch-all is the safety net either way.
         "git_*" = "ask";
+        # History & inspection - read-only, never touches the working tree
+        "git_git_status" = "allow";
+        "git_git_diff" = "allow";
+        "git_git_log" = "allow";
+        "git_git_show" = "allow";
+        "git_git_blame" = "allow";
+        "git_git_reflog" = "allow";
+        "git_git_changelog_analyze" = "allow";
+        # fetch only updates remote-tracking refs, it never touches your
+        # current branch/working tree (unlike pull, which merges)
+        "git_git_fetch" = "allow";
+        # session/context bookkeeping only, no repository mutation
+        "git_git_set_working_dir" = "allow";
+        "git_git_clear_working_dir" = "allow";
+        "git_git_wrapup_instructions" = "allow";
+        # Stays on "ask": git_init/git_clone (create); git_add/git_commit
+        # (modify); git_clean/git_reset (destructive); git_branch/
+        # git_tag/git_remote/git_stash/git_worktree (each bundles list+
+        # create+delete in one tool, treated conservatively); git_
+        # checkout/git_merge/git_rebase/git_cherry_pick (modify); git_
+        # pull/git_push (modify/publish).
+
+        # ssh-mcp (github:tufantunc/ssh-mcp) v2 - its README tool table
+        # already marks each tool readOnly/destructive; mirrored
+        # directly here.
         "ssh_*" = "ask";
+        "ssh_list-connections" = "allow";
+        "ssh_list-sessions" = "allow";
+        "ssh_open-session" = "allow"; # not marked destructive upstream
+        "ssh_read-session-output" = "allow";
+        "ssh_read-command" = "allow"; # server-enforced read-only allowlist
+        "ssh_sftp-download" = "allow";
+        # Stays on "ask": close-session, run-command (arbitrary remote
+        # command execution), privileged-command (sudo), sftp-upload,
+        # signal-process - all marked destructive/mutating upstream.
       };
       "plugin" = [
         "opencode-claude-auth@latest"
