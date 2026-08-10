@@ -99,19 +99,21 @@
     };
   };
 
-  programs.mcp.servers = {
+  programs.mcp = {
     enable = true;
-    kubernetes = {
-      command = "npx";
-      args = [ "-y" "kubernetes-mcp-server" ];
-    };
-    git = {
-      command = "npx";
-      args = [ "-y" "cyanheads/git-mcp-server" ];
-    };
-    ssh = {
-      command = "npx";
-      args = [ "-y" "ssh-mcp" ];
+    servers = {
+      kubernetes = {
+        command = "npx";
+        args = [ "-y" "kubernetes-mcp-server" ];
+      };
+      git = {
+        command = "npx";
+        args = [ "-y" "cyanheads/git-mcp-server" ];
+      };
+      ssh = {
+        command = "npx";
+        args = [ "-y" "ssh-mcp" ];
+      };
     };
   };
 }
