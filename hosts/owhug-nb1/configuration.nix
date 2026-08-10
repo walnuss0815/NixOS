@@ -5,9 +5,10 @@
 { config, pkgs, ... }:
 
 {
-  imports = [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+  ];
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -31,8 +32,8 @@
   networking.networkmanager = {
     enable = true;
     wifi = {
-    powersave = false;
-    scanRandMacAddress = false;
+      powersave = false;
+      scanRandMacAddress = false;
     };
     plugins = with pkgs; [
       networkmanager-openvpn
@@ -185,7 +186,7 @@
 
   # Touchscreen
   services.xserver.wacom.enable = true;
-  boot.blacklistedKernelModules = ["raydium_i2c_ts"];
+  boot.blacklistedKernelModules = [ "raydium_i2c_ts" ];
 
   # Fingerprint reader: login and unlock with fingerprint (if you add one with `fprintd-enroll`)
   services.fprintd.enable = true;

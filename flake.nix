@@ -28,7 +28,8 @@
         config = { allowUnfree = true; };
       };
 
-    in {
+    in
+    {
       nixosConfigurations = {
         alexander-nb2 = nixpkgs.lib.nixosSystem {
           inherit system;
