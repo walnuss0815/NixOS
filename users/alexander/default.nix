@@ -87,6 +87,7 @@
     opencode-claude-auth
     claude-code
     vscode-extensions.anthropic.claude-code
+    nodejs_24
 
     # networking tools
     mtr # A network diagnostic tool
