@@ -54,7 +54,7 @@
             nixos-hardware.nixosModules.common-pc-laptop-ssd
             nur.modules.nixos.default
             silentSDDM.nixosModules.default
-            ./modules/system/hyprland
+            ./modules/system/gnome
             ./modules/system/docker
             ./modules/system/netbird
             ./modules/system/printing
@@ -69,7 +69,7 @@
 
           modules = [
             ./users/alexander
-            ./modules/user/hyprland
+            ./modules/user/gnome
             ./modules/user/shell
             ./modules/user/git
             ./modules/user/vscode
