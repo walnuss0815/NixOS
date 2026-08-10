@@ -108,11 +108,11 @@
       };
       kubernetes = {
         command = "npx";
-        args = [ "-y" "kubernetes-mcp-server" ];
+        args = [ "-y" "@kubernetes-mcp-server@latest" ];
       };
       git = {
         command = "npx";
-        args = [ "-y" "cyanheads/git-mcp-server" ];
+        args = [ "-y" "@cyanheads/git-mcp-server@latest" ];
       };
       ssh = {
         command = "npx";
