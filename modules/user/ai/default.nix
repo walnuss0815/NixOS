@@ -5,7 +5,6 @@
     enableMcpIntegration = true;
     extraPackages = with pkgs; [
       nodejs_24
-      uv
     ];
     settings = {
       permission = {
@@ -102,21 +101,28 @@
   programs.mcp = {
     enable = true;
     servers = {
+      # Packaged in nixpkgs, so this is fully reproducible/offline: no
+      # network fetch at runtime and no untracked version drift.
       nixos = {
-        command = "uvx";
-        args = [ "mcp-nixos" ];
+        command = "${pkgs.mcp-nixos}/bin/mcp-nixos";
       };
+
+      # No nixpkgs package for these exact servers exists yet, so they are
+      # still fetched via npx at runtime. Pinned to an exact version
+      # (instead of `@latest`) so the server doesn't silently change
+      # behavior underneath us; bump deliberately after checking release
+      # notes.
       kubernetes = {
         command = "npx";
-        args = [ "-y" "@kubernetes-mcp-server@latest" ];
+        args = [ "-y" "kubernetes-mcp-server@0.0.66" ];
       };
       git = {
         command = "npx";
-        args = [ "-y" "@cyanheads/git-mcp-server@latest" ];
+        args = [ "-y" "@cyanheads/git-mcp-server@2.15.1" ];
       };
       ssh = {
         command = "npx";
-        args = [ "-y" "ssh-mcp" ];
+        args = [ "-y" "ssh-mcp@2.1.0" ];
       };
     };
   };
