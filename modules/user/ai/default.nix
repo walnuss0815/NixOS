@@ -17,6 +17,47 @@
         edit = {
           "/nix/store/**" = "deny";
         };
+
+        # Shell access: ask by default, allow common read-only commands
+        # without prompting, and hard-deny irreversible footguns. Explicit
+        # "deny" rules stay enforced even under `opencode --auto`, unlike
+        # "ask" rules which get auto-approved in that mode.
+        bash = {
+          "*" = "ask";
+
+          "git status*" = "allow";
+          "git diff*" = "allow";
+          "git log*" = "allow";
+          "git show*" = "allow";
+          "ls*" = "allow";
+          "cat*" = "allow";
+          "rg *" = "allow";
+          "grep *" = "allow";
+          "find *" = "allow";
+
+          "rm -rf *" = "deny";
+          "dd *" = "deny";
+          "mkfs*" = "deny";
+          "shutdown*" = "deny";
+          "reboot*" = "deny";
+          "systemctl poweroff*" = "deny";
+          "systemctl reboot*" = "deny";
+        };
+
+        # Globally configured MCP servers (programs.mcp.servers below,
+        # merged into opencode via enableMcpIntegration). MCP tools are
+        # namespaced "<server>_<tool>", so a "<server>_*" pattern covers
+        # every tool that server exposes. Tiered by blast radius:
+        #   - nixos: read-only nixpkgs/option lookups        -> allow
+        #   - kubernetes: can create/patch/delete cluster
+        #     resources on a live cluster                    -> ask
+        #   - git: can commit/reset/push in whatever repo
+        #     path it's given                                -> ask
+        #   - ssh: runs arbitrary commands on a remote host   -> ask
+        "nixos_*" = "allow";
+        "kubernetes_*" = "ask";
+        "git_*" = "ask";
+        "ssh_*" = "ask";
       };
       "plugin" = [
         "opencode-claude-auth@latest"
