@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [wip]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      # Evaluates nixosConfigurations.* and homeConfigurations.* (module
+      # errors, type errors, assertions) plus the flake's own schema.
+      - name: nix flake check
+        run: nix flake check --keep-going
+
+  format:
+    name: nixpkgs-fmt --check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      # Uses the same formatter declared as a dev tool in shell.nix, so
+      # `nixpkgs-fmt .` locally always matches what CI expects.
+      - name: Check formatting
+        run: nix run nixpkgs#nixpkgs-fmt -- --check .
+
+  lint:
+    name: statix & deadnix (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      # Advisory only: the repo currently has widespread, mostly-stylistic
+      # findings (unused `config`/`pkgs` module args, repeated top-level
+      # attribute keys) that are intentional/idiomatic in many NixOS
+      # modules. Reporting without blocking merges until those are
+      # triaged/cleaned up on purpose.
+      - name: statix check
+        run: nix run nixpkgs#statix -- check .
+        continue-on-error: true
+
+      - name: deadnix
+        run: nix run nixpkgs#deadnix -- .
+        continue-on-error: true
