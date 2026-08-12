@@ -84,7 +84,6 @@
 
     # Claude
     claude-code
-    vscode-extensions.anthropic.claude-code
 
     # networking tools
     mtr # A network diagnostic tool

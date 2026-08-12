@@ -22,7 +22,7 @@
           "editor.detectIndentation" = true;
           "terminal.integrated.suggest.enabled" = false;
           "terminal.integrated.shellIntegration.enabled" = false;
-
+          "chat.disableAIFeatures" = true;
         };
         extensions = [
           pkgs.vscode-extensions.mkhl.direnv
