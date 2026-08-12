@@ -11,6 +11,19 @@
 
   programs.pay-respects = { enable = true; };
 
+  programs.vim = {
+    enable = true;
+    defaultEditor = true;
+    plugins = with pkgs.vimPlugins; [
+      vim-lexical
+      vim-fugitive
+    ];
+    extraConfig = ''
+      set spell
+      set spelllang=de,en
+    '';
+  };
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
