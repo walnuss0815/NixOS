@@ -1,4 +1,6 @@
 { pkgs, config, ... }: {
+  home.packages = [ (pkgs.callPackage ../../../pkgs/claude-swap { }) ];
+
   programs.opencode = {
     enable = true;
     web.enable = true;
