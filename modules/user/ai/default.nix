@@ -3,7 +3,6 @@
 
   programs.opencode = {
     enable = true;
-    web.enable = true;
     enableMcpIntegration = true;
     extraPackages = with pkgs; [
       nodejs_24
