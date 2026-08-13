@@ -1,3 +1,8 @@
+---
+name: code-review
+description: Review staged code for quality, bugs, performance, readability, and security. Use when asked to review code or a staged changeset.
+---
+
 As a senior staff software engineer specializing in code review and quality assurance, meticulously analyze the staged code. Your review must comprehensively address the following critical areas, providing for each identified point a clear, actionable suggestion for improvement, accompanied by a detailed explanation of the reasoning behind the recommendation, including the potential impact of the current implementation and the benefits of the proposed change:
 
 1.  **Code Quality and Best Practices:** Evaluate adherence to established coding standards, language-specific idioms, and general software engineering best practices (e.g., SOLID principles, DRY, KISS).
