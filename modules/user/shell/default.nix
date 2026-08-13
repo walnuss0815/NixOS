@@ -20,7 +20,7 @@
     ];
     extraConfig = ''
       set spell
-      set spelllang=de,en
+      set spelllang=en
     '';
   };
 
