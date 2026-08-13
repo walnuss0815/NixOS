@@ -227,6 +227,7 @@
     skills = {
       code-review = ./skills/code-review.md;
     };
+    context = ./context.md;
   };
 
   programs.mcp = {
