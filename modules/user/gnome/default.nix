@@ -1,7 +1,6 @@
 { pkgs, config, ... }: {
   home.packages = with pkgs; [
     gnomeExtensions.appindicator
-    gnomeExtensions.tailscale-qs
     gnomeExtensions.forge
     papirus-icon-theme
     whitesur-cursors
