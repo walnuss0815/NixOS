@@ -6,10 +6,16 @@ let
   signingKeyPath = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
   allowedSignersFile = "${config.home.homeDirectory}/.config/git/allowed_signers";
 in {
+  home.packages = with pkgs; [
+    ghq
+  ];
   home.file.".config/git/allowed_signers".text = "${email} ${signingKeyValue}\n";
   programs.git = {
     enable = true;
     settings = {
+      ghq = {
+        root = "~/Projects";
+      };
       user = {
         inherit name;
         inherit email;
