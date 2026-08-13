@@ -1,11 +1,23 @@
-{ pkgs, config, ... }: {
+{ pkgs, config, ... }:
+let
+  name = "Alexander Weidemann";
+  email = "walnuss0815@gmail.com";
+  signingKeyValue = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9agMLuqQcDPEzPnTTT48UYrsqgyvW3VtfG8JQW3wr2";
+  signingKeyPath = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
+  allowedSignersFile = "${config.home.homeDirectory}/.config/git/allowed_signers";
+in {
+  home.file.".config/git/allowed_signers".text = "${email} ${signingKeyValue}\n";
   programs.git = {
     enable = true;
     settings = {
       user = {
-        name = "Alexander Weidemann";
-        email = "walnuss0815@gmail.com";
+        inherit name;
+        inherit email;
+        signingkey = signingKeyPath;
       };
+      gpg.format = "ssh";
+      gpg.ssh.allowedSignersFile = allowedSignersFile;
+      commit.gpgsign = true;
       lfs.enable = true;
       alias = {
         co = "checkout";
