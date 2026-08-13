@@ -5,7 +5,8 @@ let
   signingKeyValue = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9agMLuqQcDPEzPnTTT48UYrsqgyvW3VtfG8JQW3wr2";
   signingKeyPath = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
   allowedSignersFile = "${config.home.homeDirectory}/.config/git/allowed_signers";
-in {
+in
+{
   home.packages = with pkgs; [
     ghq
   ];
