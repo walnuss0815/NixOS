@@ -225,6 +225,9 @@
         };
       };
     };
+    skills = {
+      code-review = ./skills/code-review.md;
+    };
   };
 
   programs.mcp = {
