@@ -239,6 +239,24 @@
         command = "${pkgs.mcp-nixos}/bin/mcp-nixos";
       };
 
+      # As of now there is no real alternative to run the GitHub MCP with OAuth
+      github = {
+        command = "docker";
+        args = [
+          "run"
+          "-i"
+          "--rm"
+          "-p"
+          "127.0.0.1:8085:8085"
+          "-e"
+          "GITHUB_OAUTH_CALLBACK_PORT"
+          "ghcr.io/github/github-mcp-server"
+        ];
+        environment = {
+          "GITHUB_OAUTH_CALLBACK_PORT" = "8085";
+        };
+      };
+
       # No nixpkgs package for these exact servers exists yet, so they are
       # still fetched via npx at runtime. Pinned to an exact version
       # (instead of `@latest`) so the server doesn't silently change
