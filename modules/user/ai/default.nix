@@ -31,7 +31,7 @@
         # "deny" rules stay enforced even under `opencode --auto`, unlike
         # "ask" rules which get auto-approved in that mode.
         bash = {
-          "*" = "ask";
+          "*" = "allow";
 
           "git status*" = "allow";
           "git diff*" = "allow";
