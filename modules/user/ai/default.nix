@@ -6,7 +6,14 @@
     enableMcpIntegration = true;
     extraPackages = with pkgs; [
       nodejs_24
+      libnotify
     ];
+    tui = {
+      attention = {
+        enabled = true;
+      };
+    };
+
     settings = {
       permission = {
         external_directory = {
@@ -148,6 +155,7 @@
       };
       "plugin" = [
         "opencode-claude-auth@latest"
+        "opencode-notify@0.3.1"
       ];
       "provider" = {
         "ollama" = {
