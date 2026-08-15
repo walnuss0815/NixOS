@@ -234,6 +234,7 @@
     };
     skills = {
       code-review = ./skills/code-review.md;
+      git-commit = ./skills/git-commit.md;
     };
     context = ./context.md;
   };
