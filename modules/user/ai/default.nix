@@ -267,6 +267,7 @@
       };
 
       # As of now there is no real alternative to run the GitHub MCP with OAuth
+      # (the nixpkgs build doesn't inject the official OAuth app credentials).
       github = {
         command = "docker";
         args = [
@@ -277,10 +278,11 @@
           "127.0.0.1:8085:8085"
           "-e"
           "GITHUB_OAUTH_CALLBACK_PORT"
-          "ghcr.io/github/github-mcp-server"
+          "ghcr.io/github/github-mcp-server:v1.9.0"
         ];
-        environment = {
+        env = {
           "GITHUB_OAUTH_CALLBACK_PORT" = "8085";
+          "GITHUB_TOOLSETS" = "default,actions,gists,projects";
         };
       };
 
