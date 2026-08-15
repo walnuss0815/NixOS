@@ -2,6 +2,7 @@
   home.packages = with pkgs; [
     gnomeExtensions.appindicator
     gnomeExtensions.forge
+    gnomeExtensions.copyous
     papirus-icon-theme
     whitesur-cursors
     exiftool
