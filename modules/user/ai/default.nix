@@ -239,6 +239,21 @@
     context = ./context.md;
   };
 
+  # opencode-notify (npm plugin listed above) is deliberately quiet by
+  # default: it only pops a banner on permission asks / questions / errors.
+  # With the permissive permission rules above the agent almost never asks,
+  # so nothing ever shows up -- including when a long task finally finishes.
+  # The "agent done, waiting for input" alert is behind `notifyOnIdle`, which
+  # the plugin ships disabled, so it must be enabled here or it never fires.
+  # Delivery uses notify-send (libnotify is on opencode's PATH via
+  # programs.opencode.extraPackages); the preferred node-dbus-notifier
+  # backend can't compile under Nix (missing dbus dev headers at bun install)
+  # and the plugin falls back to notify-send, which is enough for non-actioned
+  # popups.
+  xdg.configFile."opencode/opencode-notify.json".text = builtins.toJSON {
+    notifyOnIdle = true;
+  };
+
   programs.mcp = {
     enable = true;
     servers = {
