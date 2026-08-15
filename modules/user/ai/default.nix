@@ -162,11 +162,14 @@
           "npm" = "@ai-sdk/openai-compatible";
           "name" = "Ollama (local)";
           "options" = {
-            "baseURL" = "http://192.168.10.5:11434/v1";
+            "baseURL" = "http://192.168.10.9:11434/v1";
           };
           "models" = {
             "qwen3.5:9b" = {
               "name" = "qwen3.5:9b";
+            };
+            "qwen3.6:35b-a3b" = {
+              "name" = "qwen3.6:35b-a3b";
             };
           };
         };
