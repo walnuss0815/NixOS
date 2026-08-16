@@ -238,6 +238,7 @@
     skills = {
       code-review = ./skills/code-review.md;
       git-commit = ./skills/git-commit.md;
+      create-agents-file = ./skills/create-agents-file.md;
     };
     context = ./context.md;
   };
