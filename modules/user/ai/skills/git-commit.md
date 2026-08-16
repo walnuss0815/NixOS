@@ -14,7 +14,7 @@ Message format — follow Conventional Commits (https://www.conventionalcommits.
 - Format: <type>([optional scope])[!]: <description>
 - Types: feat, fix, refactor, docs, test, chore, style, perf, build, ci — choose based on the actual nature of the change.
 - Scope: add one when it's clearly identifiable (e.g., a module, package, or directory name). Check the last ~30 commit subjects for an existing matching scope and reuse it exactly; otherwise derive a short, lowercase scope from the primary changed path.
-- Use "!" after type/scope and a "BREAKING CHANGE:" footer if the change breaks backward compatibility.
+- Use "!" after scope or after type if there is no scope and a "BREAKING CHANGE:" footer if the change breaks backward compatibility.
 
 Message style — follow the 50/72 rule and standard best practices:
 - Subject line: imperative mood, no trailing period, ideally ≤50 characters, never exceed 72.
