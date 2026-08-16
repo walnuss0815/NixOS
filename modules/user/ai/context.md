@@ -11,3 +11,7 @@ Instructions:
 ## Nix Environment
 
 This is a Nix environment. You can run not installed CLI tools using `nix-shell`.
+
+## End of File
+
+Make sure there is a newline at end of files you create.
