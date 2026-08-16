@@ -23,6 +23,12 @@
           "terminal.integrated.suggest.enabled" = false;
           "terminal.integrated.shellIntegration.enabled" = false;
           "chat.disableAIFeatures" = true;
+          "json.schemaDownload.trustedDomains" = {
+            "https://json-schema.org/" = true;
+            "https://json.schemastore.org/" = true;
+            "https://www.schemastore.org/" = true;
+            "https://docs.renovatebot.com/" = true;
+          };
         };
         extensions = [
           pkgs.vscode-extensions.mkhl.direnv
