@@ -29,6 +29,14 @@
             "https://www.schemastore.org/" = true;
             "https://docs.renovatebot.com/" = true;
           };
+          "yaml.disableSchemaDetection" = [
+            "**/.github/workflows/*.yml"
+            "**/.github/workflows/*.yaml"
+            "**/.gitea/workflows/*.yml"
+            "**/.gitea/workflows/*.yaml"
+            "**/.forgejo/workflows/*.yml"
+            "**/.forgejo/workflows/*.yaml"
+          ];
         };
         extensions = [
           pkgs.vscode-extensions.mkhl.direnv
