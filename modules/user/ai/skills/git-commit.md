@@ -23,3 +23,4 @@ Message style — follow the 50/72 rule and standard best practices:
 
 Output:
 - After committing, summarize in plain language what was committed and why the messages were structured that way.
+- Never reference any non committed files inside of the commit message.
