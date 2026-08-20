@@ -43,6 +43,7 @@
           "grep *" = "allow";
           "find *" = "allow";
 
+          "kubectl*" = "deny";
           "rm -rf *" = "deny";
           "dd *" = "deny";
           "mkfs*" = "deny";
@@ -102,12 +103,18 @@
         "kubernetes_pods_get" = "allow";
         "kubernetes_pods_top" = "allow";
         "kubernetes_pods_log" = "allow";
+        # Generic get/list are safe to allow now: the server-side
+        # `denied_resources` config (`--config` below) hard-blocks v1
+        # Secret before any handler runs, so these two tools can never
+        # return credential material no matter what kind/args the client
+        # passes. OpenCode's permission rules only match on tool names, so
+        # this is the only place a per-resource-type distinction can be
+        # enforced.
+        "kubernetes_resources_get" = "allow";
+        "kubernetes_resources_list" = "allow";
         # Stays on "ask": pods_delete/pods_exec/pods_run (delete/exec/
-        # create); resources_get/resources_list (generic - can return
-        # ANY resource kind including v1 Secret, which is exactly the
-        # "always ask before reading secrets" case); resources_create_
-        # or_update, resources_delete, resources_scale (modify/create/
-        # delete).
+        # create); resources_create_or_update, resources_delete,
+        # resources_scale (modify/create/delete).
 
         # @cyanheads/git-mcp-server (github:cyanheads/git-mcp-server), 28
         # tools. The server's own tool names already start with "git_",
@@ -294,7 +301,26 @@
       # notes.
       kubernetes = {
         command = "npx";
-        args = [ "-y" "kubernetes-mcp-server@0.0.66" ];
+        args = [
+          "-y"
+          "kubernetes-mcp-server@0.0.66"
+          "--config"
+          # Server-side deny list of GroupVersionKinds. OpenCode's
+          # permission rules only match tool names, never arguments, so
+          # "get Volume vs. get Secret" cannot be distinguished
+          # client-side. This TOML blocks these GVKs before any handler
+          # runs, so no tool (including the generic resources_get/list)
+          # can ever return them - and unlike a client "ask"/"deny",
+          # it is not auto-approved away under `opencode --auto`.
+          (pkgs.writeText "kubernetes-mcp-server.toml" ''
+            # Kubernetes Secrets may embed tokens/credentials (incl.
+            # service-account and dockerconfigjson types) -> hard block.
+            [[denied_resources]]
+            group = ""
+            version = "v1"
+            kind = "Secret"
+          '')
+        ];
       };
       git = {
         command = "npx";
