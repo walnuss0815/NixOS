@@ -276,27 +276,8 @@
     suppressWhenFocused = true;
     sound = true;
     notification = true;
-    events = {
-      subagent_complete = {
-        sound = false;
-        notification = false;
-      };
-      user_cancelled = {
-        sound = false;
-        notification = false;
-      };
-      session_started = {
-        sound = false;
-        notification = false;
-      };
-      user_message = {
-        sound = false;
-        notification = false;
-      };
-      client_connected = {
-        sound = false;
-        notification = false;
-      };
+    linux = {
+      grouping = true;
     };
   };
 }
