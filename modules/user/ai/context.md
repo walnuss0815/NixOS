@@ -12,6 +12,10 @@ Instructions:
 
 This is a Nix environment. You can run not installed CLI tools using `nix-shell`.
 
-## End of File
+## Trailing Newline (mandatory)
 
-Make sure there is a newline at end of files you create.
+CRITICAL: Every file you create or edit MUST end with a newline character (`\n`) as its final byte.
+
+- After every Write or Edit, verify the last line is followed by a blank, then append `\n` if it is missing
+- This applies to ALL file types: configs, scripts, and docs
+- A file without a trailing newline is malformed for POSIX tools; do not consider the task complete until the newline is present
