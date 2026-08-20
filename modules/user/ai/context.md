@@ -10,7 +10,11 @@ Instructions:
 
 ## Nix Environment
 
-This is a Nix environment. You can run not installed CLI tools using `nix-shell`.
+This system runs NixOS, so any tool in nixpkgs can be made available on demand. When a needed CLI tool is not installed (not on PATH):
+
+- Use an ephemeral environment: `nix-shell -p <pkg>` or `nix shell nixpkgs#<pkg> -c <cmd>`
+- Do NOT modify the system configuration (nixos-rebuild) merely to add a temporary tool
+- When available, use the nixos MCP server to look up packages and NixOS options instead of guessing
 
 ## Trailing Newline (mandatory)
 
