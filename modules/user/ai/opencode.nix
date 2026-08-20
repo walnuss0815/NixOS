@@ -1,6 +1,6 @@
 # opencode configuration: global tool settings (permissions, providers,
 # plugins), skills and context, plus the packaged claude-swap wrapper and
-# the opencode-notify plugin config. The MCP servers this talks to are
+# the opencode-notifier plugin config. The MCP servers this talks to are
 # defined in ./mcp.nix and merged in below via enableMcpIntegration.
 { pkgs, config, ... }: {
   home.packages = [ (pkgs.callPackage ../../../pkgs/claude-swap { }) ];
@@ -11,6 +11,10 @@
     extraPackages = with pkgs; [
       nodejs_24
       libnotify
+      # paplay: audio backend opencode-notifier uses to play event sounds
+      # on Linux (talks to pipewire-pulse). Without one of paplay/aplay/
+      # mpv/ffplay on PATH the plugin still notifies but stays silent.
+      pulseaudio
     ];
     tui = {
       attention = {
@@ -167,7 +171,7 @@
       };
       "plugin" = [
         "opencode-claude-auth@latest"
-        "opencode-notify@0.3.1"
+        "@mohak34/opencode-notifier@0.2.8"
       ];
       "provider" = {
         "ollama" = {
@@ -255,18 +259,44 @@
     context = ./context.md;
   };
 
-  # opencode-notify (npm plugin listed above) is deliberately quiet by
-  # default: it only pops a banner on permission asks / questions / errors.
-  # With the permissive permission rules above the agent almost never asks,
-  # so nothing ever shows up -- including when a long task finally finishes.
-  # The "agent done, waiting for input" alert is behind `notifyOnIdle`, which
-  # the plugin ships disabled, so it must be enabled here or it never fires.
-  # Delivery uses notify-send (libnotify is on opencode's PATH via
-  # programs.opencode.extraPackages); the preferred node-dbus-notifier
-  # backend can't compile under Nix (missing dbus dev headers at bun install)
-  # and the plugin falls back to notify-send, which is enough for non-actioned
-  # popups.
-  xdg.configFile."opencode/opencode-notify.json".text = builtins.toJSON {
-    notifyOnIdle = true;
+  # opencode-notifier (@mohak34/opencode-notifier) sends desktop
+  # notifications and plays sounds for permission/completion/error/question
+  # events. Unlike opencode-notify it plays sounds natively on Linux: the
+  # bundled sounds are fed through paplay (on opencode's PATH via
+  # programs.opencode.extraPackages), no notify-send hint tricks needed.
+  # `complete` fires by default, so long tasks end with a "Session has
+  # finished" alert + sound (the old notifyOnIdle workaround is gone).
+  # GNOME has no focus-detection API, so `suppressWhenFocused` can't eat
+  # notifications here either (the compositor is unsupported -> always
+  # notify). The explicit per-event entries keep the noisiest events
+  # (subagent_complete, user_cancelled, session/user_message handling and
+  # client_connected) muted, preserving the "quiet unless something needs
+  # you" behaviour the old plugin was configured for.
+  xdg.configFile."opencode/opencode-notifier.json".text = builtins.toJSON {
+    suppressWhenFocused = true;
+    sound = true;
+    notification = true;
+    events = {
+      subagent_complete = {
+        sound = false;
+        notification = false;
+      };
+      user_cancelled = {
+        sound = false;
+        notification = false;
+      };
+      session_started = {
+        sound = false;
+        notification = false;
+      };
+      user_message = {
+        sound = false;
+        notification = false;
+      };
+      client_connected = {
+        sound = false;
+        notification = false;
+      };
+    };
   };
 }
