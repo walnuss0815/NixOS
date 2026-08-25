@@ -8,6 +8,7 @@
           "workbench.startupEditor" = "none";
           "explorer.confirmDelete" = false;
           "git.autofetch" = true;
+          "git.confirmSync" = false;
           "files.eol" = "\n";
           "files.insertFinalNewline" = true;
           "cSpell.language" = "en;en-US;de-DE";
