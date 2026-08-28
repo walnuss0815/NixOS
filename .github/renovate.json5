@@ -1,0 +1,77 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+  ],
+
+  // This repo's dependencies are pinned two different ways:
+  //  - flake.nix inputs -> flake.lock, updated manually via
+  //    `nix flake update`. Renovate's "nix" manager (still beta) only
+  //    touches flake.lock, so it's explicitly disabled here rather than
+  //    just relying on its upstream default of `enabled: false`.
+  //  - the tool versions vendored under pkgs/ (kubernetes-mcp-server,
+  //    git-mcp-server, ssh-mcp, claude-swap), tracked below via
+  //    customManagers instead.
+  nix: {
+    enabled: false,
+  },
+
+  // pkgs/git-mcp-server and pkgs/ssh-mcp each vendor a trimmed
+  // package.json + package-lock.json purely so buildNpmPackage can fetch
+  // their small set of *runtime* dependencies reproducibly (see the
+  // comments in the respective default.nix). They aren't "our" project
+  // dependencies to bump independently - letting Renovate's built-in npm
+  // manager loose on them would just fight with the hand-trimmed
+  // lockfiles. The tool version itself is tracked via the customManagers
+  // entries below instead.
+  packageRules: [
+    {
+      matchManagers: ['npm'],
+      matchFileNames: ['pkgs/**'],
+      enabled: false,
+    },
+  ],
+
+  // Renovate can only bump the `version` string in each default.nix - it
+  // has no way to compute the matching Nix `hash`/`npmDepsHash`. Each PR
+  // below will therefore fail the `flake-check` CI job until the hash is
+  // refreshed locally (e.g. rebuild with `lib.fakeHash` and copy the
+  // "got: sha256-..." value back in, or `nix-prefetch-npm-deps` for the
+  // vendored package-lock.json files) and pushed to the PR branch before
+  // merging.
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'claude-swap version pin (GitHub release tags, vX.Y.Z)',
+      managerFilePatterns: ['/^pkgs/claude-swap/default\\.nix$/'],
+      matchStrings: ['version = "(?<currentValue>[^"]+)";'],
+      datasourceTemplate: 'github-releases',
+      depNameTemplate: 'realiti4/claude-swap',
+      extractVersionTemplate: '^v(?<version>.*)$',
+    },
+    {
+      customType: 'regex',
+      description: 'kubernetes-mcp-server version pin (npm)',
+      managerFilePatterns: ['/^pkgs/kubernetes-mcp-server/default\\.nix$/'],
+      matchStrings: ['version = "(?<currentValue>[^"]+)";'],
+      datasourceTemplate: 'npm',
+      depNameTemplate: 'kubernetes-mcp-server',
+    },
+    {
+      customType: 'regex',
+      description: 'git-mcp-server version pin (npm)',
+      managerFilePatterns: ['/^pkgs/git-mcp-server/default\\.nix$/'],
+      matchStrings: ['version = "(?<currentValue>[^"]+)";'],
+      datasourceTemplate: 'npm',
+      depNameTemplate: '@cyanheads/git-mcp-server',
+    },
+    {
+      customType: 'regex',
+      description: 'ssh-mcp version pin (npm)',
+      managerFilePatterns: ['/^pkgs/ssh-mcp/default\\.nix$/'],
+      matchStrings: ['version = "(?<currentValue>[^"]+)";'],
+      datasourceTemplate: 'npm',
+      depNameTemplate: 'ssh-mcp',
+    },
+  ],
+}
