@@ -1,0 +1,81 @@
+name: Renovate hash fix
+
+# Renovate's customManagers (.github/renovate.json5) can only bump the
+# `version` string in pkgs/*/default.nix - it has no way to compute the
+# matching Nix `hash`. This workflow closes that gap: it recomputes the
+# correct hash for whichever pkgs/*/default.nix files a Renovate PR
+# touched (.github/scripts/fix-pkg-hash.sh), verifies the result actually
+# builds, and pushes the fix back onto the PR branch so the normal
+# flake-check job (ci.yml) goes green without a human in the loop.
+on:
+  pull_request:
+    paths:
+      - "pkgs/*/default.nix"
+
+permissions:
+  contents: write
+
+jobs:
+  fix-hash:
+    # Scope this to Renovate's own PRs. Note this is defence in depth,
+    # not the only safeguard: for PRs from forks, GITHUB_TOKEN is
+    # read-only regardless of the `permissions:` above, so a fork PR
+    # could never get this workflow to push changes either way.
+    if: github.event.pull_request.user.login == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          # Need the base commit locally to diff against below.
+          fetch-depth: 0
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Recompute hashes for changed packages
+        id: fix
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE_SHA" HEAD -- 'pkgs/*/default.nix')
+          if [ -z "$changed" ]; then
+            echo "No pkgs/*/default.nix changes in this PR, nothing to do."
+            exit 0
+          fi
+          {
+            echo "changed<<EOF"
+            echo "$changed"
+            echo "EOF"
+          } >>"$GITHUB_OUTPUT"
+          for f in $changed; do
+            bash .github/scripts/fix-pkg-hash.sh "$f"
+          done
+
+      - name: Verify updated packages build
+        if: steps.fix.outputs.changed != ''
+        run: |
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            dir=$(dirname "$f")
+            echo "::group::nix build $dir"
+            nix build --impure --no-link \
+              --expr "(builtins.getFlake (toString ./.)).inputs.nixpkgs.legacyPackages.x86_64-linux.callPackage ./$dir {}"
+            echo "::endgroup::"
+          done <<<"${{ steps.fix.outputs.changed }}"
+
+      - name: Commit and push if changed
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if git diff --quiet -- pkgs; then
+            echo "No hash changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pkgs
+          git commit -m "chore(deps): recompute hash after Renovate version bump"
+          git push origin "HEAD:$HEAD_REF"
