@@ -1,0 +1,54 @@
+{
+  "name": "ssh-mcp",
+  "license": "MIT",
+  "version": "2.1.0",
+  "description": "MCP server exposing policy-gated, audited SSH access for Linux and Windows hosts via the Model Context Protocol.",
+  "type": "module",
+  "bin": {
+    "ssh-mcp": "build/index.js"
+  },
+  "files": [
+    "build"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
+    "@opentelemetry/resources": "^2.9.0",
+    "@opentelemetry/sdk-node": "^0.220.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "smol-toml": "^1.7.0",
+    "ssh2": "^1.17.0",
+    "zod": "^3.25.28"
+  },
+  "overrides": {
+    "zod-to-json-schema": "3.24.6"
+  },
+  "homepage": "https://github.com/tufantunc/ssh-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tufantunc/ssh-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tufantunc/ssh-mcp/issues"
+  },
+  "keywords": [
+    "ssh",
+    "mcp",
+    "model-context-protocol",
+    "server",
+    "windows",
+    "linux",
+    "automation",
+    "remote",
+    "cli",
+    "typescript"
+  ],
+  "author": "tufantunc",
+  "engines": {
+    "node": "^18.19.0 || >=20.6.0"
+  },
+  "optionalDependencies": {
+    "@napi-rs/keyring": "^1.1.0"
+  }
+}

@@ -33,15 +33,18 @@
       };
 
       # No nixpkgs package for these exact servers exists yet, so they are
-      # still fetched via npx at runtime. Pinned to an exact version
-      # (instead of `@latest`) so the server doesn't silently change
-      # behavior underneath us; bump deliberately after checking release
-      # notes.
+      # packaged locally under ../../../pkgs (fetched from their published
+      # npm tarballs and hash-pinned there) instead of fetched via `npx` at
+      # every MCP-server startup. This makes them fully reproducible/
+      # offline - no network fetch at runtime, no silent version drift,
+      # and no dependency on the npm registry being reachable when
+      # opencode starts. Bump the version pin in the respective
+      # ../../../pkgs/<name>/default.nix deliberately after checking
+      # release notes (and regenerating package-lock.json/npmDepsHash
+      # where applicable).
       kubernetes = {
-        command = "npx";
+        command = "${pkgs.callPackage ../../../pkgs/kubernetes-mcp-server { }}/bin/kubernetes-mcp-server";
         args = [
-          "-y"
-          "kubernetes-mcp-server@0.0.66"
           "--config"
           # Server-side deny list of GroupVersionKinds. OpenCode's
           # permission rules only match tool names, never arguments, so
@@ -63,12 +66,10 @@
         ];
       };
       git = {
-        command = "npx";
-        args = [ "-y" "@cyanheads/git-mcp-server@2.15.1" ];
+        command = "${pkgs.callPackage ../../../pkgs/git-mcp-server { }}/bin/git-mcp-server";
       };
       ssh = {
-        command = "npx";
-        args = [ "-y" "ssh-mcp@2.1.0" ];
+        command = "${pkgs.callPackage ../../../pkgs/ssh-mcp { }}/bin/ssh-mcp";
       };
     };
   };
