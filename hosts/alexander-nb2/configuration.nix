@@ -46,25 +46,19 @@
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+  # Desktop/GUI applications (LibreOffice, browsers, chat, media) live in
+  # home-manager (users/alexander/default.nix) instead: per-user apps
+  # don't need a full `sudo nixos-rebuild switch` to add/remove/update, and
+  # this keeps the system closure limited to what's actually needed
+  # system-wide, consistent with the modules/system vs modules/user split
+  # used elsewhere in this repo.
   environment.systemPackages = with pkgs; [
-    # LibreOffice
-    libreoffice-qt-stable
-    hunspell
-    hunspellDicts.de_DE
-
     # Tools
     git
     git-credential-oauth
     vim
     wget
     curl
-
-    # UI applications
-    google-chrome
-    firefox
-    spotify
-    calls
-    vesktop
 
     # Nix Home Manager
     home-manager

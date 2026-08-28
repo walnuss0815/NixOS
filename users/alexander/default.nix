@@ -135,8 +135,22 @@
     restic-browser
     restic
 
+    # Desktop applications (previously in environment.systemPackages on
+    # both hosts; moved here so adding/removing one doesn't require a full
+    # `sudo nixos-rebuild switch`, and owhug-nb1-only apps don't need to be
+    # duplicated across host configs since this profile is shared).
     firefox
+    google-chrome
+    spotify
+    calls
+    vesktop
+    thunderbird
+    bambu-studio
 
+    # LibreOffice
+    libreoffice-qt-stable
+    hunspell
+    hunspellDicts.de_DE
   ];
 
   # This value determines the home Manager release that your
