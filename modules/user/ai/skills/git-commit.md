@@ -6,8 +6,9 @@ description: Create conventional commits from all currently tracked files
 Create one or more meaningful, atomic commits from the pending changes to already-tracked files.
 
 Scope of changes:
-- Stage all modifications and deletions to files that are already tracked.
-- Never stage or commit untracked (new) files; leave them untracked.
+- Stage all modifications and deletions to files that are already tracked. This is the default scope.
+- Never silently stage or commit untracked (new) files. If untracked files appear related to the same logical change as the tracked modifications (e.g. a new file implementing something the tracked diff wires up), use the question tool to ask the user whether to include them before proceeding. Otherwise leave untracked files alone.
+- If, after resolving the above, there are no changes to commit, report that back instead of creating an empty or unrelated commit.
 - If the changes span clearly unrelated concerns, split them into separate commits, each scoped to one logical change. Otherwise, use a single commit.
 
 Message format — follow Conventional Commits (https://www.conventionalcommits.org/en/v1.0.0/#specification):
