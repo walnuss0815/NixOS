@@ -130,6 +130,7 @@
 
     # development tools
     glab # Gitlab CLI
+    gh # GitHub CLI
     ghorg # Clone GitHub orgs and Gitlab groups
 
     restic-browser
