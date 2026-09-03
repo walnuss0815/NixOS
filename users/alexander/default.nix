@@ -27,11 +27,11 @@
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
-      "text/html" = "org.mozilla.firefox.desktop";
-      "x-scheme-handler/http" = "org.mozilla.firefox.desktop";
-      "x-scheme-handler/https" = "org.mozilla.firefox.desktop";
-      "x-scheme-handler/about" = "org.mozilla.firefox.desktop";
-      "x-scheme-handler/unknown" = "org.mozilla.firefox.desktop";
+      "text/html" = "firefox.desktop";
+      "x-scheme-handler/http" = "firefox.desktop";
+      "x-scheme-handler/https" = "firefox.desktop";
+      "x-scheme-handler/about" = "firefox.desktop";
+      "x-scheme-handler/unknown" = "firefox.desktop";
 
       "application/pdf" = "org.gnome.Evince.desktop";
 
