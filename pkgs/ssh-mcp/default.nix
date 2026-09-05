@@ -14,7 +14,7 @@
 # startup time via `npx ssh-mcp@<version>`.
 buildNpmPackage rec {
   pname = "ssh-mcp";
-  version = "2.1.0";
+  version = "2.8.0";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/ssh-mcp/-/ssh-mcp-${version}.tgz";
