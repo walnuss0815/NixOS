@@ -17,11 +17,14 @@ permissions:
 
 jobs:
   fix-hash:
-    # Scope this to Renovate's own PRs. Note this is defence in depth,
-    # not the only safeguard: for PRs from forks, GITHUB_TOKEN is
-    # read-only regardless of the `permissions:` above, so a fork PR
-    # could never get this workflow to push changes either way.
-    if: github.event.pull_request.user.login == 'renovate[bot]'
+    # Scope this to Renovate's own PRs by branch prefix, since this
+    # repo's Renovate runs with a PAT (not the hosted GitHub App), so PR
+    # authorship shows as the PAT owner rather than `renovate[bot]`.
+    # Note this is defence in depth, not the only safeguard: for PRs
+    # from forks, GITHUB_TOKEN is read-only regardless of the
+    # `permissions:` above, so a fork PR could never get this workflow
+    # to push changes either way.
+    if: startsWith(github.event.pull_request.head.ref, 'renovate/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
