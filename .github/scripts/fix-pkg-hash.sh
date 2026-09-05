@@ -36,7 +36,28 @@ if grep -q 'fetchFromGitHub' "$file"; then
   tag=${tag_template//\$\{version\}/$version}
 
   echo "Prefetching github:$owner/$repo@$tag"
-  new_hash=$(nix run nixpkgs#nix-prefetch-github -- "$owner" "$repo" --rev "$tag" --json | jq -r '.hash')
+  # nix-prefetch-github talks to the GitHub API and downloads a source
+  # archive; both are occasionally flaky on shared CI runner IPs
+  # (rate limiting, transient network errors), so retry a few times
+  # before giving up. --verbose (captured to a temp file, not printed
+  # unless we're about to fail) shows which step actually failed instead
+  # of just the tool's generic "unable to calculate hash sum" message.
+  attempt=0
+  max_attempts=3
+  err_log=$(mktemp)
+  trap 'rm -f "$err_log"' EXIT
+  until new_hash=$(nix run nixpkgs#nix-prefetch-github -- --verbose "$owner" "$repo" --rev "$tag" --json 2>"$err_log" | jq -r '.hash'); do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge "$max_attempts" ]; then
+      echo "::error file=$file::nix-prefetch-github failed after $attempt attempts" >&2
+      cat "$err_log" >&2
+      exit 1
+    fi
+    sleep_for=$((attempt * 5))
+    echo "nix-prefetch-github attempt $attempt failed, retrying in ${sleep_for}s..." >&2
+    cat "$err_log" >&2
+    sleep "$sleep_for"
+  done
 elif grep -q 'fetchurl' "$file"; then
   url_template=$(grep -oP '^\s*url = "\K[^"]+' "$file" | head -1)
   url=${url_template//\$\{finalAttrs.version\}/$version}
