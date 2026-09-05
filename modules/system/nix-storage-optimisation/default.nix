@@ -11,4 +11,11 @@
     # Delete all generation older than 30 days
     options = "--delete-older-than 30d";
   };
+
+  # Also trigger GC reactively when free disk space gets low, rather than
+  # relying solely on the weekly schedule
+  nix.settings = {
+    min-free = 1 * 1024 * 1024 * 1024; # 1 GiB
+    max-free = 5 * 1024 * 1024 * 1024; # 5 GiB
+  };
 }
