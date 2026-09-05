@@ -18,7 +18,7 @@
 # MCP-server-startup time via `npx @cyanheads/git-mcp-server@<version>`.
 buildNpmPackage rec {
   pname = "git-mcp-server";
-  version = "2.15.1";
+  version = "2.15.3";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/@cyanheads/git-mcp-server/-/git-mcp-server-${version}.tgz";
