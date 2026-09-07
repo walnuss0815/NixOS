@@ -18,11 +18,11 @@
 # MCP-server-startup time via `npx @cyanheads/git-mcp-server@<version>`.
 buildNpmPackage rec {
   pname = "git-mcp-server";
-  version = "2.15.1";
+  version = "2.15.3";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/@cyanheads/git-mcp-server/-/git-mcp-server-${version}.tgz";
-    hash = "sha512-IuBjTfFhyNCceNwfTWcda2SPiQaGqyo3fw2OVwXzRzPT+vKAybFH4ntZTbZt5VRlpdTIpVevUkmGC0ZY09roLQ==";
+    hash = "sha512-+Bj0UvHAOCidGX7We1FYPXs/S751jOz6+aH44nR05BUEG4+Zu0hLLj7AjUKepqN99qHvXgqEzeSW+5utoYBQgA==";
   };
 
   postPatch = ''
