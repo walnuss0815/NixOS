@@ -32,3 +32,10 @@ CRITICAL: Never merge any Pull Request or Merge Request!
 - Follow the 50/72 rule: subject line ≤50 characters, body wrapped at 72 characters per line
 - Do not push directly, force-push, or rewrite history on the default branch unless explicitly asked
 - Leave PR/MR merging to the user — only open/update them if asked
+
+## No Self-Reference
+
+CRITICAL: Never refer to yourself, a review you performed, or anything else related to you (the AI/agent) in commit messages, PR/MR titles, PR/MR descriptions, or any similar artifact.
+
+- Write commit/PR/MR content as if authored directly by the user — no mentions of AI, agents, assistants, or automated reviews
+- This applies to all such artifacts, not just commit messages
