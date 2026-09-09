@@ -2,7 +2,9 @@
   home.packages = with pkgs; [
     gnomeExtensions.appindicator
     gnomeExtensions.forge
-    gnomeExtensions.copyous
+    # Disabled until this is fixed
+    # https://github.com/boerdereinar/copyous/issues/152
+    # gnomeExtensions.copyous
     papirus-icon-theme
     whitesur-cursors
     exiftool
