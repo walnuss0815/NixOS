@@ -23,3 +23,12 @@ CRITICAL: Every file you create or edit MUST end with a newline character (`\n`)
 - After every Write or Edit, verify the last line is followed by a blank, then append `\n` if it is missing
 - This applies to ALL file types: configs, scripts, and docs
 - A file without a trailing newline is malformed for POSIX tools; do not consider the task complete until the newline is present
+
+## Working with Git
+
+CRITICAL: Never merge any Pull Request or Merge Request!
+
+- Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) specification for all commit messages
+- Follow the 50/72 rule: subject line ≤50 characters, body wrapped at 72 characters per line
+- Do not push directly, force-push, or rewrite history on the default branch unless explicitly asked
+- Leave PR/MR merging to the user — only open/update them if asked
