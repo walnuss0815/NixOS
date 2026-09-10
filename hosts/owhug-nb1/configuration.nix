@@ -190,6 +190,57 @@
   # Fingerprint reader: login and unlock with fingerprint (if you add one with `fprintd-enroll`)
   services.fprintd.enable = true;
 
+  # Pin the external DELL S2721DGF (serial F1QXV13) as primary for the
+  # GDM login screen when docked in the current DP-7/DP-4 layout.
+  # Falls back to GNOME's normal auto-detected layout (laptop screen
+  # eDP-1 primary) when undocked or docked differently than this.
+  # If the dock/port arrangement changes, this may need an additional
+  # <configuration> block for the new connector combo.
+  environment.etc."xdg/monitors.xml".text = ''
+    <monitors version="2">
+      <configuration>
+        <layoutmode>logical</layoutmode>
+        <logicalmonitor>
+          <x>0</x>
+          <y>0</y>
+          <scale>1</scale>
+          <primary>yes</primary>
+          <monitor>
+            <monitorspec>
+              <connector>DP-7</connector>
+              <vendor>DEL</vendor>
+              <product>DELL S2721DGF</product>
+              <serial>F1QXV13</serial>
+            </monitorspec>
+            <mode>
+              <width>2560</width>
+              <height>1440</height>
+              <rate>59.951</rate>
+            </mode>
+          </monitor>
+        </logicalmonitor>
+        <logicalmonitor>
+          <x>2560</x>
+          <y>0</y>
+          <scale>1</scale>
+          <monitor>
+            <monitorspec>
+              <connector>DP-4</connector>
+              <vendor>DEL</vendor>
+              <product>DELL S2721DGF</product>
+              <serial>5Y4HC23</serial>
+            </monitorspec>
+            <mode>
+              <width>2560</width>
+              <height>1440</height>
+              <rate>59.951</rate>
+            </mode>
+          </monitor>
+        </logicalmonitor>
+      </configuration>
+    </monitors>
+  '';
+
   # Enable flatpak
   services.flatpak.enable = true;
 
