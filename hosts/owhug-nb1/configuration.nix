@@ -161,9 +161,9 @@
       ];
   };
 
-  # Enable automatic login for the user.
-  services.displayManager.autoLogin.enable = true;
-  services.displayManager.autoLogin.user = "alexander";
+  # Automatic login is disabled; GDM always prompts (password or
+  # fingerprint, see services.fprintd below).
+  services.displayManager.autoLogin.enable = false;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
