@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   imports = [
@@ -11,9 +11,28 @@
   ];
 
   # Bootloader.
-  boot.loader.systemd-boot.enable = true;
+  # Lanzaboote replaces the systemd-boot module for Secure Boot signing
+  # (see boot.lanzaboote below), so it must be force-disabled here.
+  boot.loader.systemd-boot.enable = lib.mkForce false;
   boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
+
+  # Secure Boot: generates its own keys on first activation and stages
+  # them on the ESP for firmware auto-enrollment (systemd-boot's native
+  # "Enroll SecureBoot keys" support). After the next `nixos-rebuild
+  # switch`, reboot into firmware and enable Secure Boot, then reboot
+  # again to let it auto-enroll. Use `sbctl status`/`sbctl verify` to
+  # check progress.
+  boot.lanzaboote = {
+    enable = true;
+    pkiBundle = "/var/lib/sbctl";
+    autoGenerateKeys.enable = true;
+    autoEnrollKeys = {
+      enable = true;
+      includeMicrosoftKeys = true; # keep Windows Boot Manager / OEM option-ROMs working
+      autoReboot = false; # we control when the finalizing reboot happens
+    };
+  };
 
   # Required for TPM2-bound LUKS auto-unlock (crypttabExtraOpts below).
   boot.initrd.systemd.enable = true;
@@ -101,6 +120,9 @@
 
     # VM
     qemu
+
+    # Secure Boot key management / troubleshooting (see boot.lanzaboote)
+    sbctl
   ];
 
   # eSIM

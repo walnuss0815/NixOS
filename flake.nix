@@ -16,9 +16,13 @@
       url = "github:uiriansan/SilentSDDM";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.1.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur, silentSDDM }:
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur, silentSDDM, lanzaboote }:
 
     let
       system = "x86_64-linux";
@@ -55,6 +59,7 @@
             nixos-hardware.nixosModules.common-pc-laptop-ssd
             nur.modules.nixos.default
             silentSDDM.nixosModules.default
+            lanzaboote.nixosModules.lanzaboote
             ./modules/system/gnome
             ./modules/system/docker
             ./modules/system/netbird
