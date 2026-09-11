@@ -68,6 +68,27 @@
             ./modules/system/nix-ld
           ];
         };
+
+        owhug-pc1 = nixpkgs.lib.nixosSystem {
+          inherit system;
+
+          modules = [
+            ./hosts/owhug-pc1/configuration.nix
+            nixos-hardware.nixosModules.common-cpu-amd
+            nixos-hardware.nixosModules.common-cpu-amd-pstate
+            nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
+            nixos-hardware.nixosModules.common-pc-ssd
+            nur.modules.nixos.default
+            silentSDDM.nixosModules.default
+            lanzaboote.nixosModules.lanzaboote
+            ./modules/system/gnome
+            ./modules/system/docker
+            ./modules/system/netbird
+            ./modules/system/printing
+            ./modules/system/nix-storage-optimisation
+            ./modules/system/nix-ld
+          ];
+        };
       };
 
       homeConfigurations = {
