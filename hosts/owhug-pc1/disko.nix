@@ -53,7 +53,11 @@
                 settings = {
                   # SSD TRIM passthrough for the common-pc-ssd fstrim timer
                   # (flake.nix) to actually reach the underlying NVMe device
-                  # through the LUKS mapper.
+                  # through the LUKS mapper. Trade-off: this can let an
+                  # attacker with physical disk access infer which blocks
+                  # are in use from the free-space pattern — accepted here
+                  # for sustained NVMe performance/endurance on a personal
+                  # desktop.
                   allowDiscards = true;
                   # Allow the TPM2 chip to auto-unlock this volume once a
                   # TPM2 keyslot has been enrolled via

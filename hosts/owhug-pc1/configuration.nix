@@ -18,8 +18,10 @@
 # 1. In Windows: suspend BitLocker protection (Settings, or
 #    `manage-bde -protectors -disable C:`) and save/print the recovery key.
 #    Do this before touching Secure Boot state at all.
-# 2. Enter BIOS/UEFI setup: confirm UEFI-only boot (no CSM/legacy), and
-#    put Secure Boot into "Setup Mode" (clear existing keys) if required.
+# 2. Enter BIOS/UEFI setup: confirm UEFI-only boot (no CSM/legacy), put
+#    Secure Boot into "Setup Mode" (clear existing keys) if required,
+#    and confirm AMD fTPM/PSP is enabled (often labelled "AMD fTPM
+#    switch" or "PSP fTPM") — required for step 5's TPM2 enrollment.
 # 3. Boot the NixOS installer. Identify the target drive with
 #    `ls -l /dev/disk/by-id/` — pick the by-id path for the new/second
 #    NVMe drive. Double check it, since the next step is destructive and
@@ -34,7 +36,9 @@
 #    registers a firmware (F8) boot entry — disko-install otherwise
 #    assumes a portable/USB install and skips NVRAM changes.
 # 5. First boot: unlock with the LUKS passphrase, then enroll the TPM2
-#    keyslot: `systemd-cryptenroll --tpm2-device=auto /dev/disk/by-id/<...>`
+#    keyslot against the same device disko uses for cryptroot (see
+#    ./disko.nix — NOT the whole-disk by-id path from step 3/4):
+#      systemd-cryptenroll --tpm2-device=auto /dev/disk/by-partlabel/disk-main-cryptroot
 #    (the passphrase keyslot remains as a fallback).
 # 6. Reboot to firmware, enable Secure Boot. Reboot into NixOS to let
 #    lanzaboote auto-enroll its keys (see boot.lanzaboote below). Verify
@@ -90,7 +94,9 @@
   # ./disko.nix's cryptroot settings).
   boot.initrd.systemd.enable = true;
 
-  # Udev rules for TPM2 device access (tpm2-tools, systemd-cryptenroll).
+  # Udev rules for TPM2 device access (tpm2-tools and other unprivileged
+  # tooling; systemd-cryptenroll itself runs as root and doesn't
+  # strictly require this, but it's harmless to keep enabled).
   security.tpm2.enable = true;
 
   networking.hostName = "owhug-pc1"; # Define your hostname.
