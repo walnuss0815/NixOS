@@ -20,9 +20,13 @@
       url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    disko = {
+      url = "github:nix-community/disko/v1.13.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur, silentSDDM, lanzaboote }:
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur, silentSDDM, lanzaboote, disko }:
 
     let
       system = "x86_64-linux";
@@ -81,6 +85,7 @@
             nur.modules.nixos.default
             silentSDDM.nixosModules.default
             lanzaboote.nixosModules.lanzaboote
+            disko.nixosModules.disko
             ./modules/system/gnome
             ./modules/system/docker
             ./modules/system/netbird

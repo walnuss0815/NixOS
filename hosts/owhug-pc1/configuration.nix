@@ -20,19 +20,21 @@
 #    Do this before touching Secure Boot state at all.
 # 2. Enter BIOS/UEFI setup: confirm UEFI-only boot (no CSM/legacy), and
 #    put Secure Boot into "Setup Mode" (clear existing keys) if required.
-# 3. Boot the NixOS installer. Partition ONLY the new/second NVMe drive —
-#    the Windows drive is left completely untouched:
-#      - ESP: ~1GB, vfat, mounted at /boot
-#      - Rest of the drive: one LUKS2 container ("cryptroot")
-#    Inside the LUKS container, format ext4 and mount at /.
-#    After the first boot, create a swapfile on the ext4 root sized to
-#    match RAM as an OOM safety net / future hibernation headroom; zram
-#    (enabled below) is the fast primary swap.
-# 4. `nixos-generate-config --root /mnt`, then merge the LUKS UUID and any
-#    detected kernel modules into hardware-configuration.nix. Copy this
-#    file into place as configuration.nix. `nixos-install`.
+# 3. Boot the NixOS installer. Identify the target drive with
+#    `ls -l /dev/disk/by-id/` — pick the by-id path for the new/second
+#    NVMe drive. Double check it, since the next step is destructive and
+#    the Windows/BitLocker drive must never be touched.
+# 4. Partition, format, mount and install in one step via disko-install
+#    (see ./disko.nix for the declarative layout):
+#      sudo nix run 'github:nix-community/disko/v1.13.0#disko-install' -- \
+#        --write-efi-boot-entries \
+#        --flake '.#owhug-pc1' \
+#        --disk main /dev/disk/by-id/<the-real-nvme-id>
+#    --write-efi-boot-entries is required so the new install actually
+#    registers a firmware (F8) boot entry — disko-install otherwise
+#    assumes a portable/USB install and skips NVRAM changes.
 # 5. First boot: unlock with the LUKS passphrase, then enroll the TPM2
-#    keyslot: `systemd-cryptenroll --tpm2-device=auto /dev/nvme<X>n1p2`
+#    keyslot: `systemd-cryptenroll --tpm2-device=auto /dev/disk/by-id/<...>`
 #    (the passphrase keyslot remains as a fallback).
 # 6. Reboot to firmware, enable Secure Boot. Reboot into NixOS to let
 #    lanzaboote auto-enroll its keys (see boot.lanzaboote below). Verify
@@ -53,6 +55,9 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    # Declarative disk layout; generates fileSystems."/",
+    # fileSystems."/boot" and boot.initrd.luks.devices.cryptroot.
+    ./disko.nix
   ];
 
   # Bootloader.
@@ -81,23 +86,12 @@
     };
   };
 
-  # Required for TPM2-bound LUKS auto-unlock (crypttabExtraOpts below).
+  # Required for TPM2-bound LUKS auto-unlock (crypttabExtraOpts, set via
+  # ./disko.nix's cryptroot settings).
   boot.initrd.systemd.enable = true;
 
   # Udev rules for TPM2 device access (tpm2-tools, systemd-cryptenroll).
   security.tpm2.enable = true;
-
-  boot.initrd.luks.devices = {
-    cryptroot = {
-      # TODO: replace with the real LUKS partition UUID after install
-      # (see runbook step 4 above).
-      device = "/dev/disk/by-uuid/REPLACE-ME-AFTER-INSTALL";
-      # Allow the TPM2 chip to auto-unlock this volume once a TPM2 keyslot
-      # has been enrolled via `systemd-cryptenroll --tpm2-device=auto`.
-      # The original passphrase keyslot remains as a fallback.
-      crypttabExtraOpts = [ "tpm2-device=auto" ];
-    };
-  };
 
   networking.hostName = "owhug-pc1"; # Define your hostname.
 
@@ -156,7 +150,7 @@
     # Secure Boot key management / troubleshooting (see boot.lanzaboote)
     sbctl
 
-    # TPM2 troubleshooting (see boot.initrd.luks.devices.cryptroot)
+    # TPM2 troubleshooting (see ./disko.nix's cryptroot settings)
     tpm2-tools
   ];
 
@@ -220,9 +214,9 @@
   # Latest Linux kernel (needed for current-gen CPU/GPU driver support).
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # zram as fast primary swap; a disk-backed swapfile on the ext4 root
-  # (see hardware-configuration.nix) acts as an additional OOM safety
-  # net / future hibernation headroom.
+  # zram as fast primary swap; a declaratively-sized swapfile on the
+  # ext4 root (see hardware-configuration.nix's swapDevices) acts as an
+  # additional OOM safety net / future hibernation headroom.
   zramSwap.enable = true;
 
   # Enable flatpak
