@@ -130,7 +130,6 @@
 
     # development tools
     glab # Gitlab CLI
-    gh # GitHub CLI
 
     restic-browser
     restic
