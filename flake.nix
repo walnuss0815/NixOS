@@ -112,6 +112,7 @@
             ./modules/user/git
             ./modules/user/vscode
             ./modules/user/ai
+            ./modules/user/bitwarden
           ];
         };
       };
