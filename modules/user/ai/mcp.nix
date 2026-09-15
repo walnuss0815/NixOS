@@ -66,9 +66,6 @@
       git = {
         command = "${pkgs.callPackage ../../../pkgs/git-mcp-server { }}/bin/git-mcp-server";
       };
-      ssh = {
-        command = "${pkgs.callPackage ../../../pkgs/ssh-mcp { }}/bin/ssh-mcp";
-      };
     };
   };
 }

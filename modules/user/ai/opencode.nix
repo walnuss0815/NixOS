@@ -154,20 +154,6 @@
         # create+delete in one tool, treated conservatively); git_
         # checkout/git_merge/git_rebase/git_cherry_pick (modify); git_
         # pull/git_push (modify/publish).
-
-        # ssh-mcp (github:tufantunc/ssh-mcp) v2 - its README tool table
-        # already marks each tool readOnly/destructive; mirrored
-        # directly here.
-        "ssh_*" = "ask";
-        "ssh_list-connections" = "allow";
-        "ssh_list-sessions" = "allow";
-        "ssh_open-session" = "allow"; # not marked destructive upstream
-        "ssh_read-session-output" = "allow";
-        "ssh_read-command" = "allow"; # server-enforced read-only allowlist
-        "ssh_sftp-download" = "allow";
-        # Stays on "ask": close-session, run-command (arbitrary remote
-        # command execution), privileged-command (sudo), sftp-upload,
-        # signal-process - all marked destructive/mutating upstream.
       };
       "plugin" = [
         "opencode-claude-auth@latest"
