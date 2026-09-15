@@ -42,6 +42,9 @@ in
         enable-hot-corners = false;
         cursor-theme = "WhiteSur-cursors";
         icon-theme = "Papirus-Dark";
+        accent-color = "orange";
+        clock-show-weekday = true;
+        show-battery-percentage = true;
       };
       "org/gnome/desktop/wm/preferences" = {
         button-layout = "appmenu:minimize,close";
