@@ -139,7 +139,6 @@
     # both hosts; moved here so adding/removing one doesn't require a full
     # `sudo nixos-rebuild switch`, and owhug-nb1-only apps don't need to be
     # duplicated across host configs since this profile is shared).
-    firefox
     google-chrome
     spotify
     calls

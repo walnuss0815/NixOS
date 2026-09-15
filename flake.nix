@@ -101,8 +101,10 @@
           inherit pkgs;
 
           modules = [
+            nur.modules.homeManager.default
             ./users/alexander
             ./modules/user/gnome
+            ./modules/user/firefox
             ./modules/user/shell
             ./modules/user/git
             ./modules/user/vscode
