@@ -12,22 +12,20 @@
         command = "${pkgs.mcp-nixos}/bin/mcp-nixos";
       };
 
-      # As of now there is no real alternative to run the GitHub MCP with OAuth
-      # (the nixpkgs build doesn't inject the official OAuth app credentials).
+      # Native binary (nixpkgs github-mcp-server) instead of the official
+      # Docker image: no docker dependency, and auth is a PAT fetched
+      # fresh from the Bitwarden vault at spawn time via rbw (unlocked
+      # automatically through the GNOME pinentry dialog if the vault is
+      # currently locked), rather than the OAuth device/browser flow the
+      # docker image used (which needed a fixed loopback callback port).
+      # The token never touches the Nix store or disk - it's captured
+      # straight into the child process's environment at spawn time.
       github = {
-        command = "docker";
-        args = [
-          "run"
-          "-i"
-          "--rm"
-          "-p"
-          "127.0.0.1:8085:8085"
-          "-e"
-          "GITHUB_OAUTH_CALLBACK_PORT"
-          "ghcr.io/github/github-mcp-server:v1.9.0"
-        ];
+        command = "${pkgs.writeShellScript "github-mcp-server-wrapper" ''
+          export GITHUB_PERSONAL_ACCESS_TOKEN="$(${pkgs.rbw}/bin/rbw get github-mcp-server)"
+          exec ${pkgs.github-mcp-server}/bin/github-mcp-server stdio
+        ''}";
         env = {
-          "GITHUB_OAUTH_CALLBACK_PORT" = "8085";
           "GITHUB_TOOLSETS" = "default,actions,gists,projects";
         };
       };
