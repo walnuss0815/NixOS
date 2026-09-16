@@ -95,6 +95,7 @@
             ./modules/system/nix-storage-optimisation
             ./modules/system/nix-cache
             ./modules/system/nix-ld
+            ./modules/system/ninfer
           ];
         };
       };

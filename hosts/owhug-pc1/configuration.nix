@@ -220,6 +220,40 @@
   # Latest Linux kernel (needed for current-gen CPU/GPU driver support).
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # Local LLM: NInfer serving Qwen3.8-27B (NVFP4 + Vision + DFlash2). See
+  # ./NINFER-SETUP.md for the one-time, GPU-bound model conversion this
+  # depends on (not expressible as a Nix derivation - downloads ~80GB of
+  # upstream checkpoints and runs upstream's own conversion tooling) and for
+  # generating apiKeyFile's contents.
+  #
+  # "LAN + API key" exposure: bound to all interfaces and firewalled open,
+  # but every request (other than /health) requires the bearer/x-api-key
+  # value in apiKeyFile.
+  services.ninfer = {
+    enable = true;
+    artifactPath = "/var/lib/ninfer/models/qwen3.8-27b-nvfp4-vision-dflash2.ninfer";
+    host = "0.0.0.0";
+    port = 8080;
+    apiKeyFile = "/var/lib/ninfer/api-key.txt";
+    openFirewall = true;
+    extraFlags = [
+      "--max-context"
+      "262144"
+      "--kv-capacity"
+      "auto"
+      "--max-concurrency"
+      "3"
+      "--kv-dtype"
+      "int8"
+      "--spec"
+      "dflash2"
+      "--draft-tokens"
+      "7"
+      "--vision"
+      "--preserve-thinking"
+    ];
+  };
+
   # zram as fast primary swap; a declaratively-sized swapfile on the
   # ext4 root (see hardware-configuration.nix's swapDevices) acts as an
   # additional OOM safety net / future hibernation headroom.
