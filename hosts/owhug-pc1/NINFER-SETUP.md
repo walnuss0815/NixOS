@@ -174,6 +174,33 @@ artifact in this session, matching the source page's own disclosed scope
 of validation - only that it loads, authenticates, generates coherently,
 and engages MTP speculative decoding correctly.
 
+## On-demand operation
+
+`services.ninfer.onDemand` (see `./configuration.nix`) is set on this host, so the
+`ninfer` unit is defined but not wanted by `multi-user.target` - it does not start
+at boot. The server process is managed manually:
+
+- Start: `sudo systemctl start ninfer`. The cold start
+  loads the ~21.5 GiB artifact and runs the engine startup - the same `engine
+  ready` / `listening on http://0.0.0.0:8080` log lines as after a `nixos-rebuild`
+  (see "Deploying a config change" below). This takes tens of seconds; `GET
+  /health` reports `{"status":"ok"}` only once the Engine can accept work, so the
+  first request right after a cold start may need a retry.
+- Stop: `sudo systemctl stop ninfer`, which releases the GPU VRAM the resident
+  model occupies; the weights alone are the ~19-19.7 GiB tracked above, plus the
+  KV/runtime headroom sized in the sections above.
+
+While the service is stopped:
+
+- `http://127.0.0.1:8080` and the LAN endpoint get connection-refused;
+  opencode's `owhug-pc1` provider (see
+  `../../modules/user/ai/opencode.nix`) fails until the service is started
+  again. Other providers are unaffected.
+- The firewall still lists port 8080 (config-driven, not service-driven); the
+  bearer/x-api-key gate applies as soon as the server is up again.
+- Everything else in this runbook (swapping the model, tuning flags, verifying)
+  is unchanged; just start the service first.
+
 ## Deploying a config change
 
 1. Edit `services.ninfer.extraFlags` (or other options) in

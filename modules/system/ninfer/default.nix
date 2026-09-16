@@ -82,6 +82,17 @@ in
       default = false;
       description = "Open `port` in the firewall.";
     };
+
+    onDemand = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        If true, the unit is defined but not wanted by multi-user.target:
+        it does not start at boot and has to be started manually with
+        `systemctl start ninfer` (released again with `systemctl stop ninfer`,
+        which also frees the GPU VRAM the resident model occupies).
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -89,7 +100,7 @@ in
       description = "NInfer local LLM HTTP server";
       wants = [ "network.target" ];
       after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = lib.optional (!cfg.onDemand) "multi-user.target";
 
       # A shell script rather than a static ExecStart argv: the API key has
       # to be read from apiKeyFile at process start, not interpolated into

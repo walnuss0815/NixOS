@@ -229,6 +229,12 @@
   # "LAN + API key" exposure: bound to all interfaces and firewalled open,
   # but every request (other than /health) requires the bearer/x-api-key
   # value in apiKeyFile.
+  #
+  # On-demand only (onDemand below): the unit is defined but not wanted by
+  # multi-user.target, so it does not start at boot - run `systemctl start
+  # ninfer` before using the model and `systemctl stop ninfer` to release
+  # the VRAM - see the "On-demand operation" section in ./NINFER-SETUP.md
+  # for the cold-start caveats.
   services.ninfer = {
     enable = true;
     # Upstream's own measurements use CUDA 13.1 for sm_120a; nixpkgs' default
@@ -240,6 +246,7 @@
     port = 8080;
     apiKeyFile = "/var/lib/ninfer/api-key.txt";
     openFirewall = true;
+    onDemand = true;
     # --vision stays disabled for the same reason as the official artifact
     # (see NINFER-SETUP.md's "Why vision is off"): its encoder workspace
     # cost is independent of --max-context and isn't needed for this
