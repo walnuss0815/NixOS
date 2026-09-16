@@ -1,8 +1,11 @@
-{ pkgs, config, ... }:
+{ pkgs, lib, config, ... }:
 let
   name = "Alexander Weidemann";
   email = "walnuss0815@gmail.com";
-  signingKeyValue = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9agMLuqQcDPEzPnTTT48UYrsqgyvW3VtfG8JQW3wr2";
+  signingKeys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9agMLuqQcDPEzPnTTT48UYrsqgyvW3VtfG8JQW3wr2"
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILiJPICLeqhAWEuoM9d+IUvM7uDk4kLmgQwowRuybKDn"
+  ];
   signingKeyPath = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
   allowedSignersFile = "${config.home.homeDirectory}/.config/git/allowed_signers";
 in
@@ -10,7 +13,8 @@ in
   home.packages = with pkgs; [
     ghq
   ];
-  home.file.".config/git/allowed_signers".text = "${email} ${signingKeyValue}\n";
+  home.file.".config/git/allowed_signers".text =
+    lib.concatMapStrings (key: "${email} ${key}\n") signingKeys;
   programs.git = {
     enable = true;
     settings = {
