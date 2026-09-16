@@ -4,6 +4,7 @@
     settings = {
       email = "walnuss0815@gmail.com";
       pinentry = pkgs.pinentry-gnome3;
+      lock_timeout = 43200;
     };
   };
 }
