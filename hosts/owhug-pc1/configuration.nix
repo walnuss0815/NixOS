@@ -220,39 +220,80 @@
   # Latest Linux kernel (needed for current-gen CPU/GPU driver support).
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # Local LLM: NInfer serving Qwen3.8-27B (NVFP4 + Vision + DFlash2). See
-  # ./NINFER-SETUP.md for the one-time, GPU-bound model conversion this
-  # depends on (not expressible as a Nix derivation - downloads ~80GB of
-  # upstream checkpoints and runs upstream's own conversion tooling) and for
-  # generating apiKeyFile's contents.
+  # Local LLM: NInfer serving Qwen3.8-27B (NVFP4 + DFlash2). See
+  # ./NINFER-SETUP.md for the setup this depends on and for generating
+  # apiKeyFile's contents. The downloaded artifact also contains Vision
+  # weights, but --vision is deliberately omitted below - see the
+  # extraFlags comment.
   #
   # "LAN + API key" exposure: bound to all interfaces and firewalled open,
   # but every request (other than /health) requires the bearer/x-api-key
   # value in apiKeyFile.
   services.ninfer = {
     enable = true;
+    # Upstream's own measurements use CUDA 13.1 for sm_120a; nixpkgs' default
+    # cudaPackages resolves to 12.9, so override explicitly (see
+    # ./NINFER-SETUP.md).
+    package = pkgs.callPackage ../../pkgs/ninfer { cudaPackages = pkgs.cudaPackages_13_1; };
     artifactPath = "/var/lib/ninfer/models/qwen3.8-27b-nvfp4-vision-dflash2.ninfer";
     host = "0.0.0.0";
     port = 8080;
     apiKeyFile = "/var/lib/ninfer/api-key.txt";
     openFirewall = true;
+    # max-concurrency 3 + --vision + native 262144 context required ~12.5GB
+    # of runtime headroom beyond the 21.3GB weights (CUDA graph capture
+    # buffers and persistent/workspace tables all scale with
+    # max-concurrency; see Neroued/ninfer's
+    # src/models/qwen3_5/program/planning/startup.cpp), against only
+    # ~8.7GB actually available on this 32GB card after weights (~1GB is
+    # already used by the desktop session). Dropped max-concurrency to 1
+    # first, which wasn't enough alone (~10.2GB required).
+    #
+    # --vision turned out to be the dominant remaining cost, not
+    # max-context: VisionContext::plan_workspace's encode_peak_bytes term
+    # (the vision transformer's own peak workspace for encoding up to
+    # 131,072 raw patches / 32,768 merged tokens) is sized independently of
+    # --max-context, unlike the text-side KV/state tables. Vision was never
+    # actually required for this deployment's use case (opencode coding
+    # agent), so it's disabled here rather than trading away context
+    # length; the artifact still contains Vision weights if needed later.
+    # Disabling vision got close to fitting the full native 262144 context
+    # but not quite. Measured marginal cost is ~33.8KB of runtime
+    # reservation per context token (from two data points: 262144 tokens
+    # needed 9096.3MiB, 245760 needed 9006.0MiB); combined with this box's
+    # desktop session causing ~800MiB of observed VRAM-availability
+    # fluctuation between restarts, a 6% cut wasn't a reliable margin.
+    # Settled on 196608 (3/4 of native) for comfortable headroom above the
+    # ~204500-token estimated minimum safe value; this leaves ~2.06GiB free
+    # per `capacity |` log line at startup. Tried raising max-concurrency
+    # back to 2 at this context length afterward - consistently short by
+    # ~250-320MiB (needs ~8.3GB vs ~9.0-9.1GB available here), so it's
+    # staying at 1. Revisit only if either freed VRAM increases (e.g. no
+    # desktop session running) or --max-context is cut further.
     extraFlags = [
       "--max-context"
-      "262144"
+      "196608"
       "--kv-capacity"
       "auto"
       "--max-concurrency"
-      "3"
+      "1"
       "--kv-dtype"
       "int8"
       "--spec"
       "dflash2"
       "--draft-tokens"
       "7"
-      "--vision"
       "--preserve-thinking"
     ];
   };
+
+  # Onboard RTL8125D 2.5GbE NIC (enp6s0): link negotiates fine but DHCP
+  # never completes under the in-tree r8169 driver (high rx_missed count,
+  # "invalid VPD tag ... assume missing optional EEPROM" warning) on every
+  # boot. Swap to Realtek's out-of-tree r8125 driver, a known workaround
+  # for this chip revision (XID 688 / rev C0).
+  boot.extraModulePackages = [ config.boot.kernelPackages.r8125 ];
+  boot.blacklistedKernelModules = [ "r8169" ];
 
   # zram as fast primary swap; a declaratively-sized swapfile on the
   # ext4 root (see hardware-configuration.nix's swapDevices) acts as an

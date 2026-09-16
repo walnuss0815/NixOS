@@ -8,16 +8,10 @@
 # has no tagged releases and ships no prebuilt binaries, so this pins an
 # explicit commit and builds from source.
 #
-# KNOWN OPEN ITEMS (see hosts/owhug-pc1/NINFER-SETUP.md):
-#   - `hash` below is a placeholder (lib.fakeHash). The first build attempt
-#     on owhug-pc1 will fail with the real sha256 in the error message;
-#     paste that in and rebuild.
-#   - Upstream's own measurements use CUDA 13.1 (`sm_120a`). This derivation
-#     uses whatever `cudaPackages` resolves to by default in nixpkgs at
-#     build time, which was CUDA 12.9 when last checked — verify this is
-#     new enough to target sm_120a before spending time debugging unrelated
-#     build failures. If it isn't, pin `cudaPackages_13` (or whatever the
-#     current attribute is) explicitly via an overlay.
+# Upstream's own measurements use CUDA 13.1 for sm_120a; nixpkgs' default
+# `cudaPackages` resolves to 12.9, so callers should pass
+# `cudaPackages = pkgs.cudaPackages_13_1` explicitly (see
+# hosts/owhug-pc1/configuration.nix).
 cudaPackages.backendStdenv.mkDerivation {
   pname = "ninfer";
   version = "unstable-2026-09-16";
@@ -26,7 +20,7 @@ cudaPackages.backendStdenv.mkDerivation {
     owner = "Neroued";
     repo = "ninfer";
     rev = "1d8587bcfe850fba310d8833552f3c0c07e3a4bd";
-    hash = lib.fakeHash;
+    hash = "sha256-HhOEq4lyu5U4iGdHb7FAOTt5Xy7FNgR15AQ1J0Sbn/c=";
   };
 
   nativeBuildInputs = [ cmake ninja pkg-config cudaPackages.cuda_nvcc ];

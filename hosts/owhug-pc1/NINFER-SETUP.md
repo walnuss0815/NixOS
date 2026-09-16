@@ -1,143 +1,143 @@
 # owhug-pc1 — NInfer local LLM setup
 
-One-time, GPU-bound steps to get `services.ninfer` (see
-`./configuration.nix` and `../../modules/system/ninfer/default.nix`)
-actually serving a model. None of this is expressible as a Nix
-derivation: it downloads ~80GB of upstream checkpoints and runs
-upstream's own Python conversion tooling against the GPU. If this file
-and the module/host comments ever disagree, the `.nix` files are the
-source of truth.
+How `services.ninfer` (see `./configuration.nix` and
+`../../modules/system/ninfer/default.nix`) got from nothing to a working
+local LLM server on this host. If this file and the module/host comments
+ever disagree, the `.nix` files are the source of truth.
 
-Target: Qwen3.8-27B, NVFP4 + Vision + the official DFlash2 speculative
-drafter, ≈30GB VRAM steady state, full native 262,144-token context.
+Serving: Qwen3.8-27B, NVFP4 + FP8 text weights + the official DFlash2
+speculative drafter, at `qwen3.8-27b`. Vision is disabled (see "Why vision
+is off" below). Native context is 262,144 tokens; this deployment serves
+196,608 (see "Why not full context" below).
 
-## Phase 0 — Prerequisites
+## What actually happened (short version)
 
-1. Confirm the NVIDIA driver sees the GPU: `nvidia-smi` should list one
-   RTX 5090.
-2. Free disk space: you need **~100GB free, temporarily** (conversion
-   inputs + output artifact), dropping to **~19GB** once the inputs
-   below are deleted after conversion.
-3. **RAM risk, unresolved**: the conversion step loads a 55GB BF16
-   checkpoint. This box has 32GB RAM. If `tools/convert` loads weights
-   fully into memory rather than streaming them from disk, this may not
-   fit — check `tools/convert`'s actual memory behavior (or just try it
-   and watch for OOM) before assuming this works.
+1. `pkgs/ninfer/default.nix` builds the engine (`ninfer`/`ninfer-serve`)
+   from source, pinned to a specific commit, using `cudaPackages_13_1`
+   (nixpkgs' default `cudaPackages` was 12.9; upstream's own measurements
+   target CUDA 13.1 for `sm_120a`/RTX 5090).
+2. Rather than the ~80GB multi-source download + local weight conversion
+   originally planned (official BF16 checkpoint + NVFP4 quantized weights
+   + DFlash2 drafter, combined via `tools/convert`), a single pre-built
+   artifact already bundles the exact target combination:
+   [`neroued/Qwen3.8-27B-nvfp4-NInfer`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer)
+   (22.09 GiB, `qwen3_8_27b_nvfp4.ninfer`, sha256
+   `74d2c57145e6ff11d1d2faa79594477f9bc903a611af1fb20218189fbbb77d82`).
+   It contains NVFP4/FP8 text, Vision, MTP, and the complete DFlash2
+   companion weights, in v3 container format, publicly downloadable
+   without auth. This eliminated the RAM risk, calibration-file ambiguity,
+   and CUDA-toolkit-for-conversion questions the original plan carried.
+3. Downloaded via `hf download neroued/Qwen3.8-27B-nvfp4-NInfer
+   qwen3_8_27b_nvfp4.ninfer --local-dir <scratch>` (ephemeral
+   `nix-shell -p 'python313.withPackages(ps: [ps.huggingface-hub])'` since
+   `hf` isn't a system package), verified by size and sha256 against the
+   published values, then installed to
+   `/var/lib/ninfer/models/qwen3.8-27b-nvfp4-vision-dflash2.ninfer`
+   (`sudo install -Dm644 ...`).
+4. API key: `nix-shell -p openssl --run "openssl rand -base64 32"`,
+   written to `/var/lib/ninfer/api-key.txt` (600, root-owned) and to an
+   untracked `~/.secrets/owhug-pc1-ninfer-key` (600) for
+   `modules/user/ai/opencode.nix`'s `apiKey =
+   "{file:~/.secrets/owhug-pc1-ninfer-key}"` reference. Never commit
+   either copy.
+5. `/dev/nvidia*` on this host is mode `0666` (world RW), so
+   `DynamicUser`'s lack of explicit `SupplementaryGroups` was never
+   actually a problem — the module's `PrivateDevices = false` alone was
+   sufficient.
+6. `sudo nixos-rebuild switch --flake .#owhug-pc1`, then iterated on
+   `services.ninfer.extraFlags` (see below) until `systemctl status
+   ninfer` / `journalctl -u ninfer` showed a clean `engine ready` /
+   `listening on http://0.0.0.0:8080` instead of a crash loop.
 
-## Phase 1 — Build the `ninfer` package
+## Why vision is off
 
-4. `pkgs/ninfer/default.nix` pins a commit but has a placeholder
-   `hash = lib.fakeHash;` (I have no NVIDIA GPU on the machine I wrote
-   it from, so couldn't compute the real one). Run:
+The first deploy attempt (`--max-concurrency 3`, `--vision`, native
+`--max-context 262144`) failed startup with:
+
+```
+FATAL server failed during startup | minimum Engine runtime reservation
+requires 12533136641 bytes in addition to 1073741824 bytes of automatic
+headroom, but only 9229631488 bytes are available after weights
+```
+
+i.e. it needed ~12.5GB of runtime headroom beyond the 21.3GB weights, but
+only ~8.7-9.2GB was actually available on this 32GB card (~1GB already
+used by the desktop session). Dropping `--max-concurrency` to 1 (CUDA
+graph capture buffers and persistent/workspace tables in
+`Neroued/ninfer`'s `src/models/qwen3_5/program/planning/startup.cpp` all
+scale with concurrency) only got the requirement down to ~10.2GB — still
+short.
+
+Disabling `--vision` (never actually needed for this deployment's use
+case, an opencode coding-agent backend) turned out to be the dominant
+lever, not `--max-context`:
+`VisionContext::plan_workspace`'s `encode_peak_bytes` term — the vision
+transformer's own peak workspace for encoding up to 131,072 raw patches /
+32,768 merged tokens — is sized independently of `--max-context`, unlike
+the text-side KV/state tables. Without `--vision`, the *full native*
+262,144-token context needed only ~9.5-10.0GB, i.e. removing vision alone
+recovered roughly as much headroom as the earlier concurrency cut, if not
+more. The downloaded artifact still contains Vision weights; re-enabling
+`--vision` later (accepting a smaller `--max-context` or
+`--max-concurrency` to compensate) is a config-only change, not a
+re-download.
+
+## Why not full context
+
+Even without vision, native 262,144 tokens needed ~9534MiB (measured:
+9996672256 bytes + 1GiB headroom) against ~8.7-9.5GB actually available
+(this fluctuates by ~800MiB across restarts, apparently from the desktop
+session's own GPU usage) — consistently just short, by as little as
+~250-500MiB in some runs. Two measurements (262144 tokens -> 9996672256
+bytes required; 245760 tokens -> 9443023104 bytes required) gave a
+marginal cost of ~33.8KB of runtime reservation per context token, i.e.
+roughly linear. Extrapolating for a safety margin against the observed
+VRAM fluctuation suggested ~204,500 tokens as the minimum safe value;
+196,608 (3/4 of native, a clean number) was chosen for comfortable margin
+above that estimate. This leaves ~2.06GiB free per the `capacity |` log
+line at startup.
+
+`--max-concurrency 2` was also tried at this context length once vision
+was off, in case the freed VRAM allowed it: it consistently fell short by
+~250-320MiB (needs ~8.3GB vs ~9.0-9.1GB available), so it's staying at 1.
+Revisit only if freed VRAM increases (e.g. no desktop session running,
+some other GPU consumer stops) or `--max-context` is cut further.
+
+## Deploying a config change
+
+1. Edit `services.ninfer.extraFlags` (or other options) in
+   `./configuration.nix`.
+2. `sudo nixos-rebuild switch --flake .#owhug-pc1`.
+3. `systemctl status ninfer --no-pager` / `journalctl -u ninfer -n 40
+   --no-pager` — look for `engine ready` and `listening on
+   http://0.0.0.0:8080` vs. a `FATAL server failed during startup |
+   minimum Engine runtime reservation requires N bytes ...` crash loop.
+   If it's crash-looping, the log line gives the exact required/available
+   byte counts needed to compute a new safe value (see "Why not full
+   context" above for the method).
+4. `curl http://127.0.0.1:8080/health` (unauthenticated, expect
+   `{"status":"ok"}`), then an authenticated request:
    ```bash
-   nix build .#nixosConfigurations.owhug-pc1.config.services.ninfer.package
+   curl -H "Authorization: Bearer $(cat ~/.secrets/owhug-pc1-ninfer-key)" \
+     http://127.0.0.1:8080/v1/models
    ```
-   This will fail with a hash mismatch error reporting the *real*
-   sha256. Paste that into `pkgs/ninfer/default.nix`'s `hash` field and
-   rebuild.
-5. **CUDA version risk, unverified**: upstream's own measurements use
-   CUDA 13.1 for `sm_120a`. This derivation uses whatever `cudaPackages`
-   resolves to by default in nixpkgs (was CUDA 12.9 when last checked
-   from a machine without CUDA access). If the build fails on
-   `sm_120a`-related errors, that's the first thing to check — look for
-   a `cudaPackages_13` (or similarly named) attribute in nixpkgs and
-   override `services.ninfer.package` in `./configuration.nix` to use
-   it via `pkgs.callPackage ../../pkgs/ninfer { cudaPackages =
-   pkgs.cudaPackages_13; }` or whatever the actual attribute turns out
-   to be.
-6. This is a from-scratch CUDA C++ engine; expect a real compile time
-   even on the 9950X3D.
+5. If `--max-context` or vision availability changed, update the matching
+   `context`/model description in `modules/user/ai/opencode.nix`'s
+   `provider.owhug-pc1` entry so the client-advertised limits stay
+   accurate.
+6. From another LAN machine (or from opencode itself, once its
+   `~/.secrets/owhug-pc1-ninfer-key` copy exists): confirm
+   `http://192.168.10.26:8080/v1/models` responds, and that opencode's
+   `/models` picker lists the `qwen3.8-27b` provider.
 
-## Phase 2 — Download conversion inputs
+## Known gaps
 
-7. Pick a scratch directory with the ~100GB free space from Phase 0,
-   e.g. `/var/tmp/ninfer-convert/`.
-8. Download the three inputs with the `hf` CLI (from `huggingface_hub`):
-   ```bash
-   hf download Qwen/Qwen3.8-27B --local-dir /var/tmp/ninfer-convert/bf16
-   hf download Qwen/Qwen3.8-27B-NVFP4 --local-dir /var/tmp/ninfer-convert/nvfp4
-   hf download z-lab/Qwen3.8-27B-DFlash2 --local-dir /var/tmp/ninfer-convert/dflash2
-   ```
-
-## Phase 3 — Convert
-
-9. **Open item, unverified**: the fork's documented reproduce command
-   (see NInfer's `docs/weight-conversion.md` and
-   `tools/convert/recipes/`) references a precomputed
-   activation-calibration JSON as a conversion input. It's not
-   confirmed whether the plain official `qwen3_8_27b_nvfp4` recipe
-   needs this too, or whether it's generated as part of the recipe run.
-   Read `tools/convert/recipes/qwen3_8_27b_nvfp4.py` (or whatever the
-   actual official recipe filename turns out to be — this wasn't
-   directly inspected) before running the next command; if it wants a
-   calibration file you don't have, you'll need to generate one against
-   a representative text corpus first.
-10. Run the conversion, from a `ninfer` checkout with a working build
-    (Phase 1) and a Python 3 environment:
-    ```bash
-    python3 -m tools.convert \
-      --model /var/tmp/ninfer-convert/bf16 \
-      --source quantized=/var/tmp/ninfer-convert/nvfp4 \
-      --source dflash2=/var/tmp/ninfer-convert/dflash2 \
-      --recipe tools/convert/recipes/qwen3_8_27b_nvfp4.py \
-      --components text,mtp,vision,dflash2 \
-      --out /var/tmp/ninfer-convert/qwen3.8-27b-nvfp4-vision-dflash2.ninfer
-    ```
-11. If the output is a v2-format artifact, upgrade it in place (no
-    re-download needed):
-    ```bash
-    python3 tools/upgrade_ninfer_v2_to_v3.py \
-      /var/tmp/ninfer-convert/qwen3.8-27b-nvfp4-vision-dflash2.ninfer \
-      /var/tmp/ninfer-convert/qwen3.8-27b-nvfp4-vision-dflash2.v3.ninfer
-    ```
-
-## Phase 4 — Install the artifact and API key
-
-12. Move the final artifact to the path `services.ninfer.artifactPath`
-    expects:
-    ```bash
-    sudo install -Dm644 /var/tmp/ninfer-convert/qwen3.8-27b-nvfp4-vision-dflash2*.ninfer \
-      /var/lib/ninfer/models/qwen3.8-27b-nvfp4-vision-dflash2.ninfer
-    ```
-13. Generate the API key referenced by `services.ninfer.apiKeyFile`:
-    ```bash
-    sudo install -d -m 700 /var/lib/ninfer
-    openssl rand -base64 32 | sudo tee /var/lib/ninfer/api-key.txt > /dev/null
-    sudo chmod 600 /var/lib/ninfer/api-key.txt
-    ```
-    Copy this same value into an **untracked** file on every client
-    machine, e.g. `~/.secrets/owhug-pc1-ninfer-key` (chmod 600), for
-    opencode's `apiKey = "{file:~/.secrets/owhug-pc1-ninfer-key}"`
-    reference in `modules/user/ai/opencode.nix`. Never commit either
-    copy.
-14. Delete the conversion inputs (`/var/tmp/ninfer-convert/{bf16,nvfp4,dflash2}`)
-    to reclaim the ~80GB of temporary disk use.
-
-## Phase 5 — Deploy and verify
-
-15. `sudo nixos-rebuild switch --flake .#owhug-pc1`
-16. `systemctl status ninfer` — check it started and actually loaded
-    the artifact (`journalctl -u ninfer -f` while it comes up; model
-    load will take a while).
-17. `curl http://127.0.0.1:8080/health` — unauthenticated by design,
-    should return `{"status":"ok"}`.
-18. `curl -H 'Authorization: Bearer <the api key>' http://127.0.0.1:8080/v1/models`
-19. From another LAN machine, confirm the same request works against
-    owhug-pc1's LAN IP, then confirm from opencode itself (`/models`
-    should list the new provider's model).
-
-## Known gaps (not yet resolved by this runbook)
-
-- Whether 32GB system RAM is actually sufficient to run the conversion
-  tool against a 55GB BF16 checkpoint (Phase 0, step 3).
-- The exact filename of the official (non-fork) `qwen3_8_27b_nvfp4`
-  conversion recipe, and whether it needs a precomputed calibration
-  file (Phase 3, step 9) — verify against `tools/convert/recipes/` and
-  `docs/weight-conversion.md` directly rather than trusting the
-  filename guessed here.
-- Whether nixpkgs' default `cudaPackages` is new enough to target
-  `sm_120a` (Phase 1, step 5).
-- Whether `DynamicUser` needs explicit `SupplementaryGroups` (e.g.
-  `"video"`) added to the `ninfer` systemd service for `/dev/nvidia*`
-  access — `PrivateDevices = false` alone may not be sufficient; check
-  `journalctl -u ninfer` for CUDA init failures on first start.
+- Cross-machine verification (runbook step 6 above) has not actually been
+  run from a second LAN device or from opencode's own `/models` picker in
+  this session — only `curl` from owhug-pc1 itself. Do this before relying
+  on the provider from another machine.
+- The ~800MiB VRAM-availability fluctuation between restarts was observed
+  but not root-caused (plausibly the desktop session/compositor, but not
+  confirmed). If it grows, `--max-context 196608` may need to shrink
+  further; if it shrinks, there may be room to raise `--max-concurrency`
+  back above 1.
