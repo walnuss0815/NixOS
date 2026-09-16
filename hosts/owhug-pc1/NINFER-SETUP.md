@@ -5,10 +5,12 @@ How `services.ninfer` (see `./configuration.nix` and
 local LLM server on this host. If this file and the module/host comments
 ever disagree, the `.nix` files are the source of truth.
 
-Serving: Qwen3.8-27B, NVFP4 + FP8 text weights + the official DFlash2
-speculative drafter, at `qwen3.8-27b`. Vision is disabled (see "Why vision
-is off" below). Native context is 262,144 tokens; this deployment serves
-196,608 (see "Why not full context" below).
+Serving: an abliterated (uncensored) Qwen3.8-27B, NVFP4 + FP8 text weights
++ MTP speculative decoding, at `qwen3.8-27b` (see "Swapping to an
+uncensored model" below for why this replaced the original official
+artifact). Vision is disabled (see "Why vision is off" below). Native
+context is 262,144 tokens; this deployment serves 245,760 (see "Why not
+full context" below).
 
 ## What actually happened (short version)
 
@@ -31,9 +33,11 @@ is off" below). Native context is 262,144 tokens; this deployment serves
    qwen3_8_27b_nvfp4.ninfer --local-dir <scratch>` (ephemeral
    `nix-shell -p 'python313.withPackages(ps: [ps.huggingface-hub])'` since
    `hf` isn't a system package), verified by size and sha256 against the
-   published values, then installed to
-   `/var/lib/ninfer/models/qwen3.8-27b-nvfp4-vision-dflash2.ninfer`
-   (`sudo install -Dm644 ...`).
+   published values, then installed to `/var/lib/ninfer/models/` (`sudo
+   install -Dm644 ...`). This official artifact was later replaced by an
+   abliterated one - see "Swapping to an uncensored model" below; the
+   current `artifactPath` in `./configuration.nix` is the source of truth
+   for which file is actually loaded.
 4. API key: `nix-shell -p openssl --run "openssl rand -base64 32"`,
    written to `/var/lib/ninfer/api-key.txt` (600, root-owned) and to an
    untracked `~/.secrets/owhug-pc1-ninfer-key` (600) for
@@ -103,6 +107,73 @@ was off, in case the freed VRAM allowed it: it consistently fell short by
 Revisit only if freed VRAM increases (e.g. no desktop session running,
 some other GPU consumer stops) or `--max-context` is cut further.
 
+## Swapping to an uncensored model
+
+The official artifact above was later replaced with an abliterated
+(refusal-removed) derivative, for local/private use where that behavior
+is wanted. NInfer has no content-moderation layer of its own to toggle
+(confirmed from `docs/serving.md`) — refusal behavior lives entirely in
+the model's trained weights, so "uncensored" means swapping weights, not
+flipping a flag.
+
+Chosen artifact:
+[`Barding-Defense/Qwen3.8-27B-huihui-abliterated-NVFP4-NInfer`](https://huggingface.co/Barding-Defense/Qwen3.8-27B-huihui-abliterated-NVFP4-NInfer)
+(`qwen3_8_27b_huihui_abliterated_nvfp4.ninfer`, 21,492,695,040 bytes,
+sha256 `02c0c80616e2dd353133355d840aa6418d83f4c523369ad93b426e6c5bbc83c8`),
+derived from `huihui-ai/Huihui-Qwen3.8-27B-abliterated` (itself an
+abliteration of the official `Qwen/Qwen3.8-27B`, layers 18-51 only, via
+the Arditi et al. refusal-direction-removal method). Picked over dozens of
+similarly-named community repos (`*-TURBO-Fable-Cold-Fusion-*-Heretic-*`,
+etc. - a naming pattern worth treating with real skepticism) for its
+transparent provenance chain, a published byte-for-byte structural diff
+against the official artifact, and an explicit "what was/wasn't validated"
+section rather than unearned quality claims.
+
+**Container-version gotcha, resolved**: the artifact's own page labels it
+"container v2", but NInfer's actual binary framing spec
+(`docs/maintainer/artifact-container.md`) only describes v3 magic bytes
+(`4e 49 4e 46 45 52 00 03`) - there's no v2 framing in current docs, only
+a one-time upgrade path for old v2 files. `python3 -m
+tools.artifact.inspect` on the raw download confirmed this concretely
+(`ArtifactError: expected NInfer v3 entry magic`), contradicting the
+source page's "loads on an unmodified build" claim. Fixed with the
+documented, official upgrade tool - no re-download needed:
+
+```bash
+git clone https://github.com/Neroued/ninfer.git   # for tools/, no GPU build needed
+cd ninfer
+python3 tools/upgrade_ninfer_v2_to_v3.py \
+  qwen3_8_27b_huihui_abliterated_nvfp4.ninfer \
+  qwen3_8_27b_huihui_abliterated_nvfp4.v3.ninfer
+```
+
+The upgrade script is a structural v2->v3 repacker validated against known
+*official* object-count profiles (`KNOWN_COUNTS` in the script), not
+weight *values* - safe to use here because the source page's own diff
+already established this artifact is structurally byte-identical to the
+official one (same object count/shapes/formats/order), just with
+different (abliterated) tensor values. Re-ran `tools.artifact.inspect`
+after upgrading to confirm: parsed cleanly, `version: 3`, `objects: 1124`
+(1118 tensors + 6 resources), identical format breakdown to the published
+inventory, `name: qwen3.8-27b`, components `text`/`vision`/`mtp` (no
+`dflash2` - this artifact doesn't have DFlash2 companion weights, only the
+official target model does).
+
+Installed to
+`/var/lib/ninfer/models/qwen3.8-27b-huihui-abliterated-nvfp4.ninfer`.
+Since this artifact has no DFlash2 weights, `--spec` switched from
+`dflash2`/`--draft-tokens 7` to `mtp`/`--draft-tokens 5`/`--lm-head-draft`
+(the artifact does carry MTP + the optimized proposal head, matching the
+source page's own quick-start example). Its ~19.7GiB resident weight size
+(vs. 21.1-21.3GiB for the official artifact) freed enough headroom to
+raise `--max-context` from 196,608 back up to 245,760 while keeping
+`--vision` off and `--max-concurrency` at 1 - confirmed via the same
+`engine ready` / `capacity |` log line check as before (`free 1.09GiB`).
+No capability, fidelity, or refusal-rate benchmarks were run against this
+artifact in this session, matching the source page's own disclosed scope
+of validation - only that it loads, authenticates, generates coherently,
+and engages MTP speculative decoding correctly.
+
 ## Deploying a config change
 
 1. Edit `services.ninfer.extraFlags` (or other options) in
@@ -133,11 +204,16 @@ some other GPU consumer stops) or `--max-context` is cut further.
 ## Known gaps
 
 - Cross-machine verification (runbook step 6 above) has not actually been
-  run from a second LAN device or from opencode's own `/models` picker in
-  this session — only `curl` from owhug-pc1 itself. Do this before relying
-  on the provider from another machine.
+  run from a second LAN device — only `curl` and the `opencode` CLI from
+  owhug-pc1 itself (both confirmed working, including through the actual
+  opencode client, not just raw `curl`). Do this before relying on the
+  provider from another machine.
 - The ~800MiB VRAM-availability fluctuation between restarts was observed
   but not root-caused (plausibly the desktop session/compositor, but not
-  confirmed). If it grows, `--max-context 196608` may need to shrink
+  confirmed). If it grows, `--max-context 245760` may need to shrink
   further; if it shrinks, there may be room to raise `--max-concurrency`
   back above 1.
+- The abliterated artifact's capability regression (if any) versus the
+  official model is unquantified - the source repo explicitly didn't
+  benchmark this, and neither did this deployment. If output quality
+  seems off for a given task, that's an open, unmeasured variable.

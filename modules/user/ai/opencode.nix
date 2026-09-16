@@ -175,30 +175,31 @@
             };
           };
         };
-        # owhug-pc1's NInfer server (Qwen3.8-27B, NVFP4+Vision+DFlash2). See
-        # hosts/owhug-pc1/NINFER-SETUP.md for the server-side setup.
-        # apiKey references a local, untracked, chmod-600 file (never
-        # committed) containing the same value as owhug-pc1's
+        # owhug-pc1's NInfer server, serving an abliterated (uncensored)
+        # Qwen3.8-27B NVFP4 artifact. See hosts/owhug-pc1/NINFER-SETUP.md
+        # for the server-side setup and why this replaced the official
+        # artifact. apiKey references a local, untracked, chmod-600 file
+        # (never committed) containing the same value as owhug-pc1's
         # /var/lib/ninfer/api-key.txt - create it per NINFER-SETUP.md
         # before this provider will authenticate.
         "owhug-pc1" = {
           "npm" = "@ai-sdk/openai-compatible";
-          "name" = "owhug-pc1 (Qwen3.8-27B, NVFP4)";
+          "name" = "owhug-pc1 (Qwen3.8-27B, NVFP4, uncensored)";
           "options" = {
             "baseURL" = "http://192.168.10.26:8080/v1";
             "apiKey" = "{file:~/.secrets/owhug-pc1-ninfer-key}";
           };
           "models" = {
             "qwen3.8-27b" = {
-              "name" = "Qwen3.8-27B (owhug-pc1, NVFP4+DFlash2)";
+              "name" = "Qwen3.8-27B abliterated (owhug-pc1, NVFP4+MTP)";
               "limit" = {
                 # Matches the server's actual --max-context (see
                 # hosts/owhug-pc1/configuration.nix's
                 # services.ninfer.extraFlags). --vision is disabled there
                 # (not needed for this use case); context is trimmed below
                 # the native 262144 ceiling to fit the 32GB card alongside
-                # --spec dflash2 after weights.
-                "context" = 196608;
+                # this artifact's weights.
+                "context" = 245760;
                 "output" = 65536;
               };
             };
