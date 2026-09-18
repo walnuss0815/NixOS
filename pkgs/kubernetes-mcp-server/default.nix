@@ -16,7 +16,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fetchurl {
     url = "https://registry.npmjs.org/kubernetes-mcp-server-linux-amd64/-/kubernetes-mcp-server-linux-amd64-${finalAttrs.version}.tgz";
-    hash = "sha512-kIp988KslasSKw8Vo6ZCePxVMX8GZvAb+WVWW1YtZAswxF/k2vFVYS858trw4Hnjp6pCqThd60yiizroiNC2xw==";
+    hash = "sha512-VW5wRdetbJmfCHkCEBA808bgJJRL1GCfkSZ17J+SJJuNiKcvjibcGR32272WKtwd3Td4ZVrOPomExKgCNE16jA==";
   };
 
   # Keep the extracted "package/" prefix instead of the default behaviour
