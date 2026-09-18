@@ -12,7 +12,7 @@
 # fetch at MCP-server-startup time.
 stdenv.mkDerivation (finalAttrs: {
   pname = "kubernetes-mcp-server";
-  version = "0.0.66";
+  version = "0.0.67";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/kubernetes-mcp-server-linux-amd64/-/kubernetes-mcp-server-linux-amd64-${finalAttrs.version}.tgz";
