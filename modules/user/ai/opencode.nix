@@ -2,12 +2,130 @@
 # plugins), skills and context, plus the packaged claude-swap wrapper and
 # the opencode-notifier plugin config. The MCP servers this talks to are
 # defined in ./mcp.nix and merged in below via enableMcpIntegration.
-{ pkgs, config, ... }: {
-  home.packages = [ (pkgs.callPackage ../../../pkgs/claude-swap { }) ];
+#
+# Filesystem sandboxing: programs.opencode.package below is swapped for a
+# wrapper that runs the real opencode binary under `nono` (Landlock-enforced
+# kernel sandbox - see nono.sh/docs). This replaces the plain `opencode` on
+# PATH globally, so it can never be launched unsandboxed by accident.
+# `permission` config further down stays as an approval-workflow layer on
+# top of that; nono is the actual security boundary
+# (in particular, bash: "*" = "allow" below is safe precisely because nono
+# constrains what that shell can touch at the kernel level).
+{ pkgs, config, ... }:
+let
+  # Kernel-enforced (Landlock) sandbox profile for opencode. Modeled on
+  # nono's own bundled "opencode" preset (see nono.sh/docs/cli/features/
+  # profiles-groups#opencode) but hand-written here because the nixpkgs-
+  # pinned nono version predates that bundled preset, and adjusted for
+  # NixOS: the upstream preset's "opencode_linux" group only grants
+  # ~/.opencode/bin (the curl-installer layout), which is irrelevant here
+  # since opencode and every tool it shells out to (git, rg, kubectl, ...)
+  # live under unpredictable /nix/store/<hash>-<name>/bin paths instead.
+  # "nix_runtime" is the group that actually covers that (verified via
+  # `nono profile groups nix_runtime`: grants read on /nix/store,
+  # /run/current-system/sw, /etc/profiles/per-user and ~/.nix-profile) -
+  # without it, every bash-tool invocation of a store-packaged binary
+  # fails with "directory is not readable inside the sandbox". Grants:
+  # CWD (via --allow-cwd in the wrapper below), opencode's own XDG state/
+  # config/cache dirs, $TMPDIR (opencode writes editor-buffer/clipboard
+  # temp files with unpredictable names there). No extra fixed
+  # directories beyond CWD are granted - add project-specific extras via a
+  # ".opencode-sandbox.jsonc"/".json" file in the project root instead (see
+  # the wrapper script below and `nono profile guide`).
+  nonoProfile = {
+    meta = {
+      name = "opencode-nixos";
+      version = "1.0.0";
+      description = "Kernel-enforced (Landlock) sandbox for opencode.";
+    };
+    groups.include = [
+      "user_caches_linux"
+      "node_runtime"
+      "nix_runtime"
+      "git_config"
+      "unlink_protection"
+    ];
+    workdir.access = "readwrite";
+    filesystem = {
+      allow = [
+        "$XDG_CONFIG_HOME/opencode"
+        "$XDG_CACHE_HOME/opencode"
+        "$XDG_DATA_HOME/opencode"
+        "$XDG_DATA_HOME/opentui"
+        "$TMPDIR"
+      ];
+      # Single-file, not the whole ~/.claude directory: the
+      # opencode-claude-auth plugin (in the plugin list below) reads its
+      # Claude Code OAuth credentials from exactly this file on Linux
+      # (README: "~/.claude/.credentials.json (fallback, works on all
+      # platforms)") and rewrites it in place whenever it refreshes a
+      # near-expiry token - re-read every ~30s in-process for the whole
+      # session, so unlike the GitHub token this can't be moved to a
+      # one-shot pre-session hook. The rest of ~/.claude/ (other projects'
+      # conversation transcripts, daemon control key, session keys) stays
+      # outside the sandbox entirely.
+      allow_file = [
+        "$HOME/.claude/.credentials.json"
+      ];
+      # Connect-only: lets the opencode-notifier plugin reach the D-Bus
+      # session bus (libnotify/notify-send) and PipeWire's pulse-compat
+      # socket (paplay) for its desktop notification/sound events. Neither
+      # grants bind(), so this cannot be used to stand up a rogue service.
+      unix_socket = [
+        "$XDG_RUNTIME_DIR/bus"
+        "$XDG_RUNTIME_DIR/pulse/native"
+      ];
+    };
+    network.block = false; # LLM provider APIs and MCP servers (GitHub, k8s) need it
+    session_hooks.before = {
+      # Runs host-privileged, before the sandbox is applied - this is
+      # deliberately outside the profile's filesystem grants above. It
+      # fetches the GitHub MCP server's token from the Bitwarden vault via
+      # rbw (possibly prompting through GNOME pinentry) and hands only the
+      # resulting bare token to the sandboxed process as an env var. This
+      # means the sandbox itself never needs (and never gets) read access
+      # to ~/.cache/rbw - which holds the *decrypted* vault cache - or to
+      # the pinentry/D-Bus machinery that unlocking it requires. See
+      # ./mcp.nix for the github MCP server, which now just reads this env
+      # var instead of calling rbw itself.
+      script = "${config.xdg.configHome}/nono/hooks/fetch-github-token.sh";
+      timeout_secs = 15;
+    };
+  };
+
+  # Wraps the real opencode binary so that plain `opencode` invocations
+  # always run under the nono sandbox above. Detects an optional
+  # ".opencode-sandbox.jsonc"/".json" file in the launch directory and, if
+  # present, layers it on top via nono's native --extends mechanism - this
+  # is how a specific project can be granted extra paths beyond its own
+  # CWD without touching this Nix config.
+  sandboxedOpencode = pkgs.writeShellApplication {
+    name = "opencode";
+    runtimeInputs = [ pkgs.nono ];
+    meta.mainProgram = "opencode";
+    text = ''
+      extends_args=()
+      for f in .opencode-sandbox.jsonc .opencode-sandbox.json; do
+        if [ -f "$f" ]; then
+          extends_args+=(--extends "$PWD/$f")
+          break
+        fi
+      done
+      exec nono run --profile opencode-nixos "''${extends_args[@]}" --allow-cwd -- ${pkgs.opencode}/bin/opencode "$@"
+    '';
+  };
+in {
+  home.packages = [
+    (pkgs.callPackage ../../../pkgs/claude-swap { })
+    # For manual profile inspection/debugging: `nono profile show
+    # opencode-nixos`, `nono why --path ... --op ...`, etc.
+    pkgs.nono
+  ];
 
   programs.opencode = {
     enable = true;
     enableMcpIntegration = true;
+    package = sandboxedOpencode;
     extraPackages = with pkgs; [
       nodejs_24
       libnotify
@@ -295,5 +413,28 @@
     linux = {
       grouping = true;
     };
+  };
+
+  # nono sandbox profile + session hook (see the `let` block above for the
+  # rationale). Declarative and Nix-managed: nono also supports an
+  # interactive "save denied paths to profile" prompt after a run, but
+  # accepting that would write outside of this config, so don't - port any
+  # genuinely-needed paths it surfaces into nonoProfile above instead.
+  xdg.configFile."nono/profiles/opencode-nixos.json".text = builtins.toJSON nonoProfile;
+
+  xdg.configFile."nono/hooks/fetch-github-token.sh" = {
+    executable = true;
+    text = ''
+      #!/bin/sh
+      # Runs host-privileged via nono's session_hooks.before (see nonoProfile
+      # above), i.e. entirely outside the opencode sandbox. Fetches the
+      # GitHub MCP server's token from the Bitwarden vault (rbw, unlocked via
+      # GNOME pinentry if needed) and exports only the resulting bare token
+      # into the sandboxed process's environment. ./mcp.nix's github server
+      # reads it from there directly.
+      set -eu
+      token="$(${pkgs.rbw}/bin/rbw get github-mcp-server)"
+      printf 'GITHUB_PERSONAL_ACCESS_TOKEN=%s\n' "$token" >> "$NONO_ENV_FILE"
+    '';
   };
 }

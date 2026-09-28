@@ -14,17 +14,23 @@
 
       # Native binary (nixpkgs github-mcp-server) instead of the official
       # Docker image: no docker dependency, and auth is a PAT fetched
-      # fresh from the Bitwarden vault at spawn time via rbw (unlocked
-      # automatically through the GNOME pinentry dialog if the vault is
-      # currently locked), rather than the OAuth device/browser flow the
-      # docker image used (which needed a fixed loopback callback port).
-      # The token never touches the Nix store or disk - it's captured
-      # straight into the child process's environment at spawn time.
+      # fresh from the Bitwarden vault via rbw (unlocked automatically
+      # through the GNOME pinentry dialog if the vault is currently
+      # locked), rather than the OAuth device/browser flow the docker image
+      # used (which needed a fixed loopback callback port). The token never
+      # touches the Nix store or disk.
+      #
+      # The rbw call itself no longer happens here: opencode (and
+      # everything it spawns, including this server) runs under the nono
+      # sandbox defined in ./opencode.nix, and ~/.cache/rbw holds the
+      # *decrypted* vault cache - not something the sandbox should ever be
+      # able to read. Instead, nono's session_hooks.before runs `rbw get`
+      # host-privileged before the sandbox is applied and injects only the
+      # resulting bare token as GITHUB_PERSONAL_ACCESS_TOKEN, which this
+      # process then simply inherits.
       github = {
-        command = "${pkgs.writeShellScript "github-mcp-server-wrapper" ''
-          export GITHUB_PERSONAL_ACCESS_TOKEN="$(${pkgs.rbw}/bin/rbw get github-mcp-server)"
-          exec ${pkgs.github-mcp-server}/bin/github-mcp-server stdio
-        ''}";
+        command = "${pkgs.github-mcp-server}/bin/github-mcp-server";
+        args = [ "stdio" ];
         env = {
           "GITHUB_TOOLSETS" = "default,actions,gists,projects";
         };
