@@ -75,13 +75,35 @@ let
       allow_file = [
         "$HOME/.claude/.credentials.json"
       ];
+      # Read-only exception to the (required, otherwise unconditional)
+      # deny_credentials group, which blocks all of ~/.ssh so an agent can
+      # never read a private key. This carves out *only* the public half
+      # of the commit-signing key (path kept in sync with signingKeyPath
+      # in ../git/default.nix) so `git commit`/`ssh-keygen -Y sign` can
+      # embed it in the signature; the private key stays unreadable and
+      # never enters the sandbox. bypass_protection lifts the deny rule
+      # for exactly this path - see "Profile with deny overrides" in
+      # `nono profile guide` - it does not grant access by itself, hence
+      # the matching read_file entry above it.
+      read_file = [
+        "$HOME/.ssh/id_ed25519.pub"
+      ];
+      bypass_protection = [
+        "$HOME/.ssh/id_ed25519.pub"
+      ];
       # Connect-only: lets the opencode-notifier plugin reach the D-Bus
       # session bus (libnotify/notify-send) and PipeWire's pulse-compat
-      # socket (paplay) for its desktop notification/sound events. Neither
-      # grants bind(), so this cannot be used to stand up a rogue service.
+      # socket (paplay) for its desktop notification/sound events, and lets
+      # git/ssh-keygen request a commit signature from GNOME Keyring's
+      # ssh-agent (gcr) - the same keyring trust boundary already relied on
+      # for rbw auto-unlock (see ../bitwarden). None of these grant bind(),
+      # so this cannot be used to stand up a rogue service, and the actual
+      # private key material never crosses into the sandbox - only a
+      # signature computed by the agent on the other end of the socket.
       unix_socket = [
         "$XDG_RUNTIME_DIR/bus"
         "$XDG_RUNTIME_DIR/pulse/native"
+        "$XDG_RUNTIME_DIR/gcr/ssh"
       ];
     };
     network.block = false; # LLM provider APIs and MCP servers (GitHub, k8s) need it
