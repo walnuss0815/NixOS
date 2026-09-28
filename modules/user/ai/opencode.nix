@@ -11,8 +11,16 @@
 # top of that; nono is the actual security boundary
 # (in particular, bash: "*" = "allow" below is safe precisely because nono
 # constrains what that shell can touch at the kernel level).
-{ pkgs, config, ... }:
+{ pkgs, lib, config, ... }:
 let
+  # Absolute path to the untracked, chmod-600 NInfer API key file (see the
+  # "owhug-pc1" provider comment below and hosts/owhug-pc1/NINFER-SETUP.md).
+  # Checked at eval time so the provider block can be included/excluded
+  # declaratively instead of shipping a config that hard-fails opencode's
+  # own config parser when the file hasn't been created yet.
+  ninferKeyPath = "${config.home.homeDirectory}/.secrets/owhug-pc1-ninfer-key";
+  ninferKeyExists = builtins.pathExists ninferKeyPath;
+
   # Kernel-enforced (Landlock) sandbox profile for opencode. Modeled on
   # nono's own bundled "opencode" preset (see nono.sh/docs/cli/features/
   # profiles-groups#opencode) but hand-written here because the nixpkgs-
@@ -293,36 +301,6 @@ in {
             };
           };
         };
-        # owhug-pc1's NInfer server, serving an abliterated (uncensored)
-        # Qwen3.8-27B NVFP4 artifact. See hosts/owhug-pc1/NINFER-SETUP.md
-        # for the server-side setup and why this replaced the official
-        # artifact. apiKey references a local, untracked, chmod-600 file
-        # (never committed) containing the same value as owhug-pc1's
-        # /var/lib/ninfer/api-key.txt - create it per NINFER-SETUP.md
-        # before this provider will authenticate.
-        "owhug-pc1" = {
-          "npm" = "@ai-sdk/openai-compatible";
-          "name" = "owhug-pc1 (Qwen3.8-27B, NVFP4, uncensored)";
-          "options" = {
-            "baseURL" = "http://192.168.10.26:8080/v1";
-            "apiKey" = "{file:~/.secrets/owhug-pc1-ninfer-key}";
-          };
-          "models" = {
-            "qwen3.8-27b" = {
-              "name" = "Qwen3.8-27B abliterated (owhug-pc1, NVFP4+MTP)";
-              "limit" = {
-                # Matches the server's actual --max-context (see
-                # hosts/owhug-pc1/configuration.nix's
-                # services.ninfer.extraFlags). --vision is disabled there
-                # (not needed for this use case); context is trimmed below
-                # the native 262144 ceiling to fit the 32GB card alongside
-                # this artifact's weights.
-                "context" = 245760;
-                "output" = 65536;
-              };
-            };
-          };
-        };
         "rpp-ai-proxy" = {
           "npm" = "@ai-sdk/openai-compatible";
           "name" = "RPP AI Proxy";
@@ -380,6 +358,42 @@ in {
             };
             "Qwen 3 32B" = {
               "name" = "Qwen 3 32B";
+            };
+          };
+        };
+      }
+      # owhug-pc1's NInfer server, serving an abliterated (uncensored)
+      # Qwen3.8-27B NVFP4 artifact. See hosts/owhug-pc1/NINFER-SETUP.md for
+      # the server-side setup and why this replaced the official artifact.
+      # apiKey references a local, untracked, chmod-600 file (never
+      # committed) containing the same value as owhug-pc1's
+      # /var/lib/ninfer/api-key.txt - create it per NINFER-SETUP.md. Left
+      # out of the provider list entirely (rather than included with a
+      # dangling {file:...} reference) when that file doesn't exist yet,
+      # since opencode hard-fails config parsing on a missing file
+      # reference; reappears automatically on the next `home-manager
+      # switch` once the key file is created.
+      // lib.optionalAttrs ninferKeyExists {
+        "owhug-pc1" = {
+          "npm" = "@ai-sdk/openai-compatible";
+          "name" = "owhug-pc1 (Qwen3.8-27B, NVFP4, uncensored)";
+          "options" = {
+            "baseURL" = "http://192.168.10.26:8080/v1";
+            "apiKey" = "{file:~/.secrets/owhug-pc1-ninfer-key}";
+          };
+          "models" = {
+            "qwen3.8-27b" = {
+              "name" = "Qwen3.8-27B abliterated (owhug-pc1, NVFP4+MTP)";
+              "limit" = {
+                # Matches the server's actual --max-context (see
+                # hosts/owhug-pc1/configuration.nix's
+                # services.ninfer.extraFlags). --vision is disabled there
+                # (not needed for this use case); context is trimmed below
+                # the native 262144 ceiling to fit the 32GB card alongside
+                # this artifact's weights.
+                "context" = 245760;
+                "output" = 65536;
+              };
             };
           };
         };
