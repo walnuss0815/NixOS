@@ -1,0 +1,52 @@
+name: Renovate lock update
+
+# Renovate's customManagers (.github/renovate.json5) can only bump the
+# `nixpkgs-stable` branch string in flake.nix - it has no way to update
+# flake.lock. This workflow closes that gap: it re-locks just that input
+# and pushes the result back onto the PR branch so the normal flake-check
+# job (ci.yml) goes green without a human in the loop.
+on:
+  pull_request:
+    paths:
+      - "flake.nix"
+
+permissions:
+  contents: write
+
+jobs:
+  update-lock:
+    # Scope this to Renovate's own PRs by branch prefix, since this
+    # repo's Renovate runs with a PAT (not the hosted GitHub App), so PR
+    # authorship shows as the PAT owner rather than `renovate[bot]`.
+    # Note this is defence in depth, not the only safeguard: for PRs
+    # from forks, GITHUB_TOKEN is read-only regardless of the
+    # `permissions:` above, so a fork PR could never get this workflow
+    # to push changes either way.
+    if: startsWith(github.event.pull_request.head.ref, 'renovate/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Update nixpkgs-stable lock entry
+        run: nix flake lock --update-input nixpkgs-stable
+
+      - name: Commit and push if changed
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if git diff --quiet -- flake.lock; then
+            echo "No lock changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flake.lock
+          git commit -m "chore(flake): update lock file for nixpkgs-stable bump"
+          git push origin "HEAD:$HEAD_REF"

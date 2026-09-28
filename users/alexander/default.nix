@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, pkgsStable, ... }:
 
 {
   home.username = "alexander";
@@ -143,7 +143,12 @@
     calls
     vesktop
     thunderbird
-    bambu-studio
+
+    # Pinned to stable nixpkgs (pkgsStable, see flake.nix) rather than the
+    # unstable channel used everywhere else in this list, since unstable's
+    # bambu-studio has been less reliable. The stable input's release
+    # branch is bumped automatically by Renovate.
+    pkgsStable.bambu-studio
 
     # LibreOffice
     libreoffice-qt-stable

@@ -3,6 +3,13 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Pinned separately (not `follows`-ed to the unstable `nixpkgs` above)
+    # so specific packages (e.g. bambu-studio, see users/alexander) can be
+    # pulled from the stable release instead. The branch suffix here is
+    # bumped automatically by Renovate (.github/renovate.json5) whenever a
+    # new NixOS stable release ships; .github/workflows/renovate-update-lock.yml
+    # then refreshes flake.lock on that PR.
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -26,12 +33,17 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, nur, silentSDDM, lanzaboote, disko }:
+  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, nur, silentSDDM, lanzaboote, disko }:
 
     let
       system = "x86_64-linux";
 
       pkgs = import nixpkgs {
+        inherit system;
+        config = { allowUnfree = true; };
+      };
+
+      pkgsStable = import nixpkgs-stable {
         inherit system;
         config = { allowUnfree = true; };
       };
@@ -103,6 +115,7 @@
       homeConfigurations = {
         alexander = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
+          extraSpecialArgs = { inherit pkgsStable; };
 
           modules = [
             nur.modules.homeManager.default

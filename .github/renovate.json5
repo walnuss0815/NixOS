@@ -4,11 +4,14 @@
     'config:recommended',
   ],
 
-  // This repo's dependencies are pinned two different ways:
+  // This repo's dependencies are pinned three different ways:
   //  - flake.nix inputs -> flake.lock, updated manually via
   //    `nix flake update`. Renovate's "nix" manager (still beta) only
   //    touches flake.lock, so it's explicitly disabled here rather than
   //    just relying on its upstream default of `enabled: false`.
+  //  - the `nixpkgs-stable` input's release branch (e.g. nixos-26.05),
+  //    tracked via the customManagers entry below instead, since that's
+  //    a plain string bump the "nix" manager doesn't handle at all.
   //  - the tool versions vendored under pkgs/ (kubernetes-mcp-server,
   //    git-mcp-server, ssh-mcp, claude-swap), tracked below via
   //    customManagers instead.
@@ -40,6 +43,19 @@
   // vendored package-lock.json files) and pushed to the PR branch before
   // merging.
   customManagers: [
+    {
+      customType: 'regex',
+      description: 'nixpkgs-stable release branch (tracks NixOS/nixpkgs stable tags, e.g. 26.05). See .github/workflows/renovate-update-lock.yml for the matching flake.lock refresh.',
+      managerFilePatterns: ['/^flake\\.nix$/'],
+      matchStrings: ['nixpkgs-stable\\.url = "github:NixOS/nixpkgs/nixos-(?<currentValue>[0-9]+\\.[0-9]+)";'],
+      datasourceTemplate: 'github-tags',
+      depNameTemplate: 'NixOS/nixpkgs',
+      // NixOS/nixpkgs tags include plenty of non-release noise (-beta,
+      // -pre, v192, black@..., etc.) alongside the clean "26.05"-style
+      // final release tags. Anchoring on exactly two numeric groups
+      // filters out everything except those final release tags.
+      versioningTemplate: 'regex:^(?<major>\\d+)\\.(?<minor>\\d+)$',
+    },
     {
       customType: 'regex',
       description: 'claude-swap version pin (GitHub release tags, vX.Y.Z)',
