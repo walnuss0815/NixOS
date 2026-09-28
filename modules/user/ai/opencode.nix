@@ -122,7 +122,8 @@ let
       exec nono run --profile opencode-nixos "''${extends_args[@]}" --allow-cwd -- ${pkgs.opencode}/bin/opencode "$@"
     '';
   };
-in {
+in
+{
   home.packages = [
     (pkgs.callPackage ../../../pkgs/claude-swap { })
     # For manual profile inspection/debugging: `nono profile show

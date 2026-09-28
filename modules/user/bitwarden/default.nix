@@ -4,7 +4,8 @@ let
   # manual unlock, so rbw stops prompting entirely afterwards. See
   # ../../../pkgs/rbw-pinentry-keyring for what this trades away.
   rbwPinentryKeyring = pkgs.callPackage ../../../pkgs/rbw-pinentry-keyring { };
-in {
+in
+{
   home.packages = [ rbwPinentryKeyring ];
 
   programs.rbw = {

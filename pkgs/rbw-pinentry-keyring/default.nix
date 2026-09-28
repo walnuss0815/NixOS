@@ -1,10 +1,10 @@
-{
-  lib,
-  stdenvNoCC,
-  fetchurl,
-  makeWrapper,
-  libsecret,
-  pinentry-gnome3,
+{ lib
+, stdenvNoCC
+, fetchurl
+, makeWrapper
+, libsecret
+, pinentry-gnome3
+,
 }:
 
 # https://github.com/doy/rbw/blob/main/bin/rbw-pinentry-keyring
