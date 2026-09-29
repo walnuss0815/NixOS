@@ -10,7 +10,16 @@
     # new NixOS stable release ships; .github/workflows/renovate-update-lock.yml
     # then refreshes flake.lock on that PR.
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
-    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+    nixos-hardware = {
+      url = "github:NixOS/nixos-hardware/master";
+      # Without this, nixos-hardware pulls in its own nixpkgs tarball,
+      # adding a third (silently drifting) nixpkgs tree to flake.lock.
+      # Its nixosModules.* are pure module functions evaluated against
+      # each host's own pkgs, so following the root input changes nothing
+      # that gets built - it just keeps the lock graph to two nixpkgs
+      # (unstable + nixpkgs-stable).
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
