@@ -304,8 +304,18 @@ in
         # checkout/git_merge/git_rebase/git_cherry_pick (modify); git_
         # pull/git_push (modify/publish).
       };
+      # Both plugins are pinned to an exact version rather than @latest.
+      # opencode caches each plugin under a directory keyed by this literal
+      # spec string, with its own lockfile inside, so "@latest" does not
+      # track anything: it resolves once on first install and then stays
+      # frozen, with the resolved version recorded only in ~/.cache. That
+      # makes it a per-machine accident - a fresh host, or a cleared cache,
+      # resolves against whatever npm serves that day, so hosts can silently
+      # end up on different versions. Pinning here keeps them identical and
+      # puts the version under review. Bumps come from Renovate (see
+      # .github/renovate.json5).
       "plugin" = [
-        "opencode-claude-auth@latest"
+        "opencode-claude-auth@2.1.6"
         "@mohak34/opencode-notifier@0.2.8"
       ];
       "provider" = {
