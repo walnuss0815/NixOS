@@ -134,6 +134,13 @@ let
     runtimeInputs = [ pkgs.nono ];
     meta.mainProgram = "opencode";
     text = ''
+      # libpulse mkdir()s $XDG_RUNTIME_DIR/pulse before connecting and Landlock
+      # denies it (the profile grants the socket, not its parent dir), so paplay
+      # fails. Naming the socket directly skips that check.
+      if [ -z "''${PULSE_SERVER:-}" ] && [ -S "''${XDG_RUNTIME_DIR:-}/pulse/native" ]; then
+        export PULSE_SERVER="unix:''${XDG_RUNTIME_DIR}/pulse/native"
+      fi
+
       extends_args=()
       for f in .opencode-sandbox.jsonc .opencode-sandbox.json; do
         if [ -f "$f" ]; then
