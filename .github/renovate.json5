@@ -4,7 +4,7 @@
     'config:recommended',
   ],
 
-  // This repo's dependencies are pinned three different ways:
+  // This repo's dependencies are pinned four different ways:
   //  - flake.nix inputs -> flake.lock, updated manually via
   //    `nix flake update`. Renovate's "nix" manager (still beta) only
   //    touches flake.lock, so it's explicitly disabled here rather than
@@ -15,6 +15,9 @@
   //  - the tool versions vendored under pkgs/ (kubernetes-mcp-server,
   //    git-mcp-server, ssh-mcp, claude-swap), tracked below via
   //    customManagers instead.
+  //  - the opencode plugin versions in modules/user/ai/opencode.nix,
+  //    which are npm specs opencode resolves at runtime rather than
+  //    anything Nix builds, also tracked via customManagers below.
   nix: {
     enabled: false,
   },
@@ -42,6 +45,10 @@
   // "got: sha256-..." value back in, or `nix-prefetch-npm-deps` for the
   // vendored package-lock.json files) and pushed to the PR branch before
   // merging.
+  //
+  // That hash caveat applies only to the pkgs/* entries. The two opencode
+  // plugin managers at the end are plain npm spec strings that Nix never
+  // builds or hashes, so those PRs are mergeable as-is once CI is green.
   customManagers: [
     {
       customType: 'regex',
@@ -88,6 +95,29 @@
       matchStrings: ['version = "(?<currentValue>[^"]+)";'],
       datasourceTemplate: 'npm',
       depNameTemplate: 'ssh-mcp',
+    },
+    // The two opencode plugin pins live in one `plugin` array, so they get
+    // a manager each with an explicit depNameTemplate rather than a shared
+    // regex capturing depName. That avoids having to match both the
+    // unscoped and the "@scope/name" spec forms in one pattern, and keeps
+    // the match anchored tightly enough not to catch neighbouring strings
+    // in the same file such as the "@ai-sdk/openai-compatible" provider
+    // npm values.
+    {
+      customType: 'regex',
+      description: 'opencode-claude-auth plugin pin (npm)',
+      managerFilePatterns: ['/^modules/user/ai/opencode\\.nix$/'],
+      matchStrings: ['"opencode-claude-auth@(?<currentValue>[^"]+)"'],
+      datasourceTemplate: 'npm',
+      depNameTemplate: 'opencode-claude-auth',
+    },
+    {
+      customType: 'regex',
+      description: 'opencode-notifier plugin pin (npm)',
+      managerFilePatterns: ['/^modules/user/ai/opencode\\.nix$/'],
+      matchStrings: ['"@mohak34/opencode-notifier@(?<currentValue>[^"]+)"'],
+      datasourceTemplate: 'npm',
+      depNameTemplate: '@mohak34/opencode-notifier',
     },
   ],
 }
