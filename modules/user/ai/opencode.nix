@@ -315,7 +315,7 @@ in
       # puts the version under review. Bumps come from Renovate (see
       # .github/renovate.json5).
       "plugin" = [
-        "opencode-claude-auth@2.1.6"
+        "opencode-claude-auth@2.2.1"
         "@mohak34/opencode-notifier@0.2.8"
       ];
       "provider" = {
