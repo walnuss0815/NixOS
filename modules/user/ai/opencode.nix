@@ -131,7 +131,7 @@ let
   # CWD without touching this Nix config.
   sandboxedOpencode = pkgs.writeShellApplication {
     name = "opencode";
-    runtimeInputs = [ pkgs.nono ];
+    runtimeInputs = [ pkgs.nono pkgs.coreutils ];
     meta.mainProgram = "opencode";
     text = ''
       # libpulse mkdir()s $XDG_RUNTIME_DIR/pulse before connecting and Landlock
@@ -141,6 +141,15 @@ let
         export PULSE_SERVER="unix:''${XDG_RUNTIME_DIR}/pulse/native"
       fi
 
+      # nono refuses to grant $HOME or its ancestors (Landlock can't enforce the
+      # credential denies beneath them), so start in a fresh private dir instead.
+      workdir_args=()
+      case "$PWD" in
+        / | "$(dirname "$HOME")" | "$HOME")
+          workdir_args=(--workdir "$(mktemp -d "''${TMPDIR:-/tmp}/opencode-home.XXXXXX")")
+          ;;
+      esac
+
       extends_args=()
       for f in .opencode-sandbox.jsonc .opencode-sandbox.json; do
         if [ -f "$f" ]; then
@@ -148,7 +157,7 @@ let
           break
         fi
       done
-      exec nono run --profile opencode-nixos "''${extends_args[@]}" --allow-cwd -- ${pkgs.opencode}/bin/opencode "$@"
+      exec nono run --profile opencode-nixos "''${workdir_args[@]}" "''${extends_args[@]}" --allow-cwd -- ${pkgs.opencode}/bin/opencode "$@"
     '';
   };
 in
