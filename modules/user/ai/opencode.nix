@@ -75,21 +75,33 @@ let
       allow_file = [
         "$HOME/.claude/.credentials.json"
       ];
-      # Read-only exception to the (required, otherwise unconditional)
+      # Read-only exceptions to the (required, otherwise unconditional)
       # deny_credentials group, which blocks all of ~/.ssh so an agent can
-      # never read a private key. This carves out *only* the public half
-      # of the commit-signing key (path kept in sync with signingKeyPath
-      # in ../git/default.nix) so `git commit`/`ssh-keygen -Y sign` can
-      # embed it in the signature; the private key stays unreadable and
-      # never enters the sandbox. bypass_protection lifts the deny rule
-      # for exactly this path - see "Profile with deny overrides" in
-      # `nono profile guide` - it does not grant access by itself, hence
-      # the matching read_file entry above it.
+      # never read a private key. This carves out *only*:
+      #  - every public key (~/.ssh/*.pub, which covers the commit-signing
+      #    key referenced by signingKeyPath in ../git/default.nix) so
+      #    `git commit`/`ssh-keygen -Y sign` can embed it in the signature.
+      #    Private keys have no .pub suffix, so they never match, stay
+      #    unreadable and never enter the sandbox. The glob is expanded once
+      #    at sandbox start (Linux), so a .pub created mid-session only
+      #    becomes readable after restarting opencode. Goes in `read` since
+      #    `read_file` takes no wildcards.
+      #  - known_hosts, read-only, so sandboxed ssh/git can verify already
+      #    trusted hosts. Deliberately not writable: a compromised agent
+      #    could otherwise plant host keys that stay trusted outside the
+      #    sandbox. New hosts must be added from outside opencode.
+      # bypass_protection lifts the deny rule for exactly these paths - see
+      # "Profile with deny overrides" in `nono profile guide` - it does not
+      # grant access by itself, hence the matching read/read_file entries.
+      read = [
+        "$HOME/.ssh/*.pub"
+      ];
       read_file = [
-        "$HOME/.ssh/id_ed25519.pub"
+        "$HOME/.ssh/known_hosts"
       ];
       bypass_protection = [
-        "$HOME/.ssh/id_ed25519.pub"
+        "$HOME/.ssh/*.pub"
+        "$HOME/.ssh/known_hosts"
       ];
       # Connect-only: lets the opencode-notifier plugin reach the D-Bus
       # session bus (libnotify/notify-send) and PipeWire's pulse-compat
