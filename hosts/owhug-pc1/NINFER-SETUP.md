@@ -39,11 +39,15 @@ full context" below).
    current `artifactPath` in `./configuration.nix` is the source of truth
    for which file is actually loaded.
 4. API key: `nix-shell -p openssl --run "openssl rand -base64 32"`,
-   written to `/var/lib/ninfer/api-key.txt` (600, root-owned) and to an
-   untracked `~/.secrets/owhug-pc1-ninfer-key` (600) for
-   `modules/user/ai/opencode.nix`'s `apiKey =
-   "{file:~/.secrets/owhug-pc1-ninfer-key}"` reference. Never commit
-   either copy.
+   written to `/var/lib/ninfer/api-key.txt` (600, root-owned) and stored
+   in the Bitwarden vault as `owhug-pc1-ninfer-key` (`rbw add
+   owhug-pc1-ninfer-key`). opencode's nono session hook
+   (`fetch-tokens.sh` in `modules/user/ai/opencode.nix`) fetches it
+   outside the sandbox and exports it as `OWHUG_PC1_NINFER_API_KEY`,
+   which the provider's `apiKey = "{env:OWHUG_PC1_NINFER_API_KEY}"`
+   reads. A plain key file under `~/.secrets` does not work: nono's
+   required `deny_credentials` group blocks that directory inside the
+   sandbox. Never commit the key.
 5. `/dev/nvidia*` on this host is mode `0666` (world RW), so
    `DynamicUser`'s lack of explicit `SupplementaryGroups` was never
    actually a problem — the module's `PrivateDevices = false` alone was
@@ -216,15 +220,15 @@ While the service is stopped:
 4. `curl http://127.0.0.1:8080/health` (unauthenticated, expect
    `{"status":"ok"}`), then an authenticated request:
    ```bash
-   curl -H "Authorization: Bearer $(cat ~/.secrets/owhug-pc1-ninfer-key)" \
+   curl -H "Authorization: Bearer $(rbw get owhug-pc1-ninfer-key)" \
      http://127.0.0.1:8080/v1/models
    ```
 5. If `--max-context` or vision availability changed, update the matching
    `context`/model description in `modules/user/ai/opencode.nix`'s
    `provider.owhug-pc1` entry so the client-advertised limits stay
    accurate.
-6. From another LAN machine (or from opencode itself, once its
-   `~/.secrets/owhug-pc1-ninfer-key` copy exists): confirm
+6. From another LAN machine (or from opencode itself, once the
+   `owhug-pc1-ninfer-key` vault entry exists): confirm
    `http://192.168.10.26:8080/v1/models` responds, and that opencode's
    `/models` picker lists the `qwen3.8-27b` provider.
 

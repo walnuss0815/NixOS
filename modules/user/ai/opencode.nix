@@ -11,16 +11,8 @@
 # top of that; nono is the actual security boundary
 # (in particular, bash: "*" = "allow" below is safe precisely because nono
 # constrains what that shell can touch at the kernel level).
-{ pkgs, lib, config, ... }:
+{ pkgs, config, ... }:
 let
-  # Absolute path to the untracked, chmod-600 NInfer API key file (see the
-  # "owhug-pc1" provider comment below and hosts/owhug-pc1/NINFER-SETUP.md).
-  # Checked at eval time so the provider block can be included/excluded
-  # declaratively instead of shipping a config that hard-fails opencode's
-  # own config parser when the file hasn't been created yet.
-  ninferKeyPath = "${config.home.homeDirectory}/.secrets/owhug-pc1-ninfer-key";
-  ninferKeyExists = builtins.pathExists ninferKeyPath;
-
   # Kernel-enforced (Landlock) sandbox profile for opencode. Modeled on
   # nono's own bundled "opencode" preset (see nono.sh/docs/cli/features/
   # profiles-groups#opencode) but hand-written here because the nixpkgs-
@@ -122,16 +114,17 @@ let
     session_hooks.before = {
       # Runs host-privileged, before the sandbox is applied - this is
       # deliberately outside the profile's filesystem grants above. It
-      # fetches the GitHub MCP server's token from the Bitwarden vault via
-      # rbw (possibly prompting through GNOME pinentry) and hands only the
-      # resulting bare token to the sandboxed process as an env var. This
-      # means the sandbox itself never needs (and never gets) read access
-      # to ~/.cache/rbw - which holds the *decrypted* vault cache - or to
-      # the pinentry/D-Bus machinery that unlocking it requires. See
-      # ./mcp.nix for the github MCP server, which now just reads this env
-      # var instead of calling rbw itself.
-      script = "${config.xdg.configHome}/nono/hooks/fetch-github-token.sh";
-      timeout_secs = 15;
+      # fetches the GitHub MCP server's token and the owhug-pc1 NInfer API
+      # key from the Bitwarden vault via rbw (possibly prompting through
+      # GNOME pinentry) and hands only the resulting bare values to the
+      # sandboxed process as env vars. This means the sandbox itself never
+      # needs (and never gets) read access to ~/.cache/rbw - which holds
+      # the *decrypted* vault cache - or to the pinentry/D-Bus machinery
+      # that unlocking it requires. See ./mcp.nix for the github MCP
+      # server and the "owhug-pc1" provider below, which just read these
+      # env vars.
+      script = "${config.xdg.configHome}/nono/hooks/fetch-tokens.sh";
+      timeout_secs = 20;
     };
   };
 
@@ -422,25 +415,23 @@ in
             };
           };
         };
-      }
-      # owhug-pc1's NInfer server, serving an abliterated (uncensored)
-      # Qwen3.8-27B NVFP4 artifact. See hosts/owhug-pc1/NINFER-SETUP.md for
-      # the server-side setup and why this replaced the official artifact.
-      # apiKey references a local, untracked, chmod-600 file (never
-      # committed) containing the same value as owhug-pc1's
-      # /var/lib/ninfer/api-key.txt - create it per NINFER-SETUP.md. Left
-      # out of the provider list entirely (rather than included with a
-      # dangling {file:...} reference) when that file doesn't exist yet,
-      # since opencode hard-fails config parsing on a missing file
-      # reference; reappears automatically on the next `home-manager
-      # switch` once the key file is created.
-      // lib.optionalAttrs ninferKeyExists {
+        # owhug-pc1's NInfer server, serving an abliterated (uncensored)
+        # Qwen3.8-27B NVFP4 artifact. See hosts/owhug-pc1/NINFER-SETUP.md
+        # for the server-side setup and why this replaced the official
+        # artifact. The API key (same value as owhug-pc1's
+        # /var/lib/ninfer/api-key.txt) lives in the Bitwarden vault as
+        # "owhug-pc1-ninfer-key" and is injected as an env var by the nono
+        # session hook (fetch-tokens.sh below): a {file:...} reference
+        # can't work here, since nono's required deny_credentials group
+        # blocks ~/.secrets and similar dirs inside the sandbox. If the
+        # vault entry is missing, the env var resolves to "" and only this
+        # provider fails (401); opencode itself still starts.
         "owhug-pc1" = {
           "npm" = "@ai-sdk/openai-compatible";
           "name" = "owhug-pc1 (Qwen3.8-27B, NVFP4, uncensored)";
           "options" = {
             "baseURL" = "http://192.168.10.26:8080/v1";
-            "apiKey" = "{file:~/.secrets/owhug-pc1-ninfer-key}";
+            "apiKey" = "{env:OWHUG_PC1_NINFER_API_KEY}";
           };
           "models" = {
             "qwen3.8-27b" = {
@@ -497,19 +488,26 @@ in
   # genuinely-needed paths it surfaces into nonoProfile above instead.
   xdg.configFile."nono/profiles/opencode-nixos.json".text = builtins.toJSON nonoProfile;
 
-  xdg.configFile."nono/hooks/fetch-github-token.sh" = {
+  xdg.configFile."nono/hooks/fetch-tokens.sh" = {
     executable = true;
     text = ''
       #!/bin/sh
       # Runs host-privileged via nono's session_hooks.before (see nonoProfile
-      # above), i.e. entirely outside the opencode sandbox. Fetches the
-      # GitHub MCP server's token from the Bitwarden vault (rbw, unlocked via
-      # GNOME pinentry if needed) and exports only the resulting bare token
-      # into the sandboxed process's environment. ./mcp.nix's github server
-      # reads it from there directly.
+      # above), i.e. entirely outside the opencode sandbox. Fetches secrets
+      # from the Bitwarden vault (rbw, unlocked via GNOME pinentry if
+      # needed) and exports only the resulting bare values into the
+      # sandboxed process's environment.
       set -eu
+
+      # Required: ./mcp.nix's github MCP server reads this directly.
       token="$(${pkgs.rbw}/bin/rbw get github-mcp-server)"
       printf 'GITHUB_PERSONAL_ACCESS_TOKEN=%s\n' "$token" >> "$NONO_ENV_FILE"
+
+      # Best-effort: API key for the "owhug-pc1" NInfer provider. A missing
+      # vault entry only disables that provider instead of blocking startup.
+      if ninfer_key="$(${pkgs.rbw}/bin/rbw get owhug-pc1-ninfer-key 2>/dev/null)"; then
+        printf 'OWHUG_PC1_NINFER_API_KEY=%s\n' "$ninfer_key" >> "$NONO_ENV_FILE"
+      fi
     '';
   };
 }
