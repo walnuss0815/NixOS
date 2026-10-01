@@ -344,7 +344,7 @@ in
       # .github/renovate.json5).
       "plugin" = [
         "opencode-claude-auth@2.2.1"
-        "@mohak34/opencode-notifier@0.4.0"
+        "@mohak34/opencode-notifier@0.6.0"
       ];
       "provider" = {
         "ollama" = {
