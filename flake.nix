@@ -149,11 +149,15 @@
         self.homeConfigurations.alexander.activationPackage;
 
       # `nix fmt`, also used by CI, so formatting always follows the pinned
-      # nixpkgs instead of whatever the runner resolves.
-      formatter.${system} = pkgs.nixfmt;
+      # nixpkgs instead of whatever the runner resolves. nixfmt-tree is the
+      # official treefmt wrapper around nixfmt: it formats the whole tree
+      # when run without arguments, which bare nixfmt no longer does.
+      formatter.${system} = pkgs.nixfmt-tree;
 
       devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [ nixfmt nil statix deadnix ];
+        # nixfmt is for editors (nil formats through it over stdin);
+        # nixfmt-tree provides the same formatting as `nix fmt`.
+        packages = with pkgs; [ nixfmt nixfmt-tree nil statix deadnix ];
       };
     };
 }

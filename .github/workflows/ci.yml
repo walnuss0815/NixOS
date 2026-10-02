@@ -40,7 +40,7 @@ jobs:
       # Uses the formatter declared in the flake's `formatter` output, so
       # `nix fmt` locally always matches what CI expects.
       - name: Check formatting
-        run: nix fmt -- --check .
+        run: nix fmt -- --ci
 
   lint:
     name: statix & deadnix (advisory)
