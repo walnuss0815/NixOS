@@ -3,7 +3,7 @@
 # `version` has been bumped (e.g. by a Renovate PR) and rewrites the
 # `hash = "...";` line in place. Does not touch `npmDepsHash` (that hash
 # depends on the vendored package-lock.json's runtime deps, not on the
-# tool's own version - see the comments in git-mcp-server/ssh-mcp).
+# tool's own version - see the comments in git-mcp-server).
 #
 # Supports the two fetcher shapes used under pkgs/:
 #   - fetchurl from registry.npmjs.org: the new hash is read straight from

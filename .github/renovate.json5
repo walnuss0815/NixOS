@@ -13,8 +13,8 @@
   //    tracked via the customManagers entry below instead, since that's
   //    a plain string bump the "nix" manager doesn't handle at all.
   //  - the tool versions vendored under pkgs/ (kubernetes-mcp-server,
-  //    git-mcp-server, ssh-mcp, claude-swap), tracked below via
-  //    customManagers instead.
+  //    git-mcp-server, claude-swap), tracked below via customManagers
+  //    instead.
   //  - the opencode plugin versions in modules/user/ai/opencode.nix,
   //    which are npm specs opencode resolves at runtime rather than
   //    anything Nix builds, also tracked via customManagers below.
@@ -22,14 +22,13 @@
     enabled: false,
   },
 
-  // pkgs/git-mcp-server and pkgs/ssh-mcp each vendor a trimmed
-  // package.json + package-lock.json purely so buildNpmPackage can fetch
-  // their small set of *runtime* dependencies reproducibly (see the
-  // comments in the respective default.nix). They aren't "our" project
-  // dependencies to bump independently - letting Renovate's built-in npm
-  // manager loose on them would just fight with the hand-trimmed
-  // lockfiles. The tool version itself is tracked via the customManagers
-  // entries below instead.
+  // pkgs/git-mcp-server vendors a trimmed package.json +
+  // package-lock.json purely so buildNpmPackage can fetch its small set of
+  // *runtime* dependencies reproducibly (see the comments in its
+  // default.nix). They aren't "our" project dependencies to bump
+  // independently - letting Renovate's built-in npm manager loose on them
+  // would just fight with the hand-trimmed lockfile. The tool version
+  // itself is tracked via the customManagers entries below instead.
   packageRules: [
     {
       matchManagers: ['npm'],
@@ -39,16 +38,17 @@
   ],
 
   // Renovate can only bump the `version` string in each default.nix - it
-  // has no way to compute the matching Nix `hash`/`npmDepsHash`. Each PR
-  // below will therefore fail the `flake-check` CI job until the hash is
-  // refreshed locally (e.g. rebuild with `lib.fakeHash` and copy the
-  // "got: sha256-..." value back in, or `nix-prefetch-npm-deps` for the
-  // vendored package-lock.json files) and pushed to the PR branch before
-  // merging.
+  // has no way to compute the matching Nix `hash`. The "Renovate hash fix"
+  // workflow (.github/workflows/renovate-fix-hash.yml) recomputes `hash`
+  // and pushes it onto the PR branch. It deliberately leaves
+  // `npmDepsHash` alone, since that depends on the vendored
+  // package-lock.json rather than the tool version; refresh it by hand
+  // (e.g. `nix-prefetch-npm-deps`) only when those runtime dependencies
+  // change.
   //
-  // That hash caveat applies only to the pkgs/* entries. The two opencode
-  // plugin managers at the end are plain npm spec strings that Nix never
-  // builds or hashes, so those PRs are mergeable as-is once CI is green.
+  // The two opencode plugin managers at the end are plain npm spec strings
+  // that Nix never builds or hashes, so those PRs are mergeable as-is once
+  // CI is green.
   customManagers: [
     {
       customType: 'regex',
@@ -87,14 +87,6 @@
       matchStrings: ['version = "(?<currentValue>[^"]+)";'],
       datasourceTemplate: 'npm',
       depNameTemplate: '@cyanheads/git-mcp-server',
-    },
-    {
-      customType: 'regex',
-      description: 'ssh-mcp version pin (npm)',
-      managerFilePatterns: ['/^pkgs/ssh-mcp/default\\.nix$/'],
-      matchStrings: ['version = "(?<currentValue>[^"]+)";'],
-      datasourceTemplate: 'npm',
-      depNameTemplate: 'ssh-mcp',
     },
     // The two opencode plugin pins live in one `plugin` array, so they get
     // a manager each with an explicit depNameTemplate rather than a shared
