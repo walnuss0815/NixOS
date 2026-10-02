@@ -135,5 +135,19 @@
           ];
         };
       };
+
+      # `nix flake check` only evaluates standard outputs, which does not
+      # include homeConfigurations, so build the home-manager generation
+      # explicitly to cover it.
+      checks.${system}.home-alexander =
+        self.homeConfigurations.alexander.activationPackage;
+
+      # `nix fmt`, also used by CI, so formatting always follows the pinned
+      # nixpkgs instead of whatever the runner resolves.
+      formatter.${system} = pkgs.nixfmt;
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = with pkgs; [ nixfmt nil statix deadnix ];
+      };
     };
 }
