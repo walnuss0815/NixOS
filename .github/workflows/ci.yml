@@ -18,13 +18,16 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      # Evaluates nixosConfigurations.* and homeConfigurations.* (module
-      # errors, type errors, assertions) plus the flake's own schema.
+      # Evaluates nixosConfigurations.* (module errors, type errors,
+      # assertions) plus the flake's own schema, and builds the
+      # home-manager generation exposed under `checks`, since
+      # homeConfigurations is not a standard output that flake check
+      # evaluates on its own.
       - name: nix flake check
         run: nix flake check --keep-going
 
   format:
-    name: nixpkgs-fmt --check
+    name: nix fmt --check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -34,10 +37,10 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      # Uses the same formatter declared as a dev tool in shell.nix, so
-      # `nixpkgs-fmt .` locally always matches what CI expects.
+      # Uses the formatter declared in the flake's `formatter` output, so
+      # `nix fmt` locally always matches what CI expects.
       - name: Check formatting
-        run: nix run nixpkgs#nixpkgs-fmt -- --check .
+        run: nix fmt -- --check .
 
   lint:
     name: statix & deadnix (advisory)
