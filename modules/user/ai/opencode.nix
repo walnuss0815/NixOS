@@ -171,11 +171,16 @@ let
       export npm_config_cache="''${npm_config_cache:-''${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm}"
 
       # nono refuses to grant $HOME or its ancestors (Landlock can't enforce the
-      # credential denies beneath them), so start in a fresh private dir instead.
+      # credential denies beneath them), so start in a fixed private dir instead.
+      # It must be stable: opencode scopes sessions by directory, so a random dir
+      # per launch makes sessions started in ~ unrecoverable. It lives under the
+      # already-granted opencode data dir, so no extra sandbox grant is needed.
       workdir_args=()
       case "$PWD" in
         / | "$(dirname "$HOME")" | "$HOME")
-          workdir_args=(--workdir "$(mktemp -d "''${TMPDIR:-/tmp}/opencode-home.XXXXXX")")
+          home_workdir="''${XDG_DATA_HOME:-$HOME/.local/share}/opencode/home"
+          mkdir -p "$home_workdir"
+          workdir_args=(--workdir "$home_workdir")
           ;;
       esac
 
