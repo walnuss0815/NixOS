@@ -233,22 +233,14 @@ in
           "/nix/store/**" = "deny";
         };
 
-        # Shell access: ask by default, allow common read-only commands
-        # without prompting, and hard-deny irreversible footguns. Explicit
-        # "deny" rules stay enforced even under `opencode --auto`, unlike
-        # "ask" rules which get auto-approved in that mode.
+        # Shell access: allow everything without prompting, since the nono
+        # sandbox (see the header) is the actual boundary, and hard-deny a
+        # few footguns as a tripwire. These are plain pattern matches on
+        # the command line and are trivially bypassed (`rm -fr`,
+        # `/bin/rm ...`), so they are not a security control. Explicit
+        # "deny" rules stay enforced even under `opencode --auto`.
         bash = {
           "*" = "allow";
-
-          "git status*" = "allow";
-          "git diff*" = "allow";
-          "git log*" = "allow";
-          "git show*" = "allow";
-          "ls*" = "allow";
-          "cat*" = "allow";
-          "rg *" = "allow";
-          "grep *" = "allow";
-          "find *" = "allow";
 
           "kubectl*" = "deny";
           "rm -rf *" = "deny";
@@ -480,12 +472,11 @@ in
   # programs.opencode.extraPackages), no notify-send hint tricks needed.
   # `complete` fires by default, so long tasks end with a "Session has
   # finished" alert + sound (the old notifyOnIdle workaround is gone).
-  # GNOME has no focus-detection API, so `suppressWhenFocused` can't eat
-  # notifications here either (the compositor is unsupported -> always
-  # notify). The explicit per-event entries keep the noisiest events
-  # (subagent_complete, user_cancelled, session/user_message handling and
-  # client_connected) muted, preserving the "quiet unless something needs
-  # you" behaviour the old plugin was configured for.
+  # GNOME has no focus-detection API, so `suppressWhenFocused` has no
+  # effect here (the compositor is unsupported -> always notify). It is
+  # kept so focus suppression applies if that ever changes. Only the
+  # global switches and Linux notification grouping are configured;
+  # every other option keeps the plugin's defaults.
   xdg.configFile."opencode/opencode-notifier.json".text = builtins.toJSON {
     suppressWhenFocused = true;
     sound = true;
