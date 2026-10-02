@@ -369,21 +369,6 @@ in
         "@mohak34/opencode-notifier@0.6.0"
       ];
       "provider" = {
-        "ollama" = {
-          "npm" = "@ai-sdk/openai-compatible";
-          "name" = "Ollama (local)";
-          "options" = {
-            "baseURL" = "http://192.168.10.9:11434/v1";
-          };
-          "models" = {
-            "qwen3.5:9b" = {
-              "name" = "qwen3.5:9b";
-            };
-            "qwen3.6:35b-a3b" = {
-              "name" = "qwen3.6:35b-a3b";
-            };
-          };
-        };
         "rpp-ai-proxy" = {
           "npm" = "@ai-sdk/openai-compatible";
           "name" = "RPP AI Proxy";
