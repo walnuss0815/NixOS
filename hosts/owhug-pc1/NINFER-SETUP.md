@@ -229,7 +229,7 @@ While the service is stopped:
    accurate.
 6. From another LAN machine (or from opencode itself, once the
    `owhug-pc1-ninfer-key` vault entry exists): confirm
-   `http://192.168.10.26:8080/v1/models` responds, and that opencode's
+   `http://owhug-pc1.local:8080/v1/models` responds, and that opencode's
    `/models` picker lists the `qwen3.8-27b` provider.
 
 ## Known gaps

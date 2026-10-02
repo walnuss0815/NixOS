@@ -444,7 +444,7 @@ in
           "npm" = "@ai-sdk/openai-compatible";
           "name" = "owhug-pc1 (Qwen3.8-27B, NVFP4, uncensored)";
           "options" = {
-            "baseURL" = "http://192.168.10.46:8080/v1";
+            "baseURL" = "http://owhug-pc1.local:8080/v1";
             "apiKey" = "{env:OWHUG_PC1_NINFER_API_KEY}";
           };
           "models" = {
