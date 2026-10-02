@@ -115,7 +115,7 @@ in
           "spotify.desktop"
           "com.mitchellh.ghostty.desktop"
           "firefox.desktop"
-          "org.gnome.Geary.desktop"
+          "thunderbird.desktop"
           "BambuStudio.desktop"
         ];
       };
