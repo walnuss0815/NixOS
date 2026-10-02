@@ -14,6 +14,7 @@ in
     papirus-icon-theme
     whitesur-cursors
     exiftool
+    mission-center
   ];
 
   home.file."Pictures/Wallpapers/wallpaper.jpg".source = wallpaper;
