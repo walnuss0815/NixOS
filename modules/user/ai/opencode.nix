@@ -27,11 +27,28 @@ let
   # without it, every bash-tool invocation of a store-packaged binary
   # fails with "directory is not readable inside the sandbox". Grants:
   # CWD (via --allow-cwd in the wrapper below), opencode's own XDG state/
-  # config/cache dirs, $TMPDIR (opencode writes editor-buffer/clipboard
-  # temp files with unpredictable names there). No extra fixed
-  # directories beyond CWD are granted - add project-specific extras via a
+  # config/cache/data dirs, $TMPDIR (opencode writes editor-buffer/clipboard
+  # temp files with unpredictable names there). No other fixed
+  # directories are granted - add project-specific extras via a
   # ".opencode-sandbox.jsonc"/".json" file in the project root instead (see
   # the wrapper script below and `nono profile guide`).
+  #
+  # $XDG_STATE_HOME/opencode is load-bearing, not just a persistence
+  # nicety: Flock's lock root is <state>/locks (packages/core/src/
+  # global.ts), and every Npm.add() plugin install and the models.dev
+  # catalog refresh take a lock there. If the directory is denied, those
+  # mkdir/rename calls fail with EACCES, which breaks plugin installation
+  # and leaves the model catalog stale. The TUI also keeps model.json,
+  # kv.json, session.json and prompt history there; if it is denied, the
+  # saved model history cannot be read or updated.
+  #
+  # Caveat for OpenCode 2: its CLI (packages/cli) starts a background
+  # daemon that keeps a password in <state>/password and its endpoint in
+  # <state>/server.json. The grant above makes both readable to the
+  # agent, and nono cannot carve them out (it refuses to start when a
+  # deny path sits inside an allowed directory). The installed 1.18.x has
+  # no daemon, so this does not apply today; revisit this grant before
+  # upgrading.
   nonoProfile = {
     meta = {
       name = "opencode-nixos";
@@ -48,6 +65,7 @@ let
     workdir.access = "readwrite";
     filesystem = {
       allow = [
+        "$XDG_STATE_HOME/opencode"
         "$XDG_CONFIG_HOME/opencode"
         "$XDG_CACHE_HOME/opencode"
         "$XDG_DATA_HOME/opencode"
@@ -145,6 +163,12 @@ let
       if [ -z "''${PULSE_SERVER:-}" ] && [ -S "''${XDG_RUNTIME_DIR:-}/pulse/native" ]; then
         export PULSE_SERVER="unix:''${XDG_RUNTIME_DIR}/pulse/native"
       fi
+
+      # Keep npm's cache inside the already-granted opencode cache dir. The
+      # node_runtime group only gives read access to ~/.npm, so plugin
+      # installs (Npm.add) would otherwise fail staging downloads in
+      # ~/.npm/_cacache/tmp. A pre-set npm_config_cache still wins.
+      export npm_config_cache="''${npm_config_cache:-''${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm}"
 
       # nono refuses to grant $HOME or its ancestors (Landlock can't enforce the
       # credential denies beneath them), so start in a fresh private dir instead.
