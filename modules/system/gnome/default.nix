@@ -19,19 +19,10 @@
     gnome-console # Replaced by ghostty (see modules/user/gnome)
   ];
 
-  environment.systemPackages = with pkgs; [
-    gnome-network-displays
-  ];
-
   xdg.portal.enable = true;
   xdg.portal.extraPortals = [
     pkgs.xdg-desktop-portal-gnome
   ];
-
-  # Firewall ports for Miracast/Wi-Fi Direct
-  networking.firewall.trustedInterfaces = [ "p2p-wl+" ];
-  networking.firewall.allowedTCPPorts = [ 7236 7250 ];
-  networking.firewall.allowedUDPPorts = [ 7236 5353 ];
 
   services.udev.packages = with pkgs; [ gnome-settings-daemon ];
 
