@@ -21,11 +21,14 @@ in
     };
 
     artifactPath = lib.mkOption {
-      type = lib.types.path;
+      type = lib.types.str;
       example = "/var/lib/ninfer/models/qwen3.8-27b-nvfp4-vision-dflash2.ninfer";
       description = ''
-        Path to the v3 `.ninfer` model artifact to load. This file is not
-        built by Nix - see hosts/owhug-pc1/NINFER-SETUP.md.
+        Absolute path, as a string, to the v3 `.ninfer` model artifact to
+        load. This file is not built by Nix - see
+        hosts/owhug-pc1/NINFER-SETUP.md. It is a string rather than a path
+        so that a path literal can never copy the multi-GiB artifact into
+        the Nix store.
       '';
     };
 
@@ -43,15 +46,18 @@ in
     };
 
     apiKeyFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
+      type = lib.types.nullOr lib.types.str;
       default = null;
       example = "/var/lib/ninfer/api-key.txt";
       description = ''
-        Path to a file whose contents are required as the OpenAI bearer
-        token / Anthropic `x-api-key` header value. Read at service start
-        via `--api-key "$(cat ...)"` so the secret itself never appears in
-        the unit file or the Nix store - only this path reference does.
-        Generate it out of band, e.g. `openssl rand -base64 32 > <path>`.
+        Absolute path, as a string, to a file whose contents are required
+        as the OpenAI bearer token / Anthropic `x-api-key` header value.
+        Read at service start via `--api-key "$(cat ...)"` so the secret
+        itself never appears in the unit file or the Nix store - only this
+        path reference does. It is a string rather than a path so that a
+        path literal (`./api-key.txt`) can never copy the secret into the
+        world-readable Nix store. Generate the file out of band, e.g.
+        `openssl rand -base64 32 > <path>`.
       '';
     };
 
@@ -127,11 +133,10 @@ in
         CacheDirectory = "ninfer";
         WorkingDirectory = "/var/lib/ninfer";
 
-        # GPU access. Mirrors services.llama-cpp's approach in nixpkgs;
-        # unverified whether DynamicUser also needs explicit membership in
-        # "video"/"render" for /dev/nvidia* access on this host - check on
-        # first deploy and add SupplementaryGroups here if the service
-        # fails to see the GPU.
+        # GPU access. Mirrors services.llama-cpp's approach in nixpkgs.
+        # /dev/nvidia* is mode 0666 on owhug-pc1, so DynamicUser needs no
+        # explicit "video"/"render" membership. On a host where those
+        # nodes are group-restricted, add SupplementaryGroups here.
         PrivateDevices = false;
 
         AmbientCapabilities = [ "" ];
