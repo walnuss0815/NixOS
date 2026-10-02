@@ -107,7 +107,12 @@
   # Host-specific groups; the account itself is defined in
   # modules/system/{common,desktop}. Don't forget to set a password with
   # ‘passwd’.
-  users.users.alexander.extraGroups = [ "libvirtd" "dialout" "netbird-personal" "video" ];
+  users.users.alexander.extraGroups = [
+    "libvirtd"
+    "dialout"
+    "netbird-personal"
+    "video"
+  ];
 
   # Automatic login is disabled; GDM always prompts (password or
   # fingerprint, see services.fprintd below).

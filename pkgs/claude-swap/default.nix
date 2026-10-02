@@ -1,4 +1,8 @@
-{ lib, python3, fetchFromGitHub }:
+{
+  lib,
+  python3,
+  fetchFromGitHub,
+}:
 
 # https://github.com/realiti4/claude-swap
 #
@@ -20,7 +24,10 @@ python3.pkgs.buildPythonApplication rec {
 
   build-system = with python3.pkgs; [ hatchling ];
 
-  dependencies = with python3.pkgs; [ textual truststore ];
+  dependencies = with python3.pkgs; [
+    textual
+    truststore
+  ];
 
   # No test dependencies (pytest, pytest-asyncio, pytest-xdist) are wired up
   # here, and the suite needs a real terminal/keychain environment.

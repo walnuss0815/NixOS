@@ -13,7 +13,10 @@
           "files.insertFinalNewline" = true;
           "cSpell.language" = "en;en-US;de-DE";
           "editor.bracketPairColorization.enabled" = true;
-          "editor.rulers" = [ 80 125 ];
+          "editor.rulers" = [
+            80
+            125
+          ];
           "git.suggestSmartCommit" = false;
           "editor.renderWhitespace" = "all";
           "window.titleBarStyle" = "custom";

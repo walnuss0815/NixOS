@@ -53,7 +53,12 @@
 # its own ESP — there is no unified systemd-boot menu across both disks.
 # ---------------------------------------------------------------------------
 
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
@@ -128,7 +133,12 @@
   # Host-specific groups; the account itself is defined in
   # modules/system/{common,desktop}. Don't forget to set a password with
   # 'passwd'.
-  users.users.alexander.extraGroups = [ "libvirtd" "dialout" "netbird-personal" "video" ];
+  users.users.alexander.extraGroups = [
+    "libvirtd"
+    "dialout"
+    "netbird-personal"
+    "video"
+  ];
 
   # Automatic login is disabled; GDM always prompts.
   services.displayManager.autoLogin.enable = false;

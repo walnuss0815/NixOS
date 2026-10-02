@@ -38,19 +38,33 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, nur, lanzaboote, disko }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixpkgs-stable,
+      home-manager,
+      nixos-hardware,
+      nur,
+      lanzaboote,
+      disko,
+    }:
 
     let
       system = "x86_64-linux";
 
       pkgs = import nixpkgs {
         inherit system;
-        config = { allowUnfree = true; };
+        config = {
+          allowUnfree = true;
+        };
       };
 
       pkgsStable = import nixpkgs-stable {
         inherit system;
-        config = { allowUnfree = true; };
+        config = {
+          allowUnfree = true;
+        };
       };
 
     in
@@ -145,8 +159,7 @@
       # `nix flake check` only evaluates standard outputs, which does not
       # include homeConfigurations, so build the home-manager generation
       # explicitly to cover it.
-      checks.${system}.home-alexander =
-        self.homeConfigurations.alexander.activationPackage;
+      checks.${system}.home-alexander = self.homeConfigurations.alexander.activationPackage;
 
       # `nix fmt`, also used by CI, so formatting always follows the pinned
       # nixpkgs instead of whatever the runner resolves. nixfmt-tree is the
@@ -157,7 +170,13 @@
       devShells.${system}.default = pkgs.mkShell {
         # nixfmt is for editors (nil formats through it over stdin);
         # nixfmt-tree provides the same formatting as `nix fmt`.
-        packages = with pkgs; [ nixfmt nixfmt-tree nil statix deadnix ];
+        packages = with pkgs; [
+          nixfmt
+          nixfmt-tree
+          nil
+          statix
+          deadnix
+        ];
       };
     };
 }

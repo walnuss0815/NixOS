@@ -154,7 +154,10 @@ let
   # CWD without touching this Nix config.
   sandboxedOpencode = pkgs.writeShellApplication {
     name = "opencode";
-    runtimeInputs = [ pkgs.nono pkgs.coreutils ];
+    runtimeInputs = [
+      pkgs.nono
+      pkgs.coreutils
+    ];
     meta.mainProgram = "opencode";
     text = ''
       # libpulse mkdir()s $XDG_RUNTIME_DIR/pulse before connecting and Landlock

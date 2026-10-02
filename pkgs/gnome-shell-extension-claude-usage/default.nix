@@ -1,4 +1,9 @@
-{ lib, stdenvNoCC, fetchFromGitHub, glib }:
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  glib,
+}:
 
 # https://github.com/dvdstelt/ClaudeCodeUsage
 #

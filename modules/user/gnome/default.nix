@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   wallpaper = ./wallpaper.jpg;
   wallpaperUri = "file://${config.home.homeDirectory}/Pictures/Wallpapers/wallpaper.jpg";

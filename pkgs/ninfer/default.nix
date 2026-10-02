@@ -1,4 +1,13 @@
-{ lib, fetchFromGitHub, cudaPackages, cmake, ninja, pkg-config, ffmpeg, curl }:
+{
+  lib,
+  fetchFromGitHub,
+  cudaPackages,
+  cmake,
+  ninja,
+  pkg-config,
+  ffmpeg,
+  curl,
+}:
 
 # https://github.com/Neroued/ninfer
 #
@@ -23,7 +32,12 @@ cudaPackages.backendStdenv.mkDerivation {
     hash = "sha256-HhOEq4lyu5U4iGdHb7FAOTt5Xy7FNgR15AQ1J0Sbn/c=";
   };
 
-  nativeBuildInputs = [ cmake ninja pkg-config cudaPackages.cuda_nvcc ];
+  nativeBuildInputs = [
+    cmake
+    ninja
+    pkg-config
+    cudaPackages.cuda_nvcc
+  ];
 
   buildInputs = [
     cudaPackages.cuda_cudart

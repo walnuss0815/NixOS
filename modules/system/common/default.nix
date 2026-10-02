@@ -21,7 +21,10 @@
 
   console.keyMap = "de";
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   users.users.alexander = {
     isNormalUser = true;

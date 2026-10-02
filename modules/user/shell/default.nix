@@ -6,10 +6,14 @@
 
   programs.direnv = {
     enable = true;
-    nix-direnv = { enable = true; };
+    nix-direnv = {
+      enable = true;
+    };
   };
 
-  programs.pay-respects = { enable = true; };
+  programs.pay-respects = {
+    enable = true;
+  };
 
   programs.vim = {
     enable = true;
@@ -32,7 +36,10 @@
 
     oh-my-zsh = {
       enable = true;
-      plugins = [ "git" "direnv" ];
+      plugins = [
+        "git"
+        "direnv"
+      ];
       theme = "robbyrussell";
     };
 

@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   name = "Alexander Weidemann";
   email = "walnuss0815@gmail.com";
@@ -13,8 +18,9 @@ in
   home.packages = with pkgs; [
     ghq
   ];
-  home.file.".config/git/allowed_signers".text =
-    lib.concatMapStrings (key: "${email} ${key}\n") signingKeys;
+  home.file.".config/git/allowed_signers".text = lib.concatMapStrings (
+    key: "${email} ${key}\n"
+  ) signingKeys;
   programs.git = {
     enable = true;
     settings = {
@@ -39,8 +45,7 @@ in
         up = "fetch --prune --all";
         graph = "log --oneline --graph --decorate";
         fpush = "push --force-with-lease";
-        mr =
-          "push --push-option=merge_request.create --push-option=merge_request.draft";
+        mr = "push --push-option=merge_request.create --push-option=merge_request.draft";
         wip = "commit --message='WIP'";
         track = "add --intent-to-add";
         tow = "pull --recurse-submodules=on-demand";
@@ -64,7 +69,10 @@ in
       pull.ff = "only";
       push.autoSetupRemote = true;
       init.defaultBranch = "main";
-      credential.helper = [ "cache --timeout 21600" "oauth" ];
+      credential.helper = [
+        "cache --timeout 21600"
+        "oauth"
+      ];
     };
   };
 }

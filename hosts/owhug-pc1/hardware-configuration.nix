@@ -13,14 +13,26 @@
 # hardware.cpu.amd.updateMicrocode below is also provided by the
 # nixos-hardware common-cpu-amd module in flake.nix — nixos-generate-config
 # will add it here too, which is a harmless duplicate.
-{ config, lib, pkgs, modulesPath, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}:
 
 {
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usb_storage" "sd_mod" ];
+  boot.initrd.availableKernelModules = [
+    "nvme"
+    "xhci_pci"
+    "ahci"
+    "usb_storage"
+    "sd_mod"
+  ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
@@ -30,7 +42,10 @@
   # is the fast primary swap, this is an OOM safety net / future
   # hibernation headroom.
   swapDevices = [
-    { device = "/swapfile"; size = 32 * 1024; } # MiB — keep in sync with installed RAM
+    {
+      device = "/swapfile";
+      size = 32 * 1024;
+    } # MiB — keep in sync with installed RAM
   ];
 
   networking.useDHCP = lib.mkDefault true;

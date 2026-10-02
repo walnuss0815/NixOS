@@ -1,4 +1,8 @@
-{ lib, buildNpmPackage, fetchurl }:
+{
+  lib,
+  buildNpmPackage,
+  fetchurl,
+}:
 
 # https://github.com/cyanheads/git-mcp-server
 #

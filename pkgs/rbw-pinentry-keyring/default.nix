@@ -1,10 +1,10 @@
-{ lib
-, stdenvNoCC
-, fetchurl
-, makeWrapper
-, libsecret
-, pinentry-gnome3
-,
+{
+  lib,
+  stdenvNoCC,
+  fetchurl,
+  makeWrapper,
+  libsecret,
+  pinentry-gnome3,
 }:
 
 # https://github.com/doy/rbw/blob/main/bin/rbw-pinentry-keyring
@@ -39,7 +39,12 @@ stdenvNoCC.mkDerivation rec {
     runHook preInstall
     install -Dm755 $src $out/bin/rbw-pinentry-keyring
     wrapProgram $out/bin/rbw-pinentry-keyring \
-      --prefix PATH : ${lib.makeBinPath [ libsecret pinentry-gnome3 ]}
+      --prefix PATH : ${
+        lib.makeBinPath [
+          libsecret
+          pinentry-gnome3
+        ]
+      }
     runHook postInstall
   '';
 
