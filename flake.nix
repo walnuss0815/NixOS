@@ -28,10 +28,6 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    silentSDDM = {
-      url = "github:uiriansan/SilentSDDM";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -42,7 +38,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, nur, silentSDDM, lanzaboote, disko }:
+  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, nur, lanzaboote, disko }:
 
     let
       system = "x86_64-linux";
@@ -84,7 +80,6 @@
             nixos-hardware.nixosModules.lenovo-thinkpad-t14-amd-gen2
             nixos-hardware.nixosModules.common-pc-laptop-ssd
             nur.modules.nixos.default
-            silentSDDM.nixosModules.default
             lanzaboote.nixosModules.lanzaboote
             ./modules/system/gnome
             ./modules/system/docker
@@ -107,7 +102,6 @@
             nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
             nixos-hardware.nixosModules.common-pc-ssd
             nur.modules.nixos.default
-            silentSDDM.nixosModules.default
             lanzaboote.nixosModules.lanzaboote
             disko.nixosModules.disko
             ./modules/system/gnome
