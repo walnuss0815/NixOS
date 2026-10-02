@@ -15,9 +15,32 @@ in
     whitesur-cursors
     exiftool
     mission-center
+    # Reads ~/.config/xdg-terminals.list below; the GNOME default-terminal
+    # setting already points at this binary, but it was not installed.
+    xdg-terminal-exec
   ];
 
   home.file."Pictures/Wallpapers/wallpaper.jpg".source = wallpaper;
+
+  # Ghostty replaces GNOME Console (kgx): VTE ignores OSC 52, so opencode's
+  # copy (which emits OSC 52 and then falls back to wl-copy/xclip, neither
+  # of which is reachable inside its nono sandbox) never reached the
+  # clipboard. Ghostty honours OSC 52 writes; the sandbox is unaffected
+  # since the sequence travels over the PTY.
+  programs.ghostty = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = {
+      # Already the default, spelled out because opencode depends on it.
+      clipboard-write = "allow";
+    };
+  };
+
+  # Default terminal for xdg-terminal-exec (what GNOME's "Open in
+  # Terminal" and similar launchers use).
+  xdg.configFile."xdg-terminals.list".text = ''
+    com.mitchellh.ghostty.desktop
+  '';
 
   # Nautilus right-click script to strip EXIF/metadata from images.
   # Usage: select one or more images, right-click -> Scripts -> "Strip EXIF Data"
@@ -90,7 +113,7 @@ in
           "org.gnome.Nautilus.desktop"
           "code.desktop"
           "spotify.desktop"
-          "org.gnome.Console.desktop"
+          "com.mitchellh.ghostty.desktop"
           "firefox.desktop"
           "org.gnome.Geary.desktop"
           "BambuStudio.desktop"

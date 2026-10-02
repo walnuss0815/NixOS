@@ -16,6 +16,7 @@
   environment.gnome.excludePackages = with pkgs; [
     epiphany # Browser
     gnome-tour # Tour
+    gnome-console # Replaced by ghostty (see modules/user/gnome)
   ];
 
   environment.systemPackages = with pkgs; [
