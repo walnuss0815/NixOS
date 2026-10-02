@@ -105,51 +105,13 @@
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
-  # Enable networking
-  networking.networkmanager = {
-    enable = true;
-  };
-
   # Bluetooth
   hardware.bluetooth.enable = true;
 
-  # Set your time zone.
-  time.timeZone = "Europe/Berlin";
-
-  # Select internationalisation properties.
-  i18n.defaultLocale = "en_US.UTF-8";
-
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "de_DE.UTF-8";
-    LC_IDENTIFICATION = "de_DE.UTF-8";
-    LC_MEASUREMENT = "de_DE.UTF-8";
-    LC_MONETARY = "de_DE.UTF-8";
-    LC_NAME = "de_DE.UTF-8";
-    LC_NUMERIC = "de_DE.UTF-8";
-    LC_PAPER = "de_DE.UTF-8";
-    LC_TELEPHONE = "de_DE.UTF-8";
-    LC_TIME = "de_DE.UTF-8";
-  };
-
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  # Desktop/GUI applications (LibreOffice, browsers, chat, media) live in
-  # home-manager (users/alexander/default.nix) instead: per-user apps
-  # don't need a full `sudo nixos-rebuild switch` to add/remove/update, and
-  # this keeps the system closure limited to what's actually needed
-  # system-wide, consistent with the modules/system vs modules/user split
-  # used elsewhere in this repo.
+  # NetworkManager, time zone, locale and nix features live in
+  # modules/system/{desktop,common}; base packages (git, vim,
+  # home-manager, ...) in modules/system/desktop.
   environment.systemPackages = with pkgs; [
-    # Tools
-    git
-    git-credential-oauth
-    vim
-    wget
-    curl
-
-    # Nix Home Manager
-    home-manager
-
     # VM
     qemu
 
@@ -160,48 +122,16 @@
     tpm2-tools
   ];
 
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "de";
-    variant = "";
-  };
-
-  # Configure console keymap
-  console.keyMap = "de";
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
   # Enable firmware update tool
   services.fwupd.enable = true;
 
-  # Enable sound with pipewire.
-  hardware.alsa.enablePersistence = true;
-  security.rtkit.enable = true;
-  services.pulseaudio.enable = false;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-
-  # Define a user account. Don't forget to set a password with 'passwd'.
-  users.users.alexander = {
-    isNormalUser = true;
-    description = "Alexander Weidemann";
-    extraGroups = [ "networkmanager" "wheel" "libvirtd" "dialout" "netbird-personal" "video" ];
-    shell = pkgs.zsh;
-    packages = with pkgs; [ ];
-  };
+  # Host-specific groups; the account itself is defined in
+  # modules/system/{common,desktop}. Don't forget to set a password with
+  # 'passwd'.
+  users.users.alexander.extraGroups = [ "libvirtd" "dialout" "netbird-personal" "video" ];
 
   # Automatic login is disabled; GDM always prompts.
   services.displayManager.autoLogin.enable = false;
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
-  programs.zsh.enable = true;
 
   # NVIDIA GPU: recent generations require the open kernel module —
   # the closed-source module does not support current hardware.

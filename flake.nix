@@ -62,6 +62,8 @@
           modules = [
             ./hosts/alexander-nb2/configuration.nix
             nixos-hardware.nixosModules.lenovo-thinkpad-x280
+            ./modules/system/common
+            ./modules/system/desktop
             ./modules/system/gnome
             ./modules/system/docker
             ./modules/system/netbird
@@ -81,6 +83,8 @@
             nixos-hardware.nixosModules.common-pc-laptop-ssd
             nur.modules.nixos.default
             lanzaboote.nixosModules.lanzaboote
+            ./modules/system/common
+            ./modules/system/desktop
             ./modules/system/gnome
             ./modules/system/docker
             ./modules/system/netbird
@@ -104,6 +108,8 @@
             nur.modules.nixos.default
             lanzaboote.nixosModules.lanzaboote
             disko.nixosModules.disko
+            ./modules/system/common
+            ./modules/system/desktop
             ./modules/system/gnome
             ./modules/system/docker
             ./modules/system/netbird

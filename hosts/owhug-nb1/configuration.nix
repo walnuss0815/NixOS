@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, lib, pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
   imports = [
@@ -55,9 +55,8 @@
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
-  # Enable networking
+  # NetworkManager itself is enabled in modules/system/desktop.
   networking.networkmanager = {
-    enable = true;
     wifi = {
       powersave = false;
       scanRandMacAddress = false;
@@ -77,46 +76,12 @@
     }
   ];
 
-  # Set your time zone.
-  time.timeZone = "Europe/Berlin";
-
-  # Select internationalisation properties.
-  i18n.defaultLocale = "en_US.UTF-8";
-
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "de_DE.UTF-8";
-    LC_IDENTIFICATION = "de_DE.UTF-8";
-    LC_MEASUREMENT = "de_DE.UTF-8";
-    LC_MONETARY = "de_DE.UTF-8";
-    LC_NAME = "de_DE.UTF-8";
-    LC_NUMERIC = "de_DE.UTF-8";
-    LC_PAPER = "de_DE.UTF-8";
-    LC_TELEPHONE = "de_DE.UTF-8";
-    LC_TIME = "de_DE.UTF-8";
-  };
-
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  # Desktop/GUI applications (LibreOffice, browsers, chat, media) live in
-  # home-manager (users/alexander/default.nix) instead: per-user apps
-  # don't need a full `sudo nixos-rebuild switch` to add/remove/update, and
-  # this keeps the system closure limited to what's actually needed
-  # system-wide, consistent with the modules/system vs modules/user split
-  # used elsewhere in this repo.
+  # Time zone, locale and nix features: modules/system/common.
+  # Base packages (git, vim, home-manager, ...): modules/system/desktop.
   environment.systemPackages = with pkgs; [
-    # Tools
-    git
-    git-credential-oauth
-    vim
-    wget
-    curl
-
     # eSIM
     pcsclite
     nur.repos.linyinfeng.lpac
-
-    # Nix Home Manager
-    home-manager
 
     # VM
     qemu
@@ -128,39 +93,8 @@
   # eSIM
   services.pcscd.enable = true;
 
-  #  environment.variables.EDITOR = "vim";
-
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "de";
-    variant = "";
-  };
-
-  # Configure console keymap
-  console.keyMap = "de";
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
   # Enable firmware update tool
   services.fwupd.enable = true;
-
-  # Enable sound with pipewire.
-  hardware.alsa.enablePersistence = true;
-  security.rtkit.enable = true;
-  services.pulseaudio.enable = false;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
-  };
 
   services.udev.packages = [
     (pkgs.writeTextDir "lib/udev/rules.d/70-stm32-dfu.rules" ''
@@ -170,27 +104,14 @@
     '')
   ];
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.alexander = {
-    isNormalUser = true;
-    description = "Alexander Weidemann";
-    extraGroups = [ "networkmanager" "wheel" "libvirtd" "dialout" "netbird-personal" "video" ];
-    shell = pkgs.zsh;
-    packages = with pkgs;
-      [
-        #  firefox
-        #  thunderbird
-      ];
-  };
+  # Host-specific groups; the account itself is defined in
+  # modules/system/{common,desktop}. Don't forget to set a password with
+  # ‘passwd’.
+  users.users.alexander.extraGroups = [ "libvirtd" "dialout" "netbird-personal" "video" ];
 
   # Automatic login is disabled; GDM always prompts (password or
   # fingerprint, see services.fprintd below).
   services.displayManager.autoLogin.enable = false;
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
-  programs.zsh.enable = true;
 
   # AMD GPU
   services.xserver.videoDrivers = [ "amdgpu" ];
