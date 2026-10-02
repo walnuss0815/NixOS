@@ -1,13 +1,11 @@
-# PLACEHOLDER — this host has not been installed yet.
+# Hand-maintained hardware configuration for owhug-pc1.
 #
-# Once NixOS is actually installed on owhug-pc1 (see the runbook comment
-# at the top of ./configuration.nix), replace this file with the output
-# of `nixos-generate-config --no-filesystems --root /mnt` (the
-# `--no-filesystems` flag is important: disk-level filesystems, the ESP
-# and the LUKS device are all managed declaratively by ./disko.nix
-# instead, and must not be hand-written here too — doing so would
-# conflict with disko's generated definitions). Re-apply the one
-# hand-written addition below that nixos-generate-config won't restore:
+# Disk-level filesystems, the ESP and the LUKS device are managed
+# declaratively by ./disko.nix and must not be hand-written here too —
+# doing so would conflict with disko's generated definitions. If this file
+# is ever regenerated, use
+# `nixos-generate-config --no-filesystems --root /mnt` and re-apply the
+# one hand-written addition that nixos-generate-config won't restore:
 #
 #   - swapDevices with a `size`, sized to match installed RAM (see
 #     configuration.nix's zramSwap comment)
