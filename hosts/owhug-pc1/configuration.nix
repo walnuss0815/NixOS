@@ -207,9 +207,11 @@
   # the closed-source module does not support current hardware.
   # services.xserver.videoDrivers is set to [ "nvidia" ] via the
   # nixos-hardware common-gpu-nvidia-nonprime module in flake.nix.
+  # The "latest" branch is used because displays did not wake from
+  # idle blanking with the "production" branch under GNOME/Wayland.
   hardware.nvidia = {
     open = true;
-    package = config.boot.kernelPackages.nvidiaPackages.production;
+    package = config.boot.kernelPackages.nvidiaPackages.latest;
     nvidiaSettings = true;
   };
   hardware.graphics = {
