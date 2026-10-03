@@ -35,6 +35,10 @@ jobs:
 
       - uses: cachix/install-nix-action@v31
         with:
+          # fix-pkg-hash.sh resolves github:owner/repo/tag refs through
+          # the GitHub API; unauthenticated calls from shared runner IPs
+          # get rate-limited, so let Nix use the workflow token.
+          github_access_token: ${{ github.token }}
           extra_nix_config: |
             experimental-features = nix-command flakes
 

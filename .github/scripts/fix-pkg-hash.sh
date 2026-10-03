@@ -8,9 +8,13 @@
 # Supports the two fetcher shapes used under pkgs/:
 #   - fetchurl from registry.npmjs.org: the new hash is read straight from
 #     the npm registry's own `dist.integrity` field, no build required.
-#   - fetchFromGitHub: the new hash is computed with nix-prefetch-github,
-#     since GitHub's source-archive hashing isn't exposed via a simple API
-#     and must go through Nix's actual fetcher to match bit-for-bit.
+#   - fetchFromGitHub: the new hash is computed with `nix flake prefetch`
+#     on a `github:owner/repo/tag` ref. GitHub's source-archive hashing
+#     isn't exposed via a simple API, and fetchFromGitHub's hash is a NAR
+#     hash of the unpacked tree, so it has to go through Nix's own
+#     fetcher to match bit-for-bit. (nix-prefetch-github would also work,
+#     but it evaluates `import <nixpkgs>` under the hood and so needs a
+#     NIX_PATH, which install-nix-action doesn't set up on CI.)
 #
 # Usage: fix-pkg-hash.sh pkgs/<name>/default.nix
 set -euo pipefail
@@ -35,26 +39,25 @@ if grep -q 'fetchFromGitHub' "$file"; then
   tag_template=$(grep -oP '^\s*tag = "\K[^"]+' "$file" | head -1)
   tag=${tag_template//\$\{version\}/$version}
 
-  echo "Prefetching github:$owner/$repo@$tag"
-  # nix-prefetch-github talks to the GitHub API and downloads a source
-  # archive; both are occasionally flaky on shared CI runner IPs
-  # (rate limiting, transient network errors), so retry a few times
-  # before giving up. --verbose (captured to a temp file, not printed
-  # unless we're about to fail) shows which step actually failed instead
-  # of just the tool's generic "unable to calculate hash sum" message.
+  echo "Prefetching github:$owner/$repo/$tag"
+  # The github: fetcher resolves the ref via the GitHub API and then
+  # downloads a source tarball; both are occasionally flaky on shared CI
+  # runner IPs (rate limiting, transient network errors), so retry a few
+  # times before giving up. stderr is captured to a temp file and only
+  # printed when an attempt fails, so a clean run stays quiet.
   attempt=0
   max_attempts=3
   err_log=$(mktemp)
   trap 'rm -f "$err_log"' EXIT
-  until new_hash=$(nix run nixpkgs#nix-prefetch-github -- --verbose "$owner" "$repo" --rev "$tag" --json 2>"$err_log" | jq -r '.hash'); do
+  until new_hash=$(nix flake prefetch --json "github:$owner/$repo/$tag" 2>"$err_log" | jq -r '.hash'); do
     attempt=$((attempt + 1))
     if [ "$attempt" -ge "$max_attempts" ]; then
-      echo "::error file=$file::nix-prefetch-github failed after $attempt attempts" >&2
+      echo "::error file=$file::nix flake prefetch failed after $attempt attempts" >&2
       cat "$err_log" >&2
       exit 1
     fi
     sleep_for=$((attempt * 5))
-    echo "nix-prefetch-github attempt $attempt failed, retrying in ${sleep_for}s..." >&2
+    echo "nix flake prefetch attempt $attempt failed, retrying in ${sleep_for}s..." >&2
     cat "$err_log" >&2
     sleep "$sleep_for"
   done
