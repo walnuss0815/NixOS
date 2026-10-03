@@ -157,8 +157,10 @@
       };
 
       # `nix flake check` only evaluates standard outputs, which does not
-      # include homeConfigurations, so build the home-manager generation
-      # explicitly to cover it.
+      # include homeConfigurations, so expose the home-manager generation
+      # explicitly to cover it. CI runs with --no-build (evaluation only,
+      # see .github/workflows/ci.yml); a plain `nix flake check` locally
+      # also builds the generation.
       checks.${system}.home-alexander = self.homeConfigurations.alexander.activationPackage;
 
       # `nix fmt`, also used by CI, so formatting always follows the pinned

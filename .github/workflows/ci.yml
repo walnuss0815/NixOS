@@ -6,6 +6,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A newer push to the same branch/PR makes the previous run's result
+# irrelevant, so cancel it instead of letting both finish. github.ref is
+# refs/pull/N/merge for PRs and refs/heads/wip for pushes, so each PR and
+# the branch get their own group.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   flake-check:
     name: nix flake check
@@ -19,12 +27,18 @@ jobs:
             experimental-features = nix-command flakes
 
       # Evaluates nixosConfigurations.* (module errors, type errors,
-      # assertions) plus the flake's own schema, and builds the
-      # home-manager generation exposed under `checks`, since
-      # homeConfigurations is not a standard output that flake check
-      # evaluates on its own.
+      # assertions), the flake's own schema, and the home-manager
+      # generation exposed under `checks` (homeConfigurations is not a
+      # standard output that flake check evaluates on its own).
+      #
+      # --no-build: evaluation only, the same depth of coverage the host
+      # configurations get anyway (flake check never builds those).
+      # Building the home check meant compiling unfree packages that no
+      # public cache carries (bambu-studio ~84 min, vscode ~10 min) on
+      # every run. Renovate bumps under pkgs/ still get a real build via
+      # renovate-fix-hash.yml.
       - name: nix flake check
-        run: nix flake check --keep-going
+        run: nix flake check --keep-going --no-build
 
   format:
     name: nix fmt --check
