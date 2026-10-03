@@ -40,7 +40,6 @@
   # used elsewhere in this repo.
   environment.systemPackages = with pkgs; [
     git
-    git-credential-oauth
     vim
     wget
     curl

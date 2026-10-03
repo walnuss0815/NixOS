@@ -69,10 +69,8 @@ in
       pull.ff = "only";
       push.autoSetupRemote = true;
       init.defaultBranch = "main";
-      credential.helper = [
-        "cache --timeout 21600"
-        "oauth"
-      ];
+      credential.helper = [ "cache --timeout 21600" ];
     };
   };
+  programs.git-credential-oauth.enable = true;
 }
