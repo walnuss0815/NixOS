@@ -225,6 +225,16 @@ in
     };
 
     settings = {
+      # Replace the output of old tool calls (file reads, command and MCP
+      # results) with a placeholder once that frees a meaningful amount of
+      # context; the calls themselves stay visible, the most recent tool
+      # output is protected and loaded skills are never pruned. Keeps long
+      # sessions small and delays full (lossy) summary compaction. There is
+      # no per-model switch for this - it is global.
+      compaction = {
+        prune = true;
+      };
+
       permission = {
         external_directory = {
           "/nix/store/**" = "allow";
