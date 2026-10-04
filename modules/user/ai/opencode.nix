@@ -173,6 +173,11 @@ let
       # ~/.npm/_cacache/tmp. A pre-set npm_config_cache still wins.
       export npm_config_cache="''${npm_config_cache:-''${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm}"
 
+      # Default level for the ponytail plugin (see the plugin list below).
+      # Set via env rather than ~/.config/ponytail/config.json, which would
+      # need an extra sandbox grant. A pre-set value still wins.
+      export PONYTAIL_DEFAULT_MODE="''${PONYTAIL_DEFAULT_MODE:-full}"
+
       # nono refuses to grant $HOME or its ancestors (Landlock can't enforce the
       # credential denies beneath them), so start in a fixed private dir instead.
       # It must be stable: opencode scopes sessions by directory, so a random dir
@@ -383,7 +388,7 @@ in
         # create_pull_request, update_pull_request, add_issue_comment
         # (publish on GitHub); create_repository (create).
       };
-      # Both plugins are pinned to an exact version rather than @latest.
+      # All plugins are pinned to an exact version rather than @latest.
       # opencode caches each plugin under a directory keyed by this literal
       # spec string, with its own lockfile inside, so "@latest" does not
       # track anything: it resolves once on first install and then stays
@@ -396,6 +401,18 @@ in
       "plugin" = [
         "opencode-claude-auth@2.2.1"
         "@mohak34/opencode-notifier@0.7.0"
+        # ponytail ("lazy senior dev" ruleset): appends ~1.3k tokens of
+        # rules to the system prompt every turn that push the model to
+        # reuse existing code, stdlib and platform features before writing
+        # new code, and to keep explanations short. Validation, error
+        # handling, security and explicitly requested work are exempt.
+        # Levels: lite (build as asked, name the lazier option), full
+        # (build the lazy version, state what was skipped), ultra (also
+        # challenge the requirement), off. The default comes from
+        # PONYTAIL_DEFAULT_MODE in the wrapper above; `/ponytail <level>`
+        # overrides it persistently via ~/.config/opencode/.ponytail-active,
+        # which lies inside the already-granted opencode config dir.
+        "@dietrichgebert/ponytail@4.10.3"
       ];
       "provider" = {
         "rpp-ai-proxy" = {
