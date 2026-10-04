@@ -298,14 +298,16 @@ in
         "kubernetes_namespaces_list" = "allow";
         "kubernetes_projects_list" = "allow";
         "kubernetes_events_list" = "allow";
-        "kubernetes_nodes_log" = "allow";
         "kubernetes_nodes_stats_summary" = "allow";
         "kubernetes_nodes_top" = "allow";
         "kubernetes_pods_list" = "allow";
         "kubernetes_pods_list_in_namespace" = "allow";
         "kubernetes_pods_get" = "allow";
         "kubernetes_pods_top" = "allow";
-        "kubernetes_pods_log" = "allow";
+        # pods_log/nodes_log deliberately stay on the "ask" catch-all:
+        # application and node logs routinely contain tokens, connection
+        # strings or env dumps, and denied_resources cannot filter log
+        # content the way it blocks Secret objects.
         # Generic get/list are safe to allow now: the server-side
         # `denied_resources` config (`--config` in ./mcp.nix) hard-blocks
         # v1 Secret before any handler runs, so these two tools can never
@@ -315,9 +317,10 @@ in
         # enforced.
         "kubernetes_resources_get" = "allow";
         "kubernetes_resources_list" = "allow";
-        # Stays on "ask": pods_delete/pods_exec/pods_run (delete/exec/
-        # create); resources_create_or_update, resources_delete,
-        # resources_scale (modify/create/delete).
+        # Stays on "ask": pods_log/nodes_log (may leak credentials, see
+        # above); pods_delete/pods_exec/pods_run (delete/exec/create);
+        # resources_create_or_update, resources_delete, resources_scale
+        # (modify/create/delete).
 
         # @cyanheads/git-mcp-server (github:cyanheads/git-mcp-server), 28
         # tools. The server's own tool names already start with "git_",
