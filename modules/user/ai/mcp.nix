@@ -28,11 +28,41 @@
       # host-privileged before the sandbox is applied and injects only the
       # resulting bare token as GITHUB_PERSONAL_ACCESS_TOKEN, which this
       # process then simply inherits.
+      #
+      # GITHUB_TOOLS is an exact allowlist instead of GITHUB_TOOLSETS:
+      # every loaded tool's schema is sent with every model request, and
+      # whole toolsets pulled in ~60 tools (plus a long Projects
+      # instruction block) for a workflow that only needs CI logs, PRs,
+      # commits and repo creation. With no toolsets set, the server loads
+      # exactly these tools - so merge/delete/push/fork tools are not
+      # merely gated by permissions, they do not exist in the session.
+      # Approval rules for these live in ./opencode.nix ("github_*").
       github = {
         command = "${pkgs.github-mcp-server}/bin/github-mcp-server";
         args = [ "stdio" ];
         env = {
-          "GITHUB_TOOLSETS" = "default,actions,gists,projects";
+          "GITHUB_TOOLS" = builtins.concatStringsSep "," [
+            # CI
+            "actions_list"
+            "actions_get"
+            "get_job_logs"
+            "actions_run_trigger"
+            # Pull requests
+            "list_pull_requests"
+            "search_pull_requests"
+            "pull_request_read"
+            "create_pull_request"
+            "update_pull_request"
+            "add_issue_comment"
+            # Commits
+            "list_commits"
+            "get_commit"
+            "list_branches"
+            # Repositories / helpers
+            "create_repository"
+            "get_me"
+            "get_file_contents"
+          ];
         };
       };
 
