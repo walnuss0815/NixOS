@@ -412,7 +412,7 @@ in
         # PONYTAIL_DEFAULT_MODE in the wrapper above; `/ponytail <level>`
         # overrides it persistently via ~/.config/opencode/.ponytail-active,
         # which lies inside the already-granted opencode config dir.
-        "@dietrichgebert/ponytail@4.10.3"
+        "@dietrichgebert/ponytail@4.12.0"
       ];
       "provider" = {
         "rpp-ai-proxy" = {
