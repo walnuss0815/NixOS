@@ -40,6 +40,13 @@ CRITICAL: Never refer to yourself, a review you performed, or anything else rela
 - Write commit/PR/MR content as if authored directly by the user — no mentions of AI, agents, assistants, or automated reviews
 - This applies to all such artifacts, not just commit messages
 
+## PR/MR Content
+
+- Titles and descriptions describe only the change itself: what changed and why. Do not narrate workflow or process
+- Never write promises, plans, or statements about future actions (e.g. "I will rebase once X is merged", "will follow up", "will update later"), in any voice
+- Never put status markers such as "Draft:", "WIP:", or "Ready for review" in the title or body. To open a PR as a draft, set the `draft` flag on the tool call
+- Cross-PR relationships may only be stated as neutral facts (e.g. "Depends on #206", "Touches the same lines as #206 and #207"). Never state what will happen to the PR afterwards
+
 ## Sensitive Data
 
 CRITICAL: Never read, print, or transmit sensitive/secret data unless I explicitly ask you to. Even then, ask for confirmation first — this includes indirect access (environment variables, decrypted files, shell history, clipboard).
