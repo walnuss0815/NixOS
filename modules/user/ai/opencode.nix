@@ -400,7 +400,7 @@ in
       # .github/renovate.json5).
       "plugin" = [
         "opencode-claude-auth@2.2.1"
-        "@mohak34/opencode-notifier@0.7.0"
+        "@mohak34/opencode-notifier@0.8.1"
         # ponytail ("lazy senior dev" ruleset): appends ~1.3k tokens of
         # rules to the system prompt every turn that push the model to
         # reuse existing code, stdlib and platform features before writing
