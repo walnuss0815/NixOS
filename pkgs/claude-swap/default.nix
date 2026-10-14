@@ -12,14 +12,14 @@
 
 python3.pkgs.buildPythonApplication rec {
   pname = "claude-swap";
-  version = "0.25.0";
+  version = "0.27.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "realiti4";
     repo = "claude-swap";
     tag = "v${version}";
-    hash = "sha256-BDfwyH7h7Ii7QYaunHDnf0Epk5nUEd8OdOH3QCf1CJU=";
+    hash = "sha256-IeQG5C6kRowNcPoxu5qQ7ycY+j49vNLLmZtiEHKFcN4=";
   };
 
   build-system = with python3.pkgs; [ hatchling ];
