@@ -50,6 +50,9 @@ for a full example), follow this runbook:
 See the runbook comment at the top of each host's `configuration.nix`
 for any host-specific caveats.
 
+GitHub Actions runner VMs (`hosts/rpp-github-runner*`) are installed
+differently; see the `README.md` in each of those host directories.
+
 ## Disko
 
 Hosts with a `hosts/<host>/disko.nix` file use
