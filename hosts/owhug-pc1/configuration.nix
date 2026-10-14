@@ -125,10 +125,25 @@
 
     # TPM2 troubleshooting (see ./disko.nix's cryptroot settings)
     tpm2-tools
+
+    # adb, for WiVRn's wired USB mode (see services.wivrn below)
+    android-tools
   ];
 
   # Enable firmware update tool
   services.fwupd.enable = true;
+
+  # WiVRn: OpenXR streaming to a Quest 3 for VR development.
+  # The module turns on avahi publishing so the headset discovers the
+  # server on its own. On this host that makes avahi a second mDNS
+  # responder next to systemd-resolved (see modules/system/mdns).
+  services.wivrn = {
+    enable = true;
+    openFirewall = true; # 9757 tcp/udp
+    autoStart = true;
+    highPriority = true; # asynchronous reprojection
+    steam.enable = false; # the app launcher needs no Steam games
+  };
 
   # Host-specific groups; the account itself is defined in
   # modules/system/{common,desktop}. Don't forget to set a password with
