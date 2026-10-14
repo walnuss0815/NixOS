@@ -67,6 +67,24 @@
         };
       };
 
+      # Self-hosted GitHub Actions runner VMs (hosts/rpp-github-runner*).
+      # Identical apart from hostname and address, which live in each
+      # host's configuration.nix.
+      mkGithubRunner =
+        name:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+
+          modules = [
+            ./hosts/${name}/configuration.nix
+            disko.nixosModules.disko
+            ./modules/system/common
+            ./modules/system/nix-storage-optimisation
+            ./modules/system/nix-ld
+            ./modules/system/github-runner
+          ];
+        };
+
     in
     {
       nixosConfigurations = {
@@ -135,6 +153,10 @@
             ./modules/system/ninfer
           ];
         };
+
+        rpp-github-runner1 = mkGithubRunner "rpp-github-runner1";
+        rpp-github-runner2 = mkGithubRunner "rpp-github-runner2";
+        rpp-github-runner3 = mkGithubRunner "rpp-github-runner3";
       };
 
       homeConfigurations = {
