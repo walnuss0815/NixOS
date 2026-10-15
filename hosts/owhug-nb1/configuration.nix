@@ -4,6 +4,26 @@
 
 { lib, pkgs, ... }:
 
+let
+  # lpac preconfigured for the Quectel EM120R-GL's internal eUICC.
+  # The eSIM is UIM slot 2 (slot 1 is the physical nano-SIM tray);
+  # mbim-proxy lets lpac share the MBIM port with ModemManager.
+  # Each setting can still be overridden from the environment.
+  # Needs root, as mbim-proxy only accepts root clients:
+  #   sudo esim chip info
+  #   sudo esim profile download -a 'LPA:1$...'
+  esim = pkgs.writeShellApplication {
+    name = "esim";
+    runtimeInputs = [ pkgs.lpac ];
+    text = ''
+      export LPAC_APDU="''${LPAC_APDU:-mbim}"
+      export LPAC_APDU_MBIM_DEVICE="''${LPAC_APDU_MBIM_DEVICE:-/dev/wwan0mbim0}"
+      export LPAC_APDU_MBIM_USE_PROXY="''${LPAC_APDU_MBIM_USE_PROXY:-1}"
+      export LPAC_APDU_MBIM_UIM_SLOT="''${LPAC_APDU_MBIM_UIM_SLOT:-2}"
+      exec lpac "$@"
+    '';
+  };
+in
 {
   imports = [
     # Include the results of the hardware scan.
@@ -79,9 +99,11 @@
   # Time zone, locale and nix features: modules/system/common.
   # Base packages (git, vim, home-manager, ...): modules/system/desktop.
   environment.systemPackages = with pkgs; [
-    # eSIM
-    pcsclite
-    nur.repos.linyinfeng.lpac
+    # LTE modem / eSIM (see `esim` above)
+    esim
+    lpac
+    libmbim # mbimcli, modem diagnostics
+    socat # raw AT access via /dev/wwan0at0
 
     # VM
     qemu
@@ -89,9 +111,6 @@
     # Secure Boot key management / troubleshooting (see boot.lanzaboote)
     sbctl
   ];
-
-  # eSIM
-  services.pcscd.enable = true;
 
   # Enable firmware update tool
   services.fwupd.enable = true;
