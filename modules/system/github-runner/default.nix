@@ -33,6 +33,23 @@ let
   # a size-limited tmpfs, which is too small for checkouts and vendored
   # charts. The module empties this directory on every service start.
   workDir = "/var/lib/github-runner-work";
+  # HOME of the runner and its jobs. Kept apart from workDir on purpose:
+  # the module also puts the runner's credential links and _diag into
+  # workDir, which must survive between jobs, while HOME must not.
+  # Actions write credentials to HOME (e.g. `git config --global
+  # url.<token>.insteadOf` in vendir-check, `docker login`, kubeconfigs)
+  # and never remove them. With a HOME that persists, an expired token of
+  # an earlier job is found first by later jobs and fails them.
+  homeDir = "/var/lib/github-runner-home";
+  # Empties HOME before and after every job, so each job starts clean like
+  # on GitHub-hosted runners. The runner picks the interpreter of a hook by
+  # its file extension, hence the .sh. The path is fixed instead of $HOME
+  # so that a wrong environment can never empty another directory. sudo
+  # removes files that jobs created as root.
+  jobHook = pkgs.writeShellScript "github-runner-job-hook.sh" ''
+    set -euo pipefail
+    /run/wrappers/bin/sudo -n ${pkgs.findutils}/bin/find ${homeDir} -mindepth 1 -delete
+  '';
 in
 {
   # --- Runner -------------------------------------------------------------
@@ -53,6 +70,13 @@ in
     # content or one of the registration settings above changes. See the
     # host README for how to create and place it.
     tokenFile = "/var/lib/secrets/github-runner.token";
+    # Not part of the registration settings, so changing these does not
+    # require a new registration token.
+    extraEnvironment = {
+      HOME = homeDir;
+      ACTIONS_RUNNER_HOOK_JOB_STARTED = "${jobHook}";
+      ACTIONS_RUNNER_HOOK_JOB_COMPLETED = "${jobHook}";
+    };
     extraPackages = with pkgs; [
       bashInteractive
       curl
@@ -139,7 +163,8 @@ in
     wants = [ "docker.service" ];
   };
 
-  # HOME is set to workDir by the runner module.
+  # The runner module would set HOME to workDir; extraEnvironment above
+  # points it to homeDir instead.
   users.users.${runnerUser} = {
     isSystemUser = true;
     group = runnerUser;
@@ -165,6 +190,7 @@ in
   systemd.tmpfiles.rules = [
     "d /var/lib/secrets 0700 root root -"
     "d ${workDir} 0750 ${runnerUser} ${runnerUser} -"
+    "d ${homeDir} 0750 ${runnerUser} ${runnerUser} -"
     # Writable for jobs, like on GitHub-hosted runners.
     "d /usr/local 0755 root root -"
     "d /usr/local/bin 0755 ${runnerUser} ${runnerUser} -"
