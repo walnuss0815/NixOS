@@ -3,6 +3,8 @@
 # the (manual, GPU-bound) steps to build the model artifact this points at -
 # that conversion can't be expressed as a Nix derivation since it downloads
 # ~80GB of upstream checkpoints and runs upstream's own conversion tooling.
+# The concrete deployment used by owhug-pc1 and alexander-pc2 (artifact,
+# port, flags) lives in ./qwen3.8-27b.nix.
 {
   config,
   lib,
@@ -139,9 +141,10 @@ in
         WorkingDirectory = "/var/lib/ninfer";
 
         # GPU access. Mirrors services.llama-cpp's approach in nixpkgs.
-        # /dev/nvidia* is mode 0666 on owhug-pc1, so DynamicUser needs no
-        # explicit "video"/"render" membership. On a host where those
-        # nodes are group-restricted, add SupplementaryGroups here.
+        # /dev/nvidia* is mode 0666 with the NixOS NVIDIA driver (owhug-pc1,
+        # alexander-pc2), so DynamicUser needs no explicit "video"/"render"
+        # membership. On a host where those nodes are group-restricted,
+        # add SupplementaryGroups here.
         PrivateDevices = false;
 
         AmbientCapabilities = [ "" ];

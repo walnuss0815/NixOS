@@ -1,9 +1,18 @@
 # owhug-pc1 — NInfer local LLM setup
 
-How `services.ninfer` (see `./configuration.nix` and
-`../../modules/system/ninfer/default.nix`) got from nothing to a working
-local LLM server on this host. If this file and the module/host comments
-ever disagree, the `.nix` files are the source of truth.
+How `services.ninfer` (see `../../modules/system/ninfer/qwen3.8-27b.nix`,
+`../../modules/system/ninfer/default.nix` and `./configuration.nix`) got
+from nothing to a working local LLM server on this host. If this file and
+the module/host comments ever disagree, the `.nix` files are the source
+of truth.
+
+The deployment (artifact, port, API key file, flags) is shared with the
+headless `alexander-pc2` via `modules/system/ninfer/qwen3.8-27b.nix`; the
+only per-host difference is `services.ninfer.onDemand` (on here, off on
+alexander-pc2). See `../alexander-pc2/README.md` for that host's setup.
+Wherever this file says to edit `extraFlags` or `artifactPath` in
+`./configuration.nix`, that now means the shared file, and changes apply
+to both hosts.
 
 Serving: an abliterated (uncensored) Qwen3.8-27B, NVFP4 + FP8 text weights
 + MTP speculative decoding, at `qwen3.8-27b` (see "Swapping to an
@@ -39,7 +48,10 @@ full context" below).
    current `artifactPath` in `./configuration.nix` is the source of truth
    for which file is actually loaded.
 4. API key: `nix-shell -p openssl --run "openssl rand -base64 32"`,
-   written to `/var/lib/ninfer/api-key.txt` (600, root-owned) and stored
+   written to `/var/lib/ninfer/api-key.txt` (600, owned by the service's
+   dynamic user, which reads it itself - a root-owned key only works if
+   it existed before the unit's first start; otherwise run `sudo chown
+   -R --reference=/var/lib/private/ninfer /var/lib/private/ninfer`) and stored
    in the Bitwarden vault as `owhug-pc1-ninfer-key` (`rbw add
    owhug-pc1-ninfer-key`). opencode's nono session hook
    (`fetch-tokens.sh` in `modules/user/ai/opencode.nix`) fetches it
@@ -208,7 +220,9 @@ While the service is stopped:
 ## Deploying a config change
 
 1. Edit `services.ninfer.extraFlags` (or other options) in
-   `./configuration.nix`.
+   `../../modules/system/ninfer/qwen3.8-27b.nix` (shared with
+   alexander-pc2; per-host overrides go in each host's
+   `configuration.nix`).
 2. `sudo nixos-rebuild switch --flake .#owhug-pc1`.
 3. `systemctl status ninfer --no-pager` / `journalctl -u ninfer -n 40
    --no-pager` — look for `engine ready` and `listening on
