@@ -132,15 +132,16 @@ let
     session_hooks.before = {
       # Runs host-privileged, before the sandbox is applied - this is
       # deliberately outside the profile's filesystem grants above. It
-      # fetches the GitHub MCP server's token and the owhug-pc1 NInfer API
-      # key from the Bitwarden vault via rbw (possibly prompting through
+      # fetches the GitHub MCP server's token and the API keys of the
+      # owhug-pc1 NInfer and walnuss0815 LiteLLM providers from the
+      # Bitwarden vault via rbw (possibly prompting through
       # GNOME pinentry) and hands only the resulting bare values to the
       # sandboxed process as env vars. This means the sandbox itself never
       # needs (and never gets) read access to ~/.cache/rbw - which holds
       # the *decrypted* vault cache - or to the pinentry/D-Bus machinery
       # that unlocking it requires. See ./mcp.nix for the github MCP
-      # server and the "owhug-pc1" provider below, which just read these
-      # env vars.
+      # server and the "owhug-pc1" and "walnuss0815" providers below, which
+      # just read these env vars.
       script = "${config.xdg.configHome}/nono/hooks/fetch-tokens.sh";
       timeout_secs = 20;
     };
@@ -509,6 +510,31 @@ in
             };
           };
         };
+        # LiteLLM proxy at d7fa1e54.walnuss0815.de, serving the same
+        # Qwen3.8-27B model. The API key lives in the Bitwarden vault as
+        # "walnuss0815-litellm-key" and is injected as an env var by the
+        # nono session hook (fetch-tokens.sh below), for the same reason
+        # as the "owhug-pc1" provider above. If the vault entry is
+        # missing, the env var resolves to "" and only this provider fails
+        # (401); opencode itself still starts.
+        "walnuss0815" = {
+          "npm" = "@ai-sdk/openai-compatible";
+          "name" = "walnuss0815 (LiteLLM)";
+          "options" = {
+            "baseURL" = "https://d7fa1e54.walnuss0815.de/v1";
+            "apiKey" = "{env:WALNUSS0815_LITELLM_API_KEY}";
+          };
+          "models" = {
+            "walnuss0815/qwen3.8-27b" = {
+              "name" = "Qwen3.8-27B (walnuss0815)";
+              "limit" = {
+                # Same as the server's --max-context.
+                "context" = 245760;
+                "output" = 65536;
+              };
+            };
+          };
+        };
       };
     };
     skills = {
@@ -566,6 +592,12 @@ in
       # vault entry only disables that provider instead of blocking startup.
       if ninfer_key="$(${pkgs.rbw}/bin/rbw get owhug-pc1-ninfer-key 2>/dev/null)"; then
         printf 'OWHUG_PC1_NINFER_API_KEY=%s\n' "$ninfer_key" >> "$NONO_ENV_FILE"
+      fi
+
+      # Best-effort: API key for the "walnuss0815" LiteLLM provider. Same
+      # reasoning as above.
+      if litellm_key="$(${pkgs.rbw}/bin/rbw get walnuss0815-litellm-key 2>/dev/null)"; then
+        printf 'WALNUSS0815_LITELLM_API_KEY=%s\n' "$litellm_key" >> "$NONO_ENV_FILE"
       fi
     '';
   };
