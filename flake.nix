@@ -155,6 +155,26 @@
           ];
         };
 
+        # Headless LLM server; NInfer starts at boot.
+        alexander-pc2 = nixpkgs.lib.nixosSystem {
+          inherit system;
+
+          modules = [
+            ./hosts/alexander-pc2/configuration.nix
+            nixos-hardware.nixosModules.common-cpu-amd
+            nixos-hardware.nixosModules.common-cpu-amd-pstate
+            nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
+            nixos-hardware.nixosModules.common-pc-ssd
+            lanzaboote.nixosModules.lanzaboote
+            disko.nixosModules.disko
+            ./modules/system/common
+            ./modules/system/nix-storage-optimisation
+            ./modules/system/nix-cache
+            ./modules/system/ninfer
+            ./modules/system/ninfer/qwen3.8-27b.nix
+          ];
+        };
+
         rpp-github-runner1 = mkGithubRunner "rpp-github-runner1";
         rpp-github-runner2 = mkGithubRunner "rpp-github-runner2";
         rpp-github-runner3 = mkGithubRunner "rpp-github-runner3";
