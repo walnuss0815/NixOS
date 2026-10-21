@@ -178,58 +178,17 @@
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Local LLM: NInfer serving an abliterated (uncensored) Qwen3.8-27B NVFP4
-  # artifact - see ./NINFER-SETUP.md for the setup this depends on, why
-  # this replaced the official artifact, and for generating apiKeyFile's
-  # contents. The artifact also contains Vision weights, but --vision is
-  # deliberately omitted below - see the extraFlags comment.
+  # artifact. The deployment itself (artifact, port, API key, flags) is
+  # shared with alexander-pc2 and lives in
+  # modules/system/ninfer/qwen3.8-27b.nix (imported via flake.nix); see
+  # ./NINFER-SETUP.md for how it was set up.
   #
-  # "LAN + API key" exposure: bound to all interfaces and firewalled open,
-  # but every request (other than /health) requires the bearer/x-api-key
-  # value in apiKeyFile.
-  #
-  # On-demand only (onDemand below): the unit is defined but not wanted by
+  # On-demand only: the unit is defined but not wanted by
   # multi-user.target, so it does not start at boot - run `systemctl start
   # ninfer` before using the model and `systemctl stop ninfer` to release
-  # the VRAM - see the "On-demand operation" section in ./NINFER-SETUP.md
-  # for the cold-start caveats.
-  services.ninfer = {
-    enable = true;
-    # Upstream's own measurements use CUDA 13.1 for sm_120a; nixpkgs' default
-    # cudaPackages resolves to 12.9, so override explicitly (see
-    # ./NINFER-SETUP.md).
-    package = pkgs.callPackage ../../pkgs/ninfer { cudaPackages = pkgs.cudaPackages_13_1; };
-    artifactPath = "/var/lib/ninfer/models/qwen3.8-27b-huihui-abliterated-nvfp4.ninfer";
-    host = "0.0.0.0";
-    port = 8080;
-    apiKeyFile = "/var/lib/ninfer/api-key.txt";
-    openFirewall = true;
-    onDemand = true;
-    # --vision stays disabled for the same reason as the official artifact
-    # (see NINFER-SETUP.md's "Why vision is off"): its encoder workspace
-    # cost is independent of --max-context and isn't needed for this
-    # deployment's use case. This artifact has no DFlash2 companion
-    # weights (only the official target model has those), so --spec
-    # switched to mtp - the artifact does carry MTP + the optimized
-    # proposal head. --max-context/--max-concurrency were re-tuned for
-    # this artifact's ~19.0GiB resident weight size (vs. 21.1GiB before);
-    # see NINFER-SETUP.md for the measured values.
-    extraFlags = [
-      "--max-context"
-      "245760"
-      "--kv-capacity"
-      "auto"
-      "--max-concurrency"
-      "1"
-      "--kv-dtype"
-      "int8"
-      "--spec"
-      "mtp"
-      "--draft-tokens"
-      "5"
-      "--lm-head-draft"
-      "--preserve-thinking"
-    ];
-  };
+  # the VRAM for the desktop - see the "On-demand operation" section in
+  # ./NINFER-SETUP.md for the cold-start caveats.
+  services.ninfer.onDemand = true;
 
   # Onboard RTL8125D 2.5GbE NIC (enp6s0): link negotiates fine but DHCP
   # never completes under the in-tree r8169 driver (high rx_missed count,

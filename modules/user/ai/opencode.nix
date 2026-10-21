@@ -499,7 +499,7 @@ in
               "name" = "Qwen3.8-27B abliterated (owhug-pc1, NVFP4+MTP)";
               "limit" = {
                 # Matches the server's actual --max-context (see
-                # hosts/owhug-pc1/configuration.nix's
+                # modules/system/ninfer/qwen3.8-27b.nix's
                 # services.ninfer.extraFlags). --vision is disabled there
                 # (not needed for this use case); context is trimmed below
                 # the native 262144 ceiling to fit the 32GB card alongside
