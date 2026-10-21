@@ -52,6 +52,9 @@ for any host-specific caveats.
 
 GitHub Actions runner VMs (`hosts/rpp-github-runner*`) are installed
 differently; see the `README.md` in each of those host directories.
+Their registry cache (`hosts/rpp-registry-cache`) is an LXC container
+that is not managed by NixOS; its directory holds the zot configuration
+and a runbook.
 
 ## Disko
 
