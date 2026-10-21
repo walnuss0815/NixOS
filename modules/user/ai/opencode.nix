@@ -489,7 +489,7 @@ in
         # provider fails (401); opencode itself still starts.
         "owhug-pc1" = {
           "npm" = "@ai-sdk/openai-compatible";
-          "name" = "owhug-pc1 (Qwen3.8-27B, NVFP4, uncensored)";
+          "name" = "owhug-pc1";
           "options" = {
             "baseURL" = "http://owhug-pc1.local:8080/v1";
             "apiKey" = "{env:OWHUG_PC1_NINFER_API_KEY}";
@@ -525,8 +525,8 @@ in
             "apiKey" = "{env:WALNUSS0815_LITELLM_API_KEY}";
           };
           "models" = {
-            "walnuss0815/qwen3.8-27b" = {
-              "name" = "Qwen3.8-27B (walnuss0815)";
+            "qwen3.8-27b" = {
+              "name" = "Qwen3.8-27B";
               "limit" = {
                 # Same as the server's --max-context.
                 "context" = 245760;
