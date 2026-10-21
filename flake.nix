@@ -151,6 +151,7 @@
             ./modules/system/nix-ld
             ./modules/system/mdns
             ./modules/system/ninfer
+            ./modules/system/ninfer/qwen3.8-27b.nix
           ];
         };
 
