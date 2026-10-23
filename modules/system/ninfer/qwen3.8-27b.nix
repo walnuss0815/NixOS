@@ -33,17 +33,17 @@
     # deployment's use case. This artifact has no DFlash2 companion
     # weights (only the official target model has those), so --spec
     # switched to mtp - the artifact does carry MTP + the optimized
-    # proposal head. --max-context/--max-concurrency were re-tuned for
-    # this artifact's ~19.0GiB resident weight size (vs. 21.1GiB before)
-    # on owhug-pc1, with a desktop session sharing the GPU; see
-    # NINFER-SETUP.md for the measured values.
+    # proposal head. --max-context was re-tuned for this artifact's
+    # ~19.0GiB resident weight size (vs. 21.1GiB before) on owhug-pc1,
+    # with a desktop session sharing the GPU; see NINFER-SETUP.md for the
+    # measured values. --max-concurrency depends on how much VRAM the host
+    # leaves free, so each host appends it in its own configuration.nix
+    # (list definitions merge).
     extraFlags = [
       "--max-context"
       "245760"
       "--kv-capacity"
       "auto"
-      "--max-concurrency"
-      "1"
       "--kv-dtype"
       "int8"
       "--spec"

@@ -238,10 +238,11 @@ Repeat the authenticated request from another machine against
 The engine flags live in
 [`modules/system/ninfer/qwen3.8-27b.nix`](../../modules/system/ninfer/qwen3.8-27b.nix)
 and are shared with another host, where they were sized for a GPU that
-also drives a desktop session. Here the whole GPU is free, so there is
-likely room for a larger `--max-context` or `--max-concurrency`. To
-change them for this host only, override `services.ninfer.extraFlags`
-in `configuration.nix` (with `lib.mkForce`).
+also drives a desktop session. `--max-concurrency` is set per host:
+here the whole GPU is free, so `configuration.nix` appends
+`--max-concurrency 2` (the other host uses 1). To change other flags
+for this host only, override `services.ninfer.extraFlags` in
+`configuration.nix` (with `lib.mkForce`).
 
 The `capacity |` line in the startup log shows how much VRAM is left
 after weights and runtime reservation. If a value is too large, startup

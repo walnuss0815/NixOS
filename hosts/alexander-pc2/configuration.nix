@@ -88,6 +88,19 @@
   # Firmware updates (`fwupdmgr update`).
   services.fwupd.enable = true;
 
+  # --- NInfer -------------------------------------------------------------
+
+  # No desktop session on this GPU, so the ~1GiB (+~800MiB fluctuation)
+  # that keeps owhug-pc1 at concurrency 1 is free here; two parallel
+  # agent sessions instead. If startup fails with "minimum Engine runtime
+  # reservation requires N bytes", lower --max-context in
+  # modules/system/ninfer/qwen3.8-27b.nix (~33.8KB per token, see
+  # hosts/owhug-pc1/NINFER-SETUP.md) or go back to 1.
+  services.ninfer.extraFlags = [
+    "--max-concurrency"
+    "2"
+  ];
+
   # --- Network ------------------------------------------------------------
 
   networking.hostName = "alexander-pc2";

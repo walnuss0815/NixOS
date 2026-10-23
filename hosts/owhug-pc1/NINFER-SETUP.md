@@ -8,8 +8,10 @@ of truth.
 
 The deployment (artifact, port, API key file, flags) is shared with the
 headless `alexander-pc2` via `modules/system/ninfer/qwen3.8-27b.nix`; the
-only per-host difference is `services.ninfer.onDemand` (on here, off on
-alexander-pc2). See `../alexander-pc2/README.md` for that host's setup.
+per-host differences are `services.ninfer.onDemand` (on here, off on
+alexander-pc2) and `--max-concurrency` (1 here, 2 on alexander-pc2,
+which has no desktop session on its GPU), both set in each host's
+`configuration.nix`. See `../alexander-pc2/README.md` for that host's setup.
 Wherever this file says to edit `extraFlags` or `artifactPath` in
 `./configuration.nix`, that now means the shared file, and changes apply
 to both hosts.

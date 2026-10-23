@@ -189,6 +189,12 @@
   # the VRAM for the desktop - see the "On-demand operation" section in
   # ./NINFER-SETUP.md for the cold-start caveats.
   services.ninfer.onDemand = true;
+  # The desktop session shares the GPU; concurrency 2 fell short by
+  # ~250-320MiB here (see ./NINFER-SETUP.md, "Why not full context").
+  services.ninfer.extraFlags = [
+    "--max-concurrency"
+    "1"
+  ];
 
   # Onboard RTL8125D 2.5GbE NIC (enp6s0): link negotiates fine but DHCP
   # never completes under the in-tree r8169 driver (high rx_missed count,
