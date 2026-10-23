@@ -79,6 +79,18 @@ in
   zramSwap.enable = true;
   systemd.oomd.enableUserSlices = true;
 
+  # Keep build-time inputs of GC roots (nix-direnv dev shells), so a GC
+  # doesn't force them to be re-fetched/rebuilt.
+  nix.settings.keep-outputs = true;
+
+  # Run/build aarch64 binaries and container images via qemu-user.
+  # Static emulators are preloaded by the kernel, so they also work
+  # inside chroots, Nix sandboxes and (rootless) Docker/buildx.
+  boot.binfmt = {
+    emulatedSystems = [ "aarch64-linux" ];
+    preferStaticEmulators = true;
+  };
+
   networking.hostName = "owhug-nb1"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
