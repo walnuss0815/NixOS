@@ -1,6 +1,6 @@
 # opencode configuration: global tool settings (permissions, providers,
 # plugins), skills and context, plus the packaged claude-swap wrapper and
-# the opencode-notifier plugin config. The MCP servers this talks to are
+# the service/terminal client config. The MCP servers this talks to are
 # defined in ./mcp.nix and merged in below via enableMcpIntegration.
 #
 # Filesystem sandboxing: programs.opencode.package below is swapped for a
@@ -42,13 +42,14 @@ let
   # kv.json, session.json and prompt history there; if it is denied, the
   # saved model history cannot be read or updated.
   #
-  # Caveat for OpenCode 2: its CLI (packages/cli) starts a background
-  # daemon that keeps a password in <state>/password and its endpoint in
-  # <state>/server.json. The grant above makes both readable to the
-  # agent, and nono cannot carve them out (it refuses to start when a
-  # deny path sits inside an allowed directory). The installed 1.18.x has
-  # no daemon, so this does not apply today; revisit this grant before
-  # upgrading.
+  # OpenCode 2 normally starts one detached background service shared by
+  # all projects, keeping its password in <state>/service.json and
+  # <config>/service.json. That would be sandboxed to whichever project
+  # launched it first, outlive the nono session, and expose the password
+  # to the agent through the grants above (nono cannot carve out deny
+  # paths inside an allowed directory). The service is therefore disabled
+  # via ~/.config/opencode/service.json below, which makes every launch
+  # run a private, non-detached server inside its own sandbox.
   nonoProfile = {
     meta = {
       name = "opencode-nixos";
@@ -113,17 +114,16 @@ let
         "$HOME/.ssh/*.pub"
         "$HOME/.ssh/known_hosts"
       ];
-      # Connect-only: lets the opencode-notifier plugin reach the D-Bus
-      # session bus (libnotify/notify-send) and PipeWire's pulse-compat
-      # socket (paplay) for its desktop notification/sound events, and lets
-      # git/ssh-keygen request a commit signature from GNOME Keyring's
+      # Connect-only: lets opencode's built-in attention sounds reach
+      # PipeWire's pulse-compat socket (desktop popups are terminal escape
+      # sequences handled by Ghostty, so no D-Bus access is needed), and
+      # lets git/ssh-keygen request a commit signature from GNOME Keyring's
       # ssh-agent (gcr) - the same keyring trust boundary already relied on
       # for rbw auto-unlock (see ../bitwarden). None of these grant bind(),
       # so this cannot be used to stand up a rogue service, and the actual
       # private key material never crosses into the sandbox - only a
       # signature computed by the agent on the other end of the socket.
       unix_socket = [
-        "$XDG_RUNTIME_DIR/bus"
         "$XDG_RUNTIME_DIR/pulse/native"
         "$XDG_RUNTIME_DIR/gcr/ssh"
       ];
@@ -160,13 +160,23 @@ let
       pkgs.coreutils
     ];
     meta.mainProgram = "opencode";
+    # home-manager derives "is this OpenCode 2" (programs.opencode.cli vs
+    # .tui) from the package version, which a bare wrapper does not have.
+    derivationArgs.version = pkgs.opencode.version;
     text = ''
       # libpulse mkdir()s $XDG_RUNTIME_DIR/pulse before connecting and Landlock
-      # denies it (the profile grants the socket, not its parent dir), so paplay
-      # fails. Naming the socket directly skips that check.
+      # denies it (the profile grants the socket, not its parent dir), so
+      # sound playback fails. Naming the socket directly skips that check.
       if [ -z "''${PULSE_SERVER:-}" ] && [ -S "''${XDG_RUNTIME_DIR:-}/pulse/native" ]; then
         export PULSE_SERVER="unix:''${XDG_RUNTIME_DIR}/pulse/native"
       fi
+
+      # opencode's built-in attention sounds go through opentui's audio
+      # engine, which dlopen()s libpulse.so.0; the nixpkgs wrapper only puts
+      # wayland on LD_LIBRARY_PATH, so without this playback is silent.
+      export LD_LIBRARY_PATH="${
+        pkgs.lib.makeLibraryPath [ pkgs.libpulseaudio ]
+      }''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
       # Keep npm's cache inside the already-granted opencode cache dir. The
       # node_runtime group only gives read access to ~/.npm, so plugin
@@ -218,29 +228,20 @@ in
     package = sandboxedOpencode;
     extraPackages = with pkgs; [
       nodejs_24
-      libnotify
-      # paplay: audio backend opencode-notifier uses to play event sounds
-      # on Linux (talks to pipewire-pulse). Without one of paplay/aplay/
-      # mpv/ffplay on PATH the plugin still notifies but stays silent.
-      pulseaudio
     ];
-    tui = {
+
+    # Terminal client settings (~/.config/opencode/cli.json; OpenCode 2
+    # no longer reads tui.json). Built-in attention: desktop popups are
+    # terminal escape sequences shown by Ghostty when the window is
+    # unfocused, sounds play through libpulse (see the wrapper above).
+    cli = {
       attention = {
-        enabled = true;
+        notifications = true;
+        sound = true;
       };
     };
 
     settings = {
-      # Replace the output of old tool calls (file reads, command and MCP
-      # results) with a placeholder once that frees a meaningful amount of
-      # context; the calls themselves stay visible, the most recent tool
-      # output is protected and loaded skills are never pruned. Keeps long
-      # sessions small and delays full (lossy) summary compaction. There is
-      # no per-model switch for this - it is global.
-      compaction = {
-        prune = true;
-      };
-
       # Default models for the built-in primary agents: Opus for
       # planning, Sonnet for implementation (via opencode-claude-auth).
       agent = {
@@ -406,9 +407,11 @@ in
       # end up on different versions. Pinning here keeps them identical and
       # puts the version under review. Bumps come from Renovate (see
       # .github/renovate.json5).
-      "plugin" = [
-        "opencode-claude-auth@2.2.1"
-        "@mohak34/opencode-notifier@0.7.0"
+      "plugins" = [
+        # 3.x targets OpenCode 2 only (2.2.1 is the last 1.x release).
+        # After the first start run /connect, pick Anthropic, then
+        # "Import Claude Code subscription".
+        "opencode-claude-auth@3.0.0"
         # ponytail ("lazy senior dev" ruleset): appends ~1.3k tokens of
         # rules to the system prompt every turn that push the model to
         # reuse existing code, stdlib and platform features before writing
@@ -420,7 +423,7 @@ in
         # PONYTAIL_DEFAULT_MODE in the wrapper above; `/ponytail <level>`
         # overrides it persistently via ~/.config/opencode/.ponytail-active,
         # which lies inside the already-granted opencode config dir.
-        "@dietrichgebert/ponytail@4.12.0"
+        "@dietrichgebert/ponytail@5.3.2"
       ];
       "provider" = {
         "rpp-ai-proxy" = {
@@ -552,25 +555,11 @@ in
     context = ./context.md;
   };
 
-  # opencode-notifier (@mohak34/opencode-notifier) sends desktop
-  # notifications and plays sounds for permission/completion/error/question
-  # events. Unlike opencode-notify it plays sounds natively on Linux: the
-  # bundled sounds are fed through paplay (on opencode's PATH via
-  # programs.opencode.extraPackages), no notify-send hint tricks needed.
-  # `complete` fires by default, so long tasks end with a "Session has
-  # finished" alert + sound (the old notifyOnIdle workaround is gone).
-  # GNOME has no focus-detection API, so `suppressWhenFocused` has no
-  # effect here (the compositor is unsupported -> always notify). It is
-  # kept so focus suppression applies if that ever changes. Only the
-  # global switches and Linux notification grouping are configured;
-  # every other option keeps the plugin's defaults.
-  xdg.configFile."opencode/opencode-notifier.json".text = builtins.toJSON {
-    suppressWhenFocused = true;
-    sound = true;
-    notification = true;
-    linux = {
-      grouping = true;
-    };
+  # Disables OpenCode 2's shared background service (see the comment above
+  # nonoProfile): every launch runs a private server inside its own nono
+  # sandbox instead of attaching to a detached one that outlives it.
+  xdg.configFile."opencode/service.json".text = builtins.toJSON {
+    disabled = true;
   };
 
   # nono sandbox profile + session hook (see the `let` block above for the
