@@ -27,6 +27,7 @@
           "editor.detectIndentation" = true;
           "terminal.integrated.suggest.enabled" = false;
           "terminal.integrated.shellIntegration.enabled" = false;
+          "terminal.integrated.sendKeybindingsToShell" = true;
           "chat.disableAIFeatures" = true;
           "json.schemaDownload.trustedDomains" = {
             "https://json-schema.org/" = true;
