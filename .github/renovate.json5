@@ -88,7 +88,7 @@
       datasourceTemplate: 'npm',
       depNameTemplate: '@cyanheads/git-mcp-server',
     },
-    // The opencode plugin pins live in one `plugin` array, so they get
+    // The opencode plugin pins live in one `plugins` array, so they get
     // a manager each with an explicit depNameTemplate rather than a shared
     // regex capturing depName. That avoids having to match both the
     // unscoped and the "@scope/name" spec forms in one pattern, and keeps
@@ -102,14 +102,6 @@
       matchStrings: ['"opencode-claude-auth@(?<currentValue>[^"]+)"'],
       datasourceTemplate: 'npm',
       depNameTemplate: 'opencode-claude-auth',
-    },
-    {
-      customType: 'regex',
-      description: 'opencode-notifier plugin pin (npm)',
-      managerFilePatterns: ['/^modules/user/ai/opencode\\.nix$/'],
-      matchStrings: ['"@mohak34/opencode-notifier@(?<currentValue>[^"]+)"'],
-      datasourceTemplate: 'npm',
-      depNameTemplate: '@mohak34/opencode-notifier',
     },
     {
       customType: 'regex',
