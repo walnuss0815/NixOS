@@ -91,6 +91,43 @@ in
     preferStaticEmulators = true;
   };
 
+  # Offload builds to alexander-pc2 (Ryzen 9 9900X3D, 12C/24T) when it
+  # is reachable on the home LAN; otherwise Nix warns and builds
+  # locally. The key is root's (the nix-daemon connects as root) and is
+  # restricted to `nix-daemon --stdio` on pc2 (see its authorizedKeys).
+  # Generate on a fresh install with:
+  #   sudo ssh-keygen -t ed25519 -N "" -f /root/.ssh/nix-builder -C nix-builder@owhug-nb1
+  nix.distributedBuilds = true;
+  # pc2 fetches dependencies from the caches itself instead of copying
+  # them from the laptop.
+  nix.settings.builders-use-substitutes = true;
+  nix.buildMachines = [
+    {
+      hostName = "192.168.10.6"; # alexander-pc2, DHCP reservation
+      protocol = "ssh-ng";
+      sshUser = "alexander";
+      sshKey = "/root/.ssh/nix-builder";
+      system = "x86_64-linux";
+      maxJobs = 4;
+      speedFactor = 2;
+      supportedFeatures = [
+        "big-parallel"
+        "kvm"
+        "nixos-test"
+        "benchmark"
+      ];
+    }
+  ];
+  programs.ssh.knownHosts.alexander-pc2 = {
+    hostNames = [ "192.168.10.6" ];
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKx7hPu4LhSEXCcSLWbEDhOvlUAB+hgPXhubbA6gVPbp";
+  };
+  # Away from home pc2 is unreachable; fail fast and build locally.
+  programs.ssh.extraConfig = ''
+    Host 192.168.10.6
+      ConnectTimeout 3
+  '';
+
   networking.hostName = "owhug-nb1"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 

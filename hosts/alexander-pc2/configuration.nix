@@ -131,6 +131,10 @@
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9agMLuqQcDPEzPnTTT48UYrsqgyvW3VtfG8JQW3wr2"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILiJPICLeqhAWEuoM9d+IUvM7uDk4kLmgQwowRuybKDn"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL6NGjI8HfBHh4k113IXMOLraYjHTMdNJyu9+7lIbcty"
+    # owhug-nb1's remote-build key (nix.buildMachines there). Restricted
+    # to the Nix daemon protocol: alexander has passwordless sudo here,
+    # so an unrestricted key would grant root.
+    ''command="${config.nix.package}/bin/nix-daemon --stdio",restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAoJda+/GIOAn/P05tS/2pLK6eJf26K/7X43fILrLemf nix-builder@owhug-nb1''
   ];
   # alexander has no password on this host (SSH keys only), so sudo cannot
   # ask for one. Also lets `nixos-rebuild --target-host` copy closures as
