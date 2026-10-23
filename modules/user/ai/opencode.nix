@@ -241,6 +241,13 @@ in
         prune = true;
       };
 
+      # Default models for the built-in primary agents: Opus for
+      # planning, Sonnet for implementation (via opencode-claude-auth).
+      agent = {
+        plan.model = "anthropic/claude-opus-5-5";
+        build.model = "anthropic/claude-sonnet-5-5";
+      };
+
       permission = {
         external_directory = {
           "/nix/store/**" = "allow";
