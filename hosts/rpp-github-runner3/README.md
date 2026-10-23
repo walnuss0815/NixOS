@@ -117,11 +117,3 @@ To deploy a change right away:
 nixos-rebuild switch --flake .#rpp-github-runner3 \
   --target-host alexander@192.168.13.14 --sudo
 ```
-
-This does not restart the runner. To also restart it once no job is
-running, and check the result, use the deploy script (it handles one or
-more hosts, one after the other):
-
-```sh
-modules/system/github-runner/deploy.sh rpp-github-runner3
-```
