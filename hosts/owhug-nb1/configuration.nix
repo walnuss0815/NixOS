@@ -65,8 +65,19 @@ in
       # has been enrolled via `systemd-cryptenroll --tpm2-device=auto`.
       # The original passphrase keyslot remains as a fallback.
       crypttabExtraOpts = [ "tpm2-device=auto" ];
+      # Pass TRIM through the LUKS mapper so the common-pc-laptop-ssd
+      # fstrim timer (flake.nix) actually reaches the NVMe. Trade-off:
+      # leaks the free-space pattern to someone with physical disk access.
+      allowDiscards = true;
     };
   };
+
+  # zram as fast primary swap (higher priority than the swap partition,
+  # which stays as overflow); systemd-oomd kills the offending process in
+  # a user slice under sustained memory pressure instead of the desktop
+  # freezing (parallel agents, containers and builds).
+  zramSwap.enable = true;
+  systemd.oomd.enableUserSlices = true;
 
   networking.hostName = "owhug-nb1"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
