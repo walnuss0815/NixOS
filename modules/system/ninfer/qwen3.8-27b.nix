@@ -78,6 +78,10 @@
       "5"
       "--lm-head-draft"
       "--preserve-thinking"
+      # The 30 s default expires requests queued behind a long one; match
+      # LiteLLM's 1800 s per-call timeout instead.
+      "--pending-timeout-ms"
+      "1800000"
     ];
   };
 }
