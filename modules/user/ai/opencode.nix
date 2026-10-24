@@ -171,12 +171,10 @@ let
         export PULSE_SERVER="unix:''${XDG_RUNTIME_DIR}/pulse/native"
       fi
 
-      # opencode's built-in attention sounds go through opentui's audio
-      # engine, which dlopen()s libpulse.so.0; the nixpkgs wrapper only puts
-      # wayland on LD_LIBRARY_PATH, so without this playback is silent.
-      export LD_LIBRARY_PATH="${
-        pkgs.lib.makeLibraryPath [ pkgs.libpulseaudio ]
-      }''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      # libpulse reads its auth cookie from ~/.config/pulse, which the sandbox
+      # denies, and warns on every connect. PipeWire ignores the cookie, so
+      # point it at a throwaway one in the granted state dir; libpulse creates it.
+      export PULSE_COOKIE="''${PULSE_COOKIE:-''${XDG_STATE_HOME:-$HOME/.local/state}/opencode/pulse-cookie}"
 
       # Keep npm's cache inside the already-granted opencode cache dir. The
       # node_runtime group only gives read access to ~/.npm, so plugin
@@ -210,7 +208,13 @@ let
           break
         fi
       done
-      exec nono run --profile opencode-nixos "''${workdir_args[@]}" "''${extends_args[@]}" --allow-cwd -- ${pkgs.opencode}/bin/opencode "$@"
+      # opencode's built-in attention sounds go through opentui's audio
+      # engine, which dlopen()s libpulse.so.0. nono strips LD_LIBRARY_PATH
+      # from the sandboxed environment, so set it inside via env; the nixpkgs
+      # opencode wrapper then prefixes its own wayland path.
+      exec nono run --profile opencode-nixos "''${workdir_args[@]}" "''${extends_args[@]}" --allow-cwd -- \
+        env LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.libpulseaudio ]}" \
+        ${pkgs.opencode}/bin/opencode "$@"
     '';
   };
 in
