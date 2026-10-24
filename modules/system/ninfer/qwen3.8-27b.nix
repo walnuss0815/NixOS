@@ -14,34 +14,11 @@
 # value in apiKeyFile. The artifact and the key file are placed on each
 # host manually; neither is managed by Nix.
 {
-  config,
-  lib,
   pkgs,
   ...
 }:
 
 {
-  # Caps the RTX 5090 below its 575W stock limit. Decode (token
-  # generation) is memory-bandwidth-bound and barely slows when the core
-  # is power-limited; prefill (prompt processing) is compute-bound and
-  # drops ~19% at ~450W in published llama-bench runs. In exchange: lower
-  # temperature, noise and 12V-2x6 connector load. Runs before ninfer so
-  # the limit is in place for the first request; on owhug-pc1 (on-demand
-  # ninfer) it applies to the desktop as well.
-  # ponytail: 450W (~78% of stock) is the community-reported sweet spot,
-  # not measured here; try 400W and compare time-to-first-token on a long
-  # prompt. Check the accepted range with `nvidia-smi -q -d POWER`.
-  systemd.services.nvidia-power-limit = {
-    description = "Set NVIDIA GPU power limit";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "ninfer.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${lib.getExe' config.hardware.nvidia.package.bin "nvidia-smi"} --power-limit=450";
-    };
-  };
-
   services.ninfer = {
     enable = true;
     # Upstream's own measurements use CUDA 13.1 for sm_120a; nixpkgs' default

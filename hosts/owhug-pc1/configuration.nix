@@ -174,6 +174,17 @@
     enable32Bit = true;
   };
 
+  systemd.services.nvidia-power-limit = {
+    description = "Set NVIDIA GPU power limit";
+    wantedBy = [ "multi-user.target" ];
+    before = [ "ninfer.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${lib.getExe' config.hardware.nvidia.package.bin "nvidia-smi"} --power-limit=450";
+    };
+  };
+
   # Latest Linux kernel (needed for current-gen CPU/GPU driver support).
   boot.kernelPackages = pkgs.linuxPackages_latest;
 

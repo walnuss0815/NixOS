@@ -75,6 +75,17 @@
   # CUDA applications such as ninfer-serve look for it.
   hardware.graphics.enable = true;
 
+  systemd.services.nvidia-power-limit = {
+    description = "Set NVIDIA GPU power limit";
+    wantedBy = [ "multi-user.target" ];
+    before = [ "ninfer.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${lib.getExe' config.hardware.nvidia.package.bin "nvidia-smi"} --power-limit=450";
+    };
+  };
+
   # Onboard RTL8125D 2.5GbE NIC: DHCP never completes under the in-tree
   # r8169 driver on this chip revision, so use Realtek's out-of-tree
   # r8125 driver instead.
