@@ -150,6 +150,7 @@
             ./modules/system/nix-cache
             ./modules/system/nix-ld
             ./modules/system/mdns
+            ./modules/system/r8125
             ./modules/system/ninfer
             ./modules/system/ninfer/qwen3.8-27b.nix
           ];
@@ -170,6 +171,7 @@
             ./modules/system/common
             ./modules/system/nix-storage-optimisation
             ./modules/system/nix-cache
+            ./modules/system/r8125
             ./modules/system/ninfer
             ./modules/system/ninfer/qwen3.8-27b.nix
           ];
