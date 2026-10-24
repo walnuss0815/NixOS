@@ -27,7 +27,9 @@
           "editor.detectIndentation" = true;
           "terminal.integrated.suggest.enabled" = false;
           "terminal.integrated.shellIntegration.enabled" = false;
-          "terminal.integrated.sendKeybindingsToShell" = true;
+          # Let ctrl+p reach opencode instead of opening Quick Open, while
+          # keeping VS Code's terminal paste (ctrl+shift+v).
+          "terminal.integrated.commandsToSkipShell" = [ "-workbench.action.quickOpen" ];
           "chat.disableAIFeatures" = true;
           "json.schemaDownload.trustedDomains" = {
             "https://json-schema.org/" = true;
