@@ -56,3 +56,7 @@ CRITICAL: Never read, print, or transmit sensitive/secret data unless I explicit
 - If a command or file output unexpectedly contains what looks like a secret, redact it before showing it to me and stop to ask before continuing
 - Never commit secrets to git, embed them in Nix files, or include them in commit messages or PR/MR descriptions
 - To generate a password, use a cryptographically secure OS tool (e.g. `openssl rand -base64 32`, `pwgen -sy 20 1`) — never hand-roll random strings or reuse existing values
+
+## Parallel Subagent Execution
+
+Break the task down into independent subtasks. For every independent subtask, launch one subagent via the Task tool, making all Task calls in the same response (not one after another). Then wait for all results and summarize them. Run dependent steps only in the next batch.
