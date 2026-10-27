@@ -173,12 +173,12 @@ instant and keeps the mode.
 
 Every request except `GET /health` needs this key as
 `Authorization: Bearer <key>` (OpenAI) or `x-api-key: <key>`
-(Anthropic). Generate it, store it in the Bitwarden vault as
-`alexander-pc2-ninfer-key`, and never commit it:
+(Anthropic). It is the same key as owhug-pc1's (Bitwarden:
+`owhug-pc1-ninfer-key`): both nodes sit behind one load balancer that
+sends a single key. Paste it from the vault and never commit it:
 
 ```sh
-nix-shell -p openssl --run 'openssl rand -base64 32' \
-  | (umask 077; sudo tee /var/lib/ninfer/api-key.txt >/dev/null)
+(umask 077; sudo tee /var/lib/ninfer/api-key.txt >/dev/null)
 ```
 
 ### Ownership
