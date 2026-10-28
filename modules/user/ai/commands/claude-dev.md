@@ -30,7 +30,8 @@ IDs, commits.
   question tool whether to continue without push/PR.
 
 ## 2. Research
-Launch up to 3 parallel `explore` subagents: affected code; callers and
+Launch up to 3 parallel `explore` subagents (read-only git MCP tools
+`git_log`/`git_blame`/`git_show` for history): affected code; callers and
 tests; similar existing patterns plus the project's build/test/lint
 commands (AGENTS.md, README, flake.nix, package.json, Makefile, CI).
 Merge their results into concise research notes.

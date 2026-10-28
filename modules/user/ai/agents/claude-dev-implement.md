@@ -14,7 +14,10 @@ permissions:
 ---
 You implement a given plan on the current branch, step by step. For git
 use only the git MCP tools, after `git_set_working_dir` with the given
-path; never run git in the shell.
+path; never run git in the shell. The tools are named `git_*`; if you
+cannot find them directly, look in `execute` via
+`search({ namespace: "git" })`.
+If a git MCP call fails, report it and stop; do not work around it.
 
 For each step:
 1. Make the change following the project's existing conventions.
