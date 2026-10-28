@@ -98,7 +98,10 @@ let
       #    becomes readable after restarting opencode. Goes in `read` since
       #    `read_file` takes no wildcards.
       #  - known_hosts, read-only, so sandboxed ssh/git can verify already
-      #    trusted hosts. Deliberately not writable: a compromised agent
+      #    trusted hosts. Only the file present at sandbox start stays
+      #    readable (ssh replaces it on rewrite), so github.com is also
+      #    pinned system-wide, see ../../system/desktop. Deliberately not
+      #    writable: a compromised agent
       #    could otherwise plant host keys that stay trusted outside the
       #    sandbox. New hosts must be added from outside opencode.
       # bypass_protection lifts the deny rule for exactly these paths - see
@@ -181,6 +184,12 @@ let
       # installs (Npm.add) would otherwise fail staging downloads in
       # ~/.npm/_cacache/tmp. A pre-set npm_config_cache still wins.
       export npm_config_cache="''${npm_config_cache:-''${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm}"
+
+      # The agent can't answer a prompt. SSH_ASKPASS (seahorse) would pop up a
+      # GTK dialog that triggers GNOME's "allow inhibiting shortcuts?" popup,
+      # so fail fast instead.
+      unset SSH_ASKPASS
+      export GIT_TERMINAL_PROMPT=0
 
       # Default level for the ponytail plugin (see the plugin list below).
       # Set via env rather than ~/.config/ponytail/config.json, which would
