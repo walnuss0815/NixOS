@@ -100,7 +100,7 @@ let
       #  - known_hosts, read-only, so sandboxed ssh/git can verify already
       #    trusted hosts. Only the file present at sandbox start stays
       #    readable (ssh replaces it on rewrite), so github.com is also
-      #    pinned system-wide, see ../../system/desktop. Deliberately not
+      #    pinned system-wide, see ../../system/common. Deliberately not
       #    writable: a compromised agent
       #    could otherwise plant host keys that stay trusted outside the
       #    sandbox. New hosts must be added from outside opencode.
