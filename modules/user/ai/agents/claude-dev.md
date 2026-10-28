@@ -1,6 +1,7 @@
 ---
 description: Coordinates the /claude-dev cycle; delegates all edits
 mode: primary
+hidden: true
 model: anthropic/claude-sonnet-5-5
 permissions:
   - { action: edit, resource: "*", effect: deny }
