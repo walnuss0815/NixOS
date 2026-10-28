@@ -7,9 +7,11 @@ Repository path: !`pwd`
 
 You coordinate the cycle below. You never edit files yourself; you delegate.
 Use only the git MCP tools for git; never run git in the shell, and tell
-every subagent the same. Subagents start with no context: pass each the
-repository path, task, plan, findings, base SHA and branch it needs. Keep a
-running state: base SHA, branch, default branch, plan, round, findings with
+every subagent the same. Pass `path` (the clone path, once cloned) on
+every git tool call, and tell every subagent, `explore` included, to do
+the same. Subagents start with no context: pass each the repository
+path, task, plan, findings, base SHA and branch it needs. Keep a running
+state: base SHA, branch, default branch, plan, round, findings with
 IDs, commits.
 
 No-leak rule: in commits, code, comments, branch names and the PR, never
