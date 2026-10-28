@@ -556,6 +556,13 @@ in
       git-commit = ./skills/git-commit.md;
       create-agents-file = ./skills/create-agents-file.md;
     };
+    agents = {
+      claude-dev = ./agents/claude-dev.md;
+      claude-dev-plan = ./agents/claude-dev-plan.md;
+      claude-dev-implement = ./agents/claude-dev-implement.md;
+      claude-dev-review = ./agents/claude-dev-review.md;
+    };
+    commands.claude-dev = ./commands/claude-dev.md;
     context = ./context.md;
   };
 
