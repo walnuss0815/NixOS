@@ -31,6 +31,24 @@
           # keeping VS Code's terminal paste (ctrl+shift+v).
           "terminal.integrated.commandsToSkipShell" = [ "-workbench.action.quickOpen" ];
           "chat.disableAIFeatures" = true;
+          "telemetry.telemetryLevel" = "off";
+          "telemetry.feedback.enabled" = false;
+          "workbench.enableExperiments" = false;
+          "workbench.settings.enableNaturalLanguageSearch" = false;
+          "redhat.telemetry.enabled" = false;
+          "extensions.ignoreRecommendations" = true;
+          "workbench.welcomePage.walkthroughs.openOnInstall" = false;
+          "workbench.tips.enabled" = false;
+          "explorer.confirmDragAndDrop" = false;
+          "vs-kubernetes" = {
+            "vs-kubernetes.suppress-kubectl-not-found-alerts" = true;
+            "vs-kubernetes.suppress-helm-not-found-alerts" = true;
+          };
+          "extensions.allowed" = {
+            "*" = true;
+            "anthropic.claude-code" = false;
+            "github.vscode-pull-request-github" = false;
+          };
           "json.schemaDownload.trustedDomains" = {
             "https://json-schema.org/" = true;
             "https://json.schemastore.org/" = true;
