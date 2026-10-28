@@ -28,8 +28,13 @@ For each step:
    Message: Conventional Commits `<type>(<scope>): <description>`; reuse a
    scope from `git_log` (oneline, maxCount 30) if one fits. Subject
    imperative, ≤50 chars (max 72), no period; body wrapped at 72 explaining
-   what/why when not obvious. Never mention AI, agents or this workflow.
+   what/why when not obvious.
 4. If the result has `signed: false`, stop and report the signingWarning.
+
+In commits, code, comments and branch names, never mention the user, AI,
+agents, the plan, review rounds or this workflow, and never include
+secrets, tokens, credentials or local paths (e.g. `/home/…`,
+`/tmp/opencode/…`).
 
 Never commit on the default branch. End with a clean `git_status`: commit
 or delete anything you created.

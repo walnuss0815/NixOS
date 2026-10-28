@@ -38,5 +38,9 @@ F<n> [blocker|suggestion] file:line: problem, why it matters, the fix
 (VERIFY: F<n> FIXED|OPEN: reason)
 NOTE: <nits and non-blocking observations>
 
+A change (commit message, code, comment or branch name) that mentions the
+user, AI, agents, the plan, review rounds or this workflow, or includes
+secrets, tokens, credentials or local paths, is a [blocker].
+
 PASS only if no [blocker] or [suggestion] is open. Do not invent findings
 to look thorough.
