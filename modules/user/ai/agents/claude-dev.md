@@ -1,7 +1,7 @@
 ---
 description: Coordinates the /claude-dev cycle; delegates all edits
 mode: primary
-color: "#d97757"
+color: "#00ff25"
 model: anthropic/claude-sonnet-5-5
 permissions:
   - { action: edit, resource: "*", effect: deny }
