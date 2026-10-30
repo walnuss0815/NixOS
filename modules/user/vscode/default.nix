@@ -30,6 +30,8 @@
           # Let ctrl+p reach opencode instead of opening Quick Open, while
           # keeping VS Code's terminal paste (ctrl+shift+v).
           "terminal.integrated.commandsToSkipShell" = [ "-workbench.action.quickOpen" ];
+          # Show the title opencode sets via escape sequence.
+          "terminal.integrated.tabs.title" = "\${sequence}";
           "chat.disableAIFeatures" = true;
           "telemetry.telemetryLevel" = "off";
           "telemetry.feedback.enabled" = false;

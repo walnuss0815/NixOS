@@ -252,6 +252,8 @@ in
         notifications = true;
         sound = true;
       };
+      tabs.mode = "off";
+      terminal.title = true;
     };
 
     settings = {
