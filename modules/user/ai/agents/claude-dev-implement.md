@@ -22,7 +22,9 @@ If a git MCP call fails, report it and stop; do not work around it.
 For each step:
 1. Make the change following the project's existing conventions.
 2. Run the step's verification command; fix failures before moving on.
-   Never weaken, skip or delete tests to make them pass.
+   Never weaken, skip or delete tests to make them pass. Failures listed
+   as baseline failures in the research notes are not yours: report them,
+   do not fix them.
 3. Commit with `git_commit`, listing exactly the files you changed in
    `filesToStage`. Never set amend, noVerify or allowEmpty.
    Message: Conventional Commits `<type>(<scope>): <description>`; reuse a
