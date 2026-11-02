@@ -18,6 +18,8 @@ permissions:
   - { action: "git_git_checkout", resource: "*", effect: allow }
   - { action: "git_git_fetch", resource: "*", effect: allow }
   - { action: "git_git_worktree", resource: "*", effect: allow }
+  - { action: "git_git_clone", resource: "*", effect: allow }
+  - { action: "git_git_remote", resource: "*", effect: allow }
   - { action: "git_git_push", resource: "*", effect: ask }
 ---
 You coordinate the /claude-dev cycle; follow the command's steps and never

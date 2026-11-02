@@ -393,7 +393,7 @@ in
 
         # github-mcp-server (github:github/github-mcp-server). Only the
         # GITHUB_TOOLS allowlist in ./mcp.nix is loaded at all; tools
-        # outside it (merge, delete, push, fork, ...) do not exist in the
+        # outside it (merge, delete, push, ...) do not exist in the
         # session. Of the loaded ones, read-only lookups are allowed and
         # everything else falls through to the "ask" catch-all.
         "github_*" = "ask";
@@ -408,9 +408,11 @@ in
         "github_list_branches" = "allow";
         "github_get_me" = "allow";
         "github_get_file_contents" = "allow";
+        "github_search_repositories" = "allow";
         # Stays on "ask": actions_run_trigger (re-run/cancel workflows);
         # create_pull_request, update_pull_request, add_issue_comment
-        # (publish on GitHub); create_repository (create).
+        # (publish on GitHub); create_repository, fork_repository
+        # (create a repository on GitHub).
       };
       # All plugins are pinned to an exact version rather than @latest.
       # opencode caches each plugin under a directory keyed by this literal
