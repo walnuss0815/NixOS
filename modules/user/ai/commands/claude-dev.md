@@ -8,7 +8,7 @@ Repository path: !`pwd`
 You coordinate the cycle below. You never edit files yourself; you delegate.
 Use only the git MCP tools for git; never run git in the shell, and tell
 every subagent the same, except `explore`, which has no git tools. Pass
-`path` (the worktree path, once created) on every git tool call, and tell
+`path` (the worktree or clone path, once created) on every git tool call, and tell
 every subagent that has git tools to do the same. Subagents start with no
 context: pass each the repository path, task, plan, findings, base SHA and
 branch it needs. Keep a running state: base SHA, branch, default branch,
@@ -21,6 +21,25 @@ never include secrets, tokens, credentials or local paths (e.g. `/home/…`,
 
 ## 1. Setup (stop and explain on any failure)
 - No task given: stop.
+Pick the mode first. Clone mode: the task names an external repository
+(`git@host:owner/repo`, `ssh://…`, `https://host/owner/repo` or bare
+`owner/repo`). Worktree mode: it does not; work on the original
+repository.
+
+Clone mode (the original working directory is irrelevant, it need not be
+a git repository):
+- SSH URL: `https://host/o/r` → `git@host:o/r.git`; bare `owner/repo` →
+  `git@github.com:owner/repo.git` (assume GitHub); SSH forms as given.
+- Clone path `/tmp/opencode/claude-dev/<repo>-<slug>`; if it exists,
+  append `-2`, `-3`, … until free. `git_clone` the SSH URL there (full
+  clone, no depth). The default branch is the `branch` it returns.
+- `git_set_working_dir` with the clone path. From here on, "repository
+  path" means the clone. Branch `<type>/<short-slug>` (feat, fix,
+  refactor, docs, chore) from the task; if `git_branch` (list, remote)
+  shows it on origin, append `-2`, `-3`, … until free. Then
+  `git_checkout` with createBranch to the branch.
+
+Worktree mode:
 - `git_set_working_dir` with the original repository path. Not a git
   repository: stop. No `origin` remote in the snapshot: stop.
 - If origin's push URL is not SSH (`git@…` or `ssh://…`): stop and explain;
@@ -42,10 +61,11 @@ never include secrets, tokens, credentials or local paths (e.g. `/home/…`,
 - `git_worktree` add with `detach` and `commitish` `origin/<default>`,
   then `git_set_working_dir` with the worktree path. From here on,
   "repository path" means the worktree. Then `git_checkout` with
-  createBranch to the branch. Every subagent works only inside the
-  worktree: shell commands run with it as workdir, file paths are
-  absolute.
-- Base SHA: the hash from `git_log` (maxCount 1).
+  createBranch to the branch.
+
+Both modes: every subagent works only inside the worktree or clone: shell
+commands run with it as workdir, file paths are absolute. Base SHA: the
+hash from `git_log` (maxCount 1).
 
 ## 2. Research
 Launch up to 3 parallel `explore` subagents: affected code; callers and
@@ -62,8 +82,8 @@ verbatim as Markdown; do not summarize.
 Round 1: then ask with the question tool: header "Plan approval",
 question "Do you approve this plan? Type changes to revise it.", options
 "Approve" (start implementing) and "Cancel" (stop; report the worktree
-path and branch). A typed answer is feedback: re-plan with it, print the
-new plan, and ask again. Repeat until Approve or Cancel.
+or clone path and branch). A typed answer is feedback: re-plan with it,
+print the new plan, and ask again. Repeat until Approve or Cancel.
 Rounds 2+: print the fix plan and continue without asking. If the
 planner disputes findings, ask with the question tool: accept (list them
 as Notes) / fix anyway / stop.
@@ -98,7 +118,8 @@ Collect every `NOTE` across rounds for the PR description.
   Verification commands relative to the repository root. Never merge.
 
 ## 7. Report
-Worktree path, branch, commits, review rounds used, PR URL, remaining
-notes. Tell the user to clean up with `git worktree remove <path>` from
-the original checkout (the branch stays). Remind the user this session is
-now on the `claude-dev` agent.
+Worktree or clone path, branch, commits, review rounds used, PR URL,
+remaining notes. Tell the user how to clean up: worktree mode,
+`git worktree remove <path>` from the original checkout (the branch
+stays); clone mode, `rm -rf <path>` (the branch is already pushed).
+Remind the user this session is now on the `claude-dev` agent.
