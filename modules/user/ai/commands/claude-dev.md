@@ -8,11 +8,12 @@ Repository path: !`pwd`
 You coordinate the cycle below. You never edit files yourself; you delegate.
 Use only the git MCP tools for git; never run git in the shell, and tell
 every subagent the same, except `explore`, which has no git tools. Pass
-`path` (the worktree or clone path, once created) on every git tool call, and tell
-every subagent that has git tools to do the same. Subagents start with no
-context: pass each the repository path, task, plan, findings, base SHA and
-branch it needs. Keep a running state: base SHA, branch, default branch,
-plan, round, findings with IDs, commits, baseline failures.
+`path` (the worktree or clone path, once created) on every git tool
+call, and tell every subagent that has git tools to do the same.
+Subagents start with no context: pass each the repository path, task,
+plan, findings, base SHA and branch it needs. Keep a running state: base
+SHA, branch, default branch, plan, round, findings with IDs, commits,
+baseline failures.
 
 No-leak rule: in commits, code, comments, branch names and the PR, never
 mention the user, AI, agents, the plan, review rounds or this workflow, and
@@ -21,6 +22,7 @@ never include secrets, tokens, credentials or local paths (e.g. `/home/…`,
 
 ## 1. Setup (stop and explain on any failure)
 - No task given: stop.
+
 Pick the mode first. Clone mode: the task names an external repository
 (`git@host:owner/repo`, `ssh://…`, `https://host/owner/repo` or bare
 `owner/repo`). Worktree mode: it does not; work on the original
@@ -30,9 +32,15 @@ Clone mode (the original working directory is irrelevant, it need not be
 a git repository):
 - SSH URL: `https://host/o/r` → `git@host:o/r.git`; bare `owner/repo` →
   `git@github.com:owner/repo.git` (assume GitHub); SSH forms as given.
-- Clone path `/tmp/opencode/claude-dev/<repo>-<slug>`; if it exists,
-  append `-2`, `-3`, … until free. `git_clone` the SSH URL there (full
-  clone, no depth). The default branch is the `branch` it returns.
+  Strip a trailing `.git` and any path after `owner/repo` (e.g.
+  `/tree/main`) first. A bare `owner/repo` counts only when clearly
+  meant as a repo (called a repo/GitHub project, or a URL); else it is a
+  path in the current repo.
+- Clone path `/tmp/opencode/claude-dev/<repo>-<slug>`. First run
+  `mkdir -p /tmp/opencode/claude-dev` in the shell (`git_clone` needs
+  the parent; `/tmp` is wiped on reboot). If the path exists, append
+  `-2`, `-3`, … until free. `git_clone` the SSH URL there (full clone,
+  no depth). The default branch is the `branch` it returns.
 - `git_set_working_dir` with the clone path. From here on, "repository
   path" means the clone. Branch `<type>/<short-slug>` (feat, fix,
   refactor, docs, chore) from the task; if `git_branch` (list, remote)
