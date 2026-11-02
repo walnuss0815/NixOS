@@ -60,3 +60,9 @@ CRITICAL: Never read, print, or transmit sensitive/secret data unless I explicit
 ## Parallel Subagent Execution
 
 Break the task down into independent subtasks. For every independent subtask, launch one subagent via the Task tool, making all Task calls in the same response (not one after another). Then wait for all results and summarize them. Run dependent steps only in the next batch.
+
+## Long-running Commands
+
+- Don't detach processes from the shell (`&`, `nohup`, `setsid`, `disown`). Use the shell tool's `background` option so the harness tracks the process.
+- Wrap long or loop-heavy commands in `timeout` (e.g. `timeout 15m ./script.sh`). Builtins and pipelines need a shell wrapper: `timeout 15m sh -c '...'`. On exit code 124 (timeout hit), report it instead of silently retrying.
+- Before finishing a task, check with `pgrep`/`ps` that no processes you started are still running, and stop any strays.
