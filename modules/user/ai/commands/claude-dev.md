@@ -118,27 +118,31 @@ Collect every `NOTE` across rounds for the PR description.
   forceWithLease or delete, and never push the default branch (also in the
   fork push below).
 - If it failed because permission was denied (403, "permission denied",
-  "not allowed") and the host is github.com: get the login with GitHub
-  `get_me`, then look for an existing fork with `search_repositories`,
-  query `repo:<login>/<repo> fork:true`. Ask with the question tool:
-  header "Fork", options Stop plus one of:
+  "not allowed", "Permission to … denied to …") and the host is
+  github.com: get the login with GitHub `get_me`, then look for an
+  existing fork with `search_repositories`, query
+  `repo:<login>/<repo> fork:only`. Ask with the question tool: header
+  "Fork", options Stop plus one of:
   - fork found: question "Push to your fork `<login>/<repo>`?", option
     "Use fork".
   - none found: question "No fork of `<owner>/<repo>` found. Create
     `<login>/<repo>`?", option "Create fork" (then call
     `fork_repository`).
   On Stop: stop and report the worktree or clone path and branch.
-  Otherwise `git_remote` add `fork` with url
-  `git@github.com:<login>/<repo>.git`, then `git_push` with setUpstream
-  to `fork` and the branch. On failure, stop and report the error; do not
-  retry (a freshly created fork may not be ready yet; say so).
+  Otherwise take `full_name` from the `search_repositories` or
+  `fork_repository` result (GitHub may name the fork differently, e.g.
+  `<repo>-1`); the fork owner is its part before `/`. `git_remote` add
+  `fork` with url `git@github.com:<full_name>.git`, then `git_push` with
+  setUpstream to `fork` and the branch. On failure, stop and report the
+  error; do not retry (a freshly created fork may not be ready yet; say
+  so).
 - Any other push error, or a non-GitHub host: stop and report the error.
   Do not retry.
 - Open a PR with the GitHub `create_pull_request` tool: owner/repo parsed
   from the origin push URL in the `git_set_working_dir` snapshot (the
-  upstream, also when pushed to the fork), head = `<login>:<branch>` when
-  pushed to the fork, else branch, base = default branch, draft = true.
-  Title: a Conventional Commits style summary, ≤72 chars. Body: Summary,
+  upstream, also when pushed to the fork), head = `<fork owner>:<branch>`
+  when pushed to the fork, else branch, base = default branch, draft =
+  true. Title: a Conventional Commits style summary, ≤72 chars. Body: Summary,
   Changes, Verification (commands run), Notes (open findings and NOTEs).
   Describe only the change: no status markers, no future promises.
   Rephrase review notes to follow the no-leak rule above, and write
