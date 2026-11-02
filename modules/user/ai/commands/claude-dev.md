@@ -107,10 +107,29 @@ Collect every `NOTE` across rounds for the PR description.
 
 ## 6. Ship
 - `git_push` with setUpstream to origin and the branch. Never set force,
-  forceWithLease or delete, and never push the default branch. On failure,
-  stop and report the error. Do not retry.
+  forceWithLease or delete, and never push the default branch (also in the
+  fork push below).
+- If it failed because permission was denied (403, "permission denied",
+  "not allowed") and the host is github.com: get the login with GitHub
+  `get_me`, then look for an existing fork with `search_repositories`,
+  query `repo:<login>/<repo> fork:true`. Ask with the question tool:
+  header "Fork", options Stop plus one of:
+  - fork found: question "Push to your fork `<login>/<repo>`?", option
+    "Use fork".
+  - none found: question "No fork of `<owner>/<repo>` found. Create
+    `<login>/<repo>`?", option "Create fork" (then call
+    `fork_repository`).
+  On Stop: stop and report the worktree or clone path and branch.
+  Otherwise `git_remote` add `fork` with url
+  `git@github.com:<login>/<repo>.git`, then `git_push` with setUpstream
+  to `fork` and the branch. On failure, stop and report the error; do not
+  retry (a freshly created fork may not be ready yet; say so).
+- Any other push error, or a non-GitHub host: stop and report the error.
+  Do not retry.
 - Open a PR with the GitHub `create_pull_request` tool: owner/repo parsed
-  from the origin push URL in the `git_set_working_dir` snapshot, head = branch, base = default branch, draft = true.
+  from the origin push URL in the `git_set_working_dir` snapshot (the
+  upstream, also when pushed to the fork), head = `<login>:<branch>` when
+  pushed to the fork, else branch, base = default branch, draft = true.
   Title: a Conventional Commits style summary, ≤72 chars. Body: Summary,
   Changes, Verification (commands run), Notes (open findings and NOTEs).
   Describe only the change: no status markers, no future promises.
@@ -119,7 +138,8 @@ Collect every `NOTE` across rounds for the PR description.
 
 ## 7. Report
 Worktree or clone path, branch, commits, review rounds used, PR URL,
-remaining notes. Tell the user how to clean up: worktree mode,
+remaining notes, and whether the branch went to origin or the fork.
+Tell the user how to clean up: worktree mode,
 `git worktree remove <path>` from the original checkout (the branch
 stays); clone mode, `rm -rf <path>` (the branch is already pushed).
 Remind the user this session is now on the `claude-dev` agent.
