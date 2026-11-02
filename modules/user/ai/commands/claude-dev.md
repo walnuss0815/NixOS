@@ -7,7 +7,7 @@ Repository path: !`pwd`
 
 You coordinate the cycle below. You never edit files yourself; you delegate.
 Use only the git MCP tools for git; never run git in the shell, and tell
-every subagent the same, except `explore`, which has no git tools. Pass
+every subagent the same (`explore` included; it has no git tools). Pass
 `path` (the worktree or clone path, once created) on every git tool
 call, and tell every subagent that has git tools to do the same.
 Subagents start with no context: pass each the repository path, task,
@@ -22,6 +22,8 @@ never include secrets, tokens, credentials or local paths (e.g. `/home/…`,
 
 ## 1. Setup (stop and explain on any failure)
 - No task given: stop.
+- First run `mkdir -p /tmp/opencode/claude-dev` in the shell (the git
+  tools need the parent; `/tmp` is wiped on reboot).
 
 Pick the mode first. Clone mode: the task names an external repository
 (`git@host:owner/repo`, `ssh://…`, `https://host/owner/repo` or bare
@@ -35,9 +37,7 @@ a git repository):
   `owner/repo` → `git@github.com:owner/repo.git` (assume GitHub). A bare
   `owner/repo` counts only when clearly meant as a repo (called a
   repo/GitHub project, or a URL); else it is a path in the current repo.
-- Clone path `/tmp/opencode/claude-dev/<repo>-<slug>`. First run
-  `mkdir -p /tmp/opencode/claude-dev` in the shell (`git_clone` needs
-  the parent; `/tmp` is wiped on reboot). If the path exists, append
+- Clone path `/tmp/opencode/claude-dev/<repo>-<slug>`. If the path exists, append
   `-2`, `-3`, … until free. `git_clone` the clone URL there (full clone,
   no depth). The default branch is the `branch` it returns.
 - `git_set_working_dir` with the clone path. From here on, "repository
@@ -54,7 +54,7 @@ Worktree mode:
   commits, warn that they are not included.
 - `git_fetch` (origin).
 - Default branch: `git_branch` (list, remote). Take the `origin/*`
-  branches whose commitHash equals `origin/HEAD`'s. Exactly one: use it
+  branches other than `origin/HEAD` whose commitHash equals `origin/HEAD`'s. Exactly one: use it
   (without `origin/`). Several: prefer `main`, then `master`, else ask
   with the question tool. None or no `origin/HEAD`: ask with the question
   tool.
@@ -91,7 +91,8 @@ or clone path and branch). A typed answer is feedback: re-plan with it,
 print the new plan, and ask again. Repeat until Approve or Cancel.
 Rounds 2+: print the fix plan and continue without asking. If the
 planner disputes findings, ask with the question tool: accept (list them
-as Notes) / fix anyway / stop.
+as Notes) / fix anyway / stop. If no findings are left to fix, go to
+step 6.
 
 ## 4. Implement
 Record HEAD (`git_log` maxCount 1) as the round's previous head, then run
@@ -100,7 +101,8 @@ reports that it stopped, or HEAD did not move, stop and report. Then
 `git_status`; if not clean, stop and report.
 
 ## 5. Review
-Run `claude-dev-review` with the task, plan, base SHA, mode and round:
+Run `claude-dev-review` with the task, plan, base SHA, baseline
+failures, mode and round:
 - Round 1: mode FULL.
 - Round 2+: mode VERIFY, with the open findings and the previous head.
 Then `git_status`; if not clean, stop and report.
@@ -134,8 +136,8 @@ Collect every `NOTE` across rounds for the PR description.
   setUpstream to `fork` and the branch. On failure, stop and report the
   error; do not retry (a freshly created fork may not be ready yet; say
   so).
-- Any other push error, or a non-GitHub host: stop and report the error.
-  Do not retry.
+- Any other push error: stop and report the error. Do not retry. Origin
+  not on github.com: stop after the push and report the branch (no PR).
 - Open a PR with the GitHub `create_pull_request` tool: owner/repo parsed
   from the origin push URL in the `git_set_working_dir` snapshot (SSH or
   HTTPS; drop any `user[:token]@` and a trailing `.git`; never print
