@@ -33,9 +33,10 @@
       # every loaded tool's schema is sent with every model request, and
       # whole toolsets pulled in ~60 tools (plus a long Projects
       # instruction block) for a workflow that only needs CI logs, PRs,
-      # commits and repo creation. With no toolsets set, the server loads
-      # exactly these tools - so merge/delete/push/fork tools are not
-      # merely gated by permissions, they do not exist in the session.
+      # commits, repo creation and forking. With no toolsets set, the
+      # server loads exactly these tools - so merge/delete/push tools are
+      # not merely gated by permissions, they do not exist in the session.
+      # fork_repository is loaded but gated by the "ask" rule.
       # Approval rules for these live in ./opencode.nix ("github_*").
       github = {
         command = "${pkgs.github-mcp-server}/bin/github-mcp-server";
@@ -60,6 +61,8 @@
             "list_branches"
             # Repositories / helpers
             "create_repository"
+            "fork_repository"
+            "search_repositories"
             "get_me"
             "get_file_contents"
           ];
