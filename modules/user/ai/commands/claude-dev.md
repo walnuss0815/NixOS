@@ -30,16 +30,15 @@ repository.
 
 Clone mode (the original working directory is irrelevant, it need not be
 a git repository):
-- SSH URL: `https://host/o/r` → `git@host:o/r.git`; bare `owner/repo` →
-  `git@github.com:owner/repo.git` (assume GitHub); SSH forms as given.
-  Strip a trailing `.git` and any path after `owner/repo` (e.g.
-  `/tree/main`) first. A bare `owner/repo` counts only when clearly
-  meant as a repo (called a repo/GitHub project, or a URL); else it is a
-  path in the current repo.
+- Clone URL: the URL as given (SSH or HTTPS, HTTPS is not rewritten),
+  without any path after `owner/repo` (e.g. `/tree/main`); bare
+  `owner/repo` → `git@github.com:owner/repo.git` (assume GitHub). A bare
+  `owner/repo` counts only when clearly meant as a repo (called a
+  repo/GitHub project, or a URL); else it is a path in the current repo.
 - Clone path `/tmp/opencode/claude-dev/<repo>-<slug>`. First run
   `mkdir -p /tmp/opencode/claude-dev` in the shell (`git_clone` needs
   the parent; `/tmp` is wiped on reboot). If the path exists, append
-  `-2`, `-3`, … until free. `git_clone` the SSH URL there (full clone,
+  `-2`, `-3`, … until free. `git_clone` the clone URL there (full clone,
   no depth). The default branch is the `branch` it returns.
 - `git_set_working_dir` with the clone path. From here on, "repository
   path" means the clone. Branch `<type>/<short-slug>` (feat, fix,
@@ -50,8 +49,6 @@ a git repository):
 Worktree mode:
 - `git_set_working_dir` with the original repository path. Not a git
   repository: stop. No `origin` remote in the snapshot: stop.
-- If origin's push URL is not SSH (`git@…` or `ssh://…`): stop and explain;
-  push and PR need SSH.
 - Work in a new git worktree, never in the original checkout. The original
   checkout is left untouched; if it has uncommitted changes or unpushed
   commits, warn that they are not included.
@@ -132,15 +129,17 @@ Collect every `NOTE` across rounds for the PR description.
   Otherwise take `full_name` from the `search_repositories` or
   `fork_repository` result (GitHub may name the fork differently, e.g.
   `<repo>-1`); the fork owner is its part before `/`. `git_remote` add
-  `fork` with url `git@github.com:<full_name>.git`, then `git_push` with
+  `fork` with url `https://github.com/<full_name>.git` if origin is
+  HTTPS, else `git@github.com:<full_name>.git`, then `git_push` with
   setUpstream to `fork` and the branch. On failure, stop and report the
   error; do not retry (a freshly created fork may not be ready yet; say
   so).
 - Any other push error, or a non-GitHub host: stop and report the error.
   Do not retry.
 - Open a PR with the GitHub `create_pull_request` tool: owner/repo parsed
-  from the origin push URL in the `git_set_working_dir` snapshot (the
-  upstream, also when pushed to the fork), head = `<fork owner>:<branch>`
+  from the origin push URL in the `git_set_working_dir` snapshot (SSH or
+  HTTPS; drop any `user[:token]@` and a trailing `.git`; never print
+  credentials from it) (the upstream, also when pushed to the fork), head = `<fork owner>:<branch>`
   when pushed to the fork, else branch, base = default branch, draft =
   true. Title: a Conventional Commits style summary, ≤72 chars. Body: Summary,
   Changes, Verification (commands run), Notes (open findings and NOTEs).
