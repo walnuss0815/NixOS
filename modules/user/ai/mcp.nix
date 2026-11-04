@@ -32,8 +32,8 @@
       # GITHUB_TOOLS is an exact allowlist instead of GITHUB_TOOLSETS:
       # every loaded tool's schema is sent with every model request, and
       # whole toolsets pulled in ~60 tools (plus a long Projects
-      # instruction block) for a workflow that only needs CI logs, PRs,
-      # commits, repo creation and forking. With no toolsets set, the
+      # instruction block) for a workflow that only needs CI logs, issues,
+      # PRs, commits, repo creation and forking. With no toolsets set, the
       # server loads exactly these tools - so merge/delete/push tools are
       # not merely gated by permissions, they do not exist in the session.
       # fork_repository is loaded but gated by the "ask" rule.
@@ -48,6 +48,8 @@
             "actions_get"
             "get_job_logs"
             "actions_run_trigger"
+            # Issues (read-only: tasks given as an issue URL)
+            "issue_read"
             # Pull requests
             "list_pull_requests"
             "search_pull_requests"

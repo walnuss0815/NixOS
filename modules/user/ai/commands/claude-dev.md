@@ -22,6 +22,10 @@ never include secrets, tokens, credentials or local paths (e.g. `/home/…`,
 
 ## 1. Setup (stop and explain on any failure)
 - No task given: stop.
+- Task is a github.com issue or PR URL: fetch it with GitHub `issue_read`
+  or `pull_request_read` (methods `get` and `get_comments`) and use its
+  title, body and comments as the task; the repository in the URL is the
+  external repository. Any other host: stop and ask for the task text.
 - First run `mkdir -p /tmp/opencode/claude-dev` in the shell (the git
   tools need the parent; `/tmp` is wiped on reboot).
 

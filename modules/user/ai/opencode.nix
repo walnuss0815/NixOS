@@ -400,6 +400,7 @@ in
         "github_actions_list" = "allow";
         "github_actions_get" = "allow";
         "github_get_job_logs" = "allow";
+        "github_issue_read" = "allow";
         "github_list_pull_requests" = "allow";
         "github_search_pull_requests" = "allow";
         "github_pull_request_read" = "allow";
