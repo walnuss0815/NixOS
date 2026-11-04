@@ -164,10 +164,14 @@
   # nixos-hardware common-gpu-nvidia-nonprime module in flake.nix.
   # The "latest" branch is used because displays did not wake from
   # idle blanking with the "production" branch under GNOME/Wayland.
+  # GNOME suspends the machine when idle; without powerManagement the GPU
+  # memory is not preserved across suspend, so displays come back
+  # black/corrupted after resume.
   hardware.nvidia = {
     open = true;
     package = config.boot.kernelPackages.nvidiaPackages.latest;
     nvidiaSettings = true;
+    powerManagement.enable = true;
   };
   hardware.graphics = {
     enable = true;
