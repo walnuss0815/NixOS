@@ -34,6 +34,10 @@ Pick the mode first. Clone mode: the task names an external repository
 `owner/repo`). Worktree mode: it does not; work on the original
 repository.
 
+Names: `<repo>` is the last path segment of the clone or origin URL
+without `.git`; `<slug>` and `<short-slug>` are 2-4 lowercase kebab-case
+words from the task.
+
 Clone mode (the original working directory is irrelevant, it need not be
 a git repository):
 - Clone URL: the URL as given, without any path after `owner/repo`
@@ -45,7 +49,10 @@ a git repository):
   repo/GitHub project, or a URL); else it is a path in the current repo.
 - Clone path `/tmp/opencode/claude-dev/<repo>-<slug>`. If the path exists, append
   `-2`, `-3`, … until free. `git_clone` the clone URL there (full clone,
-  no depth). The default branch is the `branch` it returns.
+  no depth). The default branch is the `branch` it returns. If the clone
+  fails with `Host key verification failed`, stop and report that the
+  host must be added to `~/.ssh/known_hosts` outside opencode (the
+  sandbox keeps that file read-only).
 - `git_set_working_dir` with the clone path. From here on, "repository
   path" means the clone. Branch `<type>/<short-slug>` (feat, fix,
   refactor, docs, chore) from the task; if `git_branch` (list, remote)
@@ -60,10 +67,13 @@ Worktree mode:
   commits, warn that they are not included.
 - `git_fetch` (origin).
 - Default branch: `git_branch` (list, remote). Take the `origin/*`
-  branches other than `origin/HEAD` whose commitHash equals `origin/HEAD`'s. Exactly one: use it
-  (without `origin/`). Several: prefer `main`, then `master`, else ask
-  with the question tool. None or no `origin/HEAD`: ask with the question
-  tool.
+  branches other than `origin/HEAD` whose commitHash equals `origin/HEAD`'s.
+  Exactly one: use it (without `origin/`). Several: prefer `main`, then
+  `master`, else ask with the question tool. None or no `origin/HEAD`:
+  if origin is github.com, take `default_branch` from the GitHub
+  `search_repositories` result (query `repo:<owner>/<repo>`, without
+  `minimal_output`); otherwise ask with the question tool. `git_fetch`
+  does not update `origin/HEAD`, so it can be stale.
 - Branch `<type>/<short-slug>` (feat, fix, refactor, docs, chore) from the
   task; worktree path `/tmp/opencode/claude-dev/<repo>-<slug>`. On a
   collision (the branch is listed by `git_branch` with all, or the path
@@ -76,7 +86,9 @@ Worktree mode:
 
 Both modes: every subagent works only inside the worktree or clone: shell
 commands run with it as workdir, file paths are absolute. Base SHA: the
-hash from `git_log` (maxCount 1).
+hash from `git_log` (maxCount 1). If the repository has a `.gitmodules`
+file or a `.gitattributes` with `filter=lfs`, stop and report that
+submodules and Git LFS are not supported.
 
 ## 2. Research
 Launch up to 3 parallel `explore` subagents: affected code; callers and
@@ -93,7 +105,7 @@ verbatim as Markdown; do not summarize.
 Round 1: then ask with the question tool: header "Plan approval",
 question "Do you approve this plan? Type changes to revise it.", options
 "Approve" (start implementing) and "Cancel" (stop; report the worktree
-or clone path and branch). A typed answer is feedback: re-plan with it,
+or clone path, branch and the cleanup commands from step 7). A typed answer is feedback: re-plan with it,
 print the new plan, and ask again. Repeat until Approve or Cancel.
 Rounds 2+: print the fix plan and continue without asking. If the
 planner disputes findings, ask with the question tool: accept (list them
@@ -115,8 +127,10 @@ round:
 Then `git_status`; if not clean, stop and report.
 - `VERDICT: PASS` → step 6.
 - `VERDICT: CHANGES` → increment the round and go to step 3 with the open
-  findings. After 3 fix rounds, ask the user: one more round / open the draft
-  PR with the open findings listed / stop.
+  findings. Round 1 is the first implementation and review; every later
+  round is a fix round. After a CHANGES verdict in round 4 (three fix
+  rounds done), ask the user: one more round / open the draft PR with the
+  open findings listed / stop.
 Collect every `NOTE` across rounds for the PR description.
 
 ## 6. Ship
