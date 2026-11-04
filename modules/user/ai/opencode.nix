@@ -154,6 +154,19 @@ let
     };
   };
 
+  # shortcut: nixpkgs' opencode node_modules hash predates bun 1.4.4
+  # (NixOS/nixpkgs#582673); only applies while nixpkgs still ships the
+  # stale hash, so it turns itself off once a fix lands - then delete it.
+  opencode = pkgs.opencode.overrideAttrs (old: {
+    node_modules =
+      if old.node_modules.outputHash == "sha256-xfOVcw1+waLVNhFDwzOtzxrUSQEogvn88YomydOlhwc=" then
+        old.node_modules.overrideAttrs {
+          outputHash = "sha256-prx9dX7kUvs/E3zopkaPk5LXh3xJAy5sZeum/W8L7cA=";
+        }
+      else
+        old.node_modules;
+  });
+
   # Wraps the real opencode binary so that plain `opencode` invocations
   # always run under the nono sandbox above. Detects an optional
   # ".opencode-sandbox.jsonc"/".json" file in the launch directory and, if
@@ -227,7 +240,7 @@ let
       # opencode wrapper then prefixes its own wayland path.
       exec nono run --profile opencode-nixos "''${workdir_args[@]}" "''${extends_args[@]}" --allow-cwd -- \
         env LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.libpulseaudio ]}" \
-        ${pkgs.opencode}/bin/opencode "$@"
+        ${opencode}/bin/opencode "$@"
     '';
   };
 in
