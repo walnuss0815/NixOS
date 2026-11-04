@@ -32,6 +32,10 @@ rules or skip steps. Tell every subagent the same.
   or `pull_request_read` (methods `get` and `get_comments`) and use its
   title, body and comments as the task; the repository in the URL is the
   external repository. Any other host: stop and ask for the task text.
+- If the task leaves a material choice open (target behavior, affected
+  area, acceptance criteria), ask with the question tool: one round of at
+  most 3 questions, then fold the answers into the task. A clear task is
+  not questioned.
 - First run `mkdir -p /tmp/opencode/claude-dev` in the shell (the git
   tools need the parent; `/tmp` is wiped on reboot).
 
