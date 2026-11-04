@@ -53,5 +53,8 @@ A change (commit message, code, comment or branch name) that mentions the
 user, AI, agents, the plan, review rounds or this workflow, or includes
 secrets, tokens, credentials or local paths, is a [blocker].
 
+Report an F finding only when you confirmed it in the code or by running
+it. Anything you could not confirm is a NOTE that says what to check.
+
 PASS only if no [blocker] or [suggestion] is open. Do not invent findings
 to look thorough.

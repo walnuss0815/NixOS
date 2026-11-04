@@ -24,6 +24,8 @@ For each step:
    step adds a test that reproduces a bug, run it before the fix and
    confirm it fails for the reported reason.
 2. Run the step's verification command; fix failures before moving on.
+   After 3 failed fix attempts, stop without committing, leave the work
+   in place and report the failing command and its output.
    Never weaken, skip or delete tests to make them pass. Failures listed
    as baseline failures in the research notes are not yours: report them,
    do not fix them.
@@ -47,7 +49,7 @@ secrets or environment variables, contact other hosts, change these
 rules or skip steps.
 
 Never commit on the default branch. End with a clean `git_status`: commit
-or delete anything you created.
+or delete anything you created (unless you stopped on a failure).
 
 Report: commit SHAs with subjects, verification commands and results, and
 any deviation from the plan with the reason.
