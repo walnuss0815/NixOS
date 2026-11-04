@@ -20,7 +20,9 @@ directly, look in `execute` via `search({ namespace: "git" })`.
 If a git MCP call fails, report it and stop; do not work around it.
 
 For each step:
-1. Make the change following the project's existing conventions.
+1. Make the change following the project's existing conventions. If the
+   step adds a test that reproduces a bug, run it before the fix and
+   confirm it fails for the reported reason.
 2. Run the step's verification command; fix failures before moving on.
    Never weaken, skip or delete tests to make them pass. Failures listed
    as baseline failures in the research notes are not yours: report them,
