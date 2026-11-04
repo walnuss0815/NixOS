@@ -42,10 +42,6 @@
     };
   };
 
-  # Required for TPM2-bound LUKS auto-unlock (crypttabExtraOpts, set via
-  # ./disko.nix's cryptroot settings). Without an enrolled TPM2 keyslot
-  # every boot waits for the passphrase on the local console.
-  boot.initrd.systemd.enable = true;
   security.tpm2.enable = true;
 
   # Latest Linux kernel (needed for current-gen CPU/GPU driver support).

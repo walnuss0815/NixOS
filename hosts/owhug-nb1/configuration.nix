@@ -54,13 +54,9 @@ in
     };
   };
 
-  # Required for TPM2-bound LUKS auto-unlock (crypttabExtraOpts below).
-  boot.initrd.systemd.enable = true;
-
   boot.initrd.luks.devices = {
     crypted = {
       device = "/dev/disk/by-uuid/edb6d4fa-a4d6-445c-b07b-825ab49a1adf";
-      preLVM = true;
       # Allow the TPM2 chip to auto-unlock this volume once a TPM2 keyslot
       # has been enrolled via `systemd-cryptenroll --tpm2-device=auto`.
       # The original passphrase keyslot remains as a fallback.

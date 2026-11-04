@@ -95,10 +95,6 @@
     };
   };
 
-  # Required for TPM2-bound LUKS auto-unlock (crypttabExtraOpts, set via
-  # ./disko.nix's cryptroot settings).
-  boot.initrd.systemd.enable = true;
-
   # Udev rules for TPM2 device access (tpm2-tools and other unprivileged
   # tooling; systemd-cryptenroll itself runs as root and doesn't
   # strictly require this, but it's harmless to keep enabled).
