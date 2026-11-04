@@ -38,7 +38,7 @@ Raise new [blocker]s only if introduced by those fix commits. Report
 anything else new as NOTE. Keep the given IDs; number new findings after
 the highest one.
 
-Output exactly:
+Output exactly, with the VERDICT line first:
 VERDICT: PASS | CHANGES
 F<n> [blocker|suggestion] file:line: problem, why it matters, the fix
 (VERIFY: F<n> FIXED|OPEN: reason)

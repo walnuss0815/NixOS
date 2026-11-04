@@ -31,7 +31,8 @@ For each step:
    scope from `git_log` (oneline, maxCount 30) if one fits. Subject
    imperative, ≤50 chars (max 72), no period; body wrapped at 72 explaining
    what/why when not obvious.
-4. If the result has `signed: false`, stop and report the signingWarning.
+4. If the result has `signed: false` and a `signingWarning`, stop and
+   report the signingWarning.
 
 In commits, code, comments and branch names, never mention the user, AI,
 agents, the plan, review rounds or this workflow, and never include

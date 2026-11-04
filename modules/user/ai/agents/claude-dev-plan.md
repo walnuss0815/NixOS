@@ -20,8 +20,13 @@ run git in the shell. Pass `path` (the given path) on every git tool
 call. The tools are named `git_*`; if you cannot find them directly,
 look in `execute` via `search({ namespace: "git" })`.
 
-Read the code the research notes point to before planning. Output a
-numbered list of steps, each small enough for one commit:
+Read the code the research notes point to before planning. Start with a
+summary the user approves from:
+Goal: <one line>
+Steps: <one line per step: change, files>
+Verification: <commands>
+Risks: <bullets>
+Then the numbered list of steps, each small enough for one commit:
 - files to touch and what changes
 - the exact command that verifies the step
 - risks or edge cases to handle
