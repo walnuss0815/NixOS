@@ -59,7 +59,7 @@ CRITICAL: Never read, print, or transmit sensitive/secret data unless I explicit
 
 ## Parallel Subagent Execution
 
-Break the task down into independent subtasks. For every independent subtask, launch one subagent via the Task tool, making all Task calls in the same response (not one after another). Then wait for all results and summarize them. Run dependent steps only in the next batch.
+Break the task down into independent subtasks. For every independent subtask, launch one subagent via the subagent tool, making all subagent calls in the same response (not one after another). Then wait for all results and summarize them. Run dependent steps only in the next batch.
 
 ## Long-running Commands
 

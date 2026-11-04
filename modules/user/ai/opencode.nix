@@ -7,12 +7,16 @@
 # wrapper that runs the real opencode binary under `nono` (Landlock-enforced
 # kernel sandbox - see nono.sh/docs). This replaces the plain `opencode` on
 # PATH globally, so it can never be launched unsandboxed by accident.
-# `permission` config further down stays as an approval-workflow layer on
+# `permissions` config further down stays as an approval-workflow layer on
 # top of that; nono is the actual security boundary
-# (in particular, bash: "*" = "allow" below is safe precisely because nono
-# constrains what that shell can touch at the kernel level).
+# (in particular, the shell "*" allow rule below is safe precisely because
+# nono constrains what that shell can touch at the kernel level).
 { pkgs, config, ... }:
 let
+  # One permission rule. MCP tool rules always use resource "*".
+  rule = effect: action: resource: { inherit action resource effect; };
+  tool = effect: action: rule effect action "*";
+
   # Kernel-enforced (Landlock) sandbox profile for opencode. Modeled on
   # nono's own bundled "opencode" preset (see nono.sh/docs/cli/features/
   # profiles-groups#opencode) but hand-written here because the nixpkgs-
@@ -259,21 +263,18 @@ in
     settings = {
       # Default models for the built-in primary agents: Opus for
       # planning, Sonnet for implementation (via opencode-claude-auth).
-      agent = {
+      agents = {
         plan.model = "anthropic/claude-opus-5-5";
         build.model = "anthropic/claude-sonnet-5-5";
       };
 
-      permission = {
-        external_directory = {
-          "/nix/store/**" = "allow";
-        };
-        read = {
-          "/nix/store/**" = "allow";
-        };
-        edit = {
-          "/nix/store/**" = "deny";
-        };
+      # Ordered rules, last match wins: each broad rule below comes before
+      # the specific exceptions that override it. Approval-workflow layer
+      # only; the nono sandbox is the actual boundary.
+      permissions = [
+        (rule "allow" "external_directory" "/nix/store/**")
+        (rule "allow" "read" "/nix/store/**")
+        (rule "deny" "edit" "/nix/store/**")
 
         # Shell access: allow everything without prompting, since the nono
         # sandbox (see the header) is the actual boundary, and hard-deny a
@@ -281,18 +282,15 @@ in
         # the command line and are trivially bypassed (`rm -fr`,
         # `/bin/rm ...`), so they are not a security control. Explicit
         # "deny" rules stay enforced even under `opencode --auto`.
-        bash = {
-          "*" = "allow";
-
-          "kubectl*" = "deny";
-          "rm -rf *" = "deny";
-          "dd *" = "deny";
-          "mkfs*" = "deny";
-          "shutdown*" = "deny";
-          "reboot*" = "deny";
-          "systemctl poweroff*" = "deny";
-          "systemctl reboot*" = "deny";
-        };
+        (rule "allow" "shell" "*")
+        (rule "deny" "shell" "kubectl*")
+        (rule "deny" "shell" "rm -rf *")
+        (rule "deny" "shell" "dd *")
+        (rule "deny" "shell" "mkfs*")
+        (rule "deny" "shell" "shutdown*")
+        (rule "deny" "shell" "reboot*")
+        (rule "deny" "shell" "systemctl poweroff*")
+        (rule "deny" "shell" "systemctl reboot*")
 
         # Globally configured MCP servers (programs.mcp.servers in
         # ./mcp.nix, merged into opencode via enableMcpIntegration). MCP
@@ -300,49 +298,45 @@ in
         # then the tool's own name exactly as the upstream server defines
         # it).
         #
-        # Rules of thumb applied per the upstream tool docs, most
-        # specific first:
+        # Rules of thumb applied per the upstream tool docs:
         #   - read-only lookups                         -> allow
         #   - anything that can return secret/credential
         #     material (k8s Secrets, kubeconfig, etc.)   -> ask
         #   - create/modify/delete operations            -> ask
         # Anything not explicitly listed below (including tools added by
         # a future server version) falls through to that server's "ask"
-        # catch-all rather than an unreviewed "allow". Nix's JSON
-        # serializer emits attrset keys alphabetically regardless of the
-        # order written here, but "*" sorts before any letter/digit, so
-        # each catch-all still resolves before its own specific
-        # overrides ("last match wins").
+        # catch-all rather than an unreviewed "allow". Each catch-all is
+        # listed before its own specific overrides.
 
         # mcp-nixos (github:utensils/mcp-nixos): exactly 2 tools, `nix`
         # and `nix_versions`, both pure query/search against public
         # NixOS/nixpkgs metadata APIs. No create/update/delete capability
         # exists in this server at all, so a blanket allow is safe.
-        "nixos_*" = "allow";
+        (tool "allow" "nixos_*")
 
         # kubernetes-mcp-server (github:containers/kubernetes-mcp-server).
         # Only the default "config" + "core" toolsets are enabled here
         # (no --toolsets flag set), so helm/kcp/kiali/kubevirt/netobserv/
         # tekton tools aren't exposed; if any of those get enabled later
         # they fall through to "ask" until reviewed.
-        "kubernetes_*" = "ask";
+        (tool "ask" "kubernetes_*")
         # config toolset - read-only
-        "kubernetes_configuration_contexts_list" = "allow";
-        "kubernetes_targets_list" = "allow";
+        (tool "allow" "kubernetes_configuration_contexts_list")
+        (tool "allow" "kubernetes_targets_list")
         # configuration_view returns the kubeconfig, which can embed
         # client certs/tokens for cluster auth -> treated like
         # credential material, stays on the "ask" catch-all.
         # core toolset - read-only, typed to Pod/Node/Namespace/Event,
         # cannot return a Secret object
-        "kubernetes_namespaces_list" = "allow";
-        "kubernetes_projects_list" = "allow";
-        "kubernetes_events_list" = "allow";
-        "kubernetes_nodes_stats_summary" = "allow";
-        "kubernetes_nodes_top" = "allow";
-        "kubernetes_pods_list" = "allow";
-        "kubernetes_pods_list_in_namespace" = "allow";
-        "kubernetes_pods_get" = "allow";
-        "kubernetes_pods_top" = "allow";
+        (tool "allow" "kubernetes_namespaces_list")
+        (tool "allow" "kubernetes_projects_list")
+        (tool "allow" "kubernetes_events_list")
+        (tool "allow" "kubernetes_nodes_stats_summary")
+        (tool "allow" "kubernetes_nodes_top")
+        (tool "allow" "kubernetes_pods_list")
+        (tool "allow" "kubernetes_pods_list_in_namespace")
+        (tool "allow" "kubernetes_pods_get")
+        (tool "allow" "kubernetes_pods_top")
         # pods_log/nodes_log deliberately stay on the "ask" catch-all:
         # application and node logs routinely contain tokens, connection
         # strings or env dumps, and denied_resources cannot filter log
@@ -354,8 +348,8 @@ in
         # passes. OpenCode's permission rules only match on tool names, so
         # this is the only place a per-resource-type distinction can be
         # enforced.
-        "kubernetes_resources_get" = "allow";
-        "kubernetes_resources_list" = "allow";
+        (tool "allow" "kubernetes_resources_get")
+        (tool "allow" "kubernetes_resources_list")
         # Stays on "ask": pods_log/nodes_log (may leak credentials, see
         # above); pods_delete/pods_exec/pods_run (delete/exec/create);
         # resources_create_or_update, resources_delete, resources_scale
@@ -364,26 +358,24 @@ in
         # @cyanheads/git-mcp-server (github:cyanheads/git-mcp-server), 28
         # tools. The server's own tool names already start with "git_",
         # so namespacing with our "git" server key doubles the prefix
-        # (e.g. "git_git_status"). Double-check the exact literal names
-        # against what actually shows up in an approval prompt or
-        # `opencode mcp list` and adjust if this guess is off - the "ask"
-        # catch-all is the safety net either way.
-        "git_*" = "ask";
+        # (e.g. "git_git_status"); verified against the server's tool
+        # list. The "ask" catch-all is the safety net for anything new.
+        (tool "ask" "git_*")
         # History & inspection - read-only, never touches the working tree
-        "git_git_status" = "allow";
-        "git_git_diff" = "allow";
-        "git_git_log" = "allow";
-        "git_git_show" = "allow";
-        "git_git_blame" = "allow";
-        "git_git_reflog" = "allow";
-        "git_git_changelog_analyze" = "allow";
+        (tool "allow" "git_git_status")
+        (tool "allow" "git_git_diff")
+        (tool "allow" "git_git_log")
+        (tool "allow" "git_git_show")
+        (tool "allow" "git_git_blame")
+        (tool "allow" "git_git_reflog")
+        (tool "allow" "git_git_changelog_analyze")
         # fetch only updates remote-tracking refs, it never touches your
         # current branch/working tree (unlike pull, which merges)
-        "git_git_fetch" = "allow";
+        (tool "allow" "git_git_fetch")
         # session/context bookkeeping only, no repository mutation
-        "git_git_set_working_dir" = "allow";
-        "git_git_clear_working_dir" = "allow";
-        "git_git_wrapup_instructions" = "allow";
+        (tool "allow" "git_git_set_working_dir")
+        (tool "allow" "git_git_clear_working_dir")
+        (tool "allow" "git_git_wrapup_instructions")
         # Stays on "ask": git_init/git_clone (create); git_add/git_commit
         # (modify); git_clean/git_reset (destructive); git_branch/
         # git_tag/git_remote/git_stash/git_worktree (each bundles list+
@@ -396,25 +388,25 @@ in
         # outside it (merge, delete, push, ...) do not exist in the
         # session. Of the loaded ones, read-only lookups are allowed and
         # everything else falls through to the "ask" catch-all.
-        "github_*" = "ask";
-        "github_actions_list" = "allow";
-        "github_actions_get" = "allow";
-        "github_get_job_logs" = "allow";
-        "github_issue_read" = "allow";
-        "github_list_pull_requests" = "allow";
-        "github_search_pull_requests" = "allow";
-        "github_pull_request_read" = "allow";
-        "github_list_commits" = "allow";
-        "github_get_commit" = "allow";
-        "github_list_branches" = "allow";
-        "github_get_me" = "allow";
-        "github_get_file_contents" = "allow";
-        "github_search_repositories" = "allow";
+        (tool "ask" "github_*")
+        (tool "allow" "github_actions_list")
+        (tool "allow" "github_actions_get")
+        (tool "allow" "github_get_job_logs")
+        (tool "allow" "github_issue_read")
+        (tool "allow" "github_list_pull_requests")
+        (tool "allow" "github_search_pull_requests")
+        (tool "allow" "github_pull_request_read")
+        (tool "allow" "github_list_commits")
+        (tool "allow" "github_get_commit")
+        (tool "allow" "github_list_branches")
+        (tool "allow" "github_get_me")
+        (tool "allow" "github_get_file_contents")
+        (tool "allow" "github_search_repositories")
         # Stays on "ask": actions_run_trigger (re-run/cancel workflows);
         # create_pull_request, update_pull_request, add_issue_comment
         # (publish on GitHub); create_repository, fork_repository
         # (create a repository on GitHub).
-      };
+      ];
       # All plugins are pinned to an exact version rather than @latest.
       # opencode caches each plugin under a directory keyed by this literal
       # spec string, with its own lockfile inside, so "@latest" does not
@@ -443,11 +435,11 @@ in
         # which lies inside the already-granted opencode config dir.
         "@dietrichgebert/ponytail@5.3.2"
       ];
-      "provider" = {
+      "providers" = {
         "rpp-ai-proxy" = {
-          "npm" = "@ai-sdk/openai-compatible";
+          "package" = "aisdk:@ai-sdk/openai-compatible";
           "name" = "RPP AI Proxy";
-          "options" = {
+          "settings" = {
             "baseURL" = "https://ai-proxy.rpp.gmbh/v1";
           };
           "models" = {
@@ -516,9 +508,9 @@ in
         # vault entry is missing, the env var resolves to "" and only this
         # provider fails (401); opencode itself still starts.
         "owhug-pc1" = {
-          "npm" = "@ai-sdk/openai-compatible";
+          "package" = "aisdk:@ai-sdk/openai-compatible";
           "name" = "owhug-pc1";
-          "options" = {
+          "settings" = {
             "baseURL" = "http://owhug-pc1.local:8080/v1";
             "apiKey" = "{env:OWHUG_PC1_NINFER_API_KEY}";
           };
@@ -546,9 +538,9 @@ in
         # missing, the env var resolves to "" and only this provider fails
         # (401); opencode itself still starts.
         "walnuss0815" = {
-          "npm" = "@ai-sdk/openai-compatible";
+          "package" = "aisdk:@ai-sdk/openai-compatible";
           "name" = "walnuss0815 (LiteLLM)";
-          "options" = {
+          "settings" = {
             "baseURL" = "https://d7fa1e54.walnuss0815.de/v1";
             "apiKey" = "{env:WALNUSS0815_LITELLM_API_KEY}";
           };
