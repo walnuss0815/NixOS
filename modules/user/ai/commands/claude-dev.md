@@ -32,8 +32,10 @@ repository.
 
 Clone mode (the original working directory is irrelevant, it need not be
 a git repository):
-- Clone URL: the URL as given (SSH or HTTPS, HTTPS is not rewritten),
-  without any path after `owner/repo` (e.g. `/tree/main`); bare
+- Clone URL: the URL as given, without any path after `owner/repo`
+  (e.g. `/tree/main`). `https://github.com/owner/repo` becomes
+  `git@github.com:owner/repo.git` (HTTPS cannot authenticate
+  non-interactively); HTTPS URLs of other hosts are not rewritten. Bare
   `owner/repo` → `git@github.com:owner/repo.git` (assume GitHub). A bare
   `owner/repo` counts only when clearly meant as a repo (called a
   repo/GitHub project, or a URL); else it is a path in the current repo.
@@ -116,21 +118,19 @@ Collect every `NOTE` across rounds for the PR description.
 - `git_push` with setUpstream to origin and the branch. Never set force,
   forceWithLease or delete, and never push the default branch (also in the
   fork push below).
-- If it failed because permission was denied (403, "permission denied",
-  "not allowed", "Permission to … denied to …") and the host is
-  github.com: get the login with GitHub `get_me`, then look for an
-  existing fork with `search_repositories`, query
-  `repo:<login>/<repo> fork:only`. Ask with the question tool: header
-  "Fork", options Stop plus one of:
-  - fork found: question "Push to your fork `<login>/<repo>`?", option
-    "Use fork".
-  - none found: question "No fork of `<owner>/<repo>` found. Create
-    `<login>/<repo>`?", option "Create fork" (then call
-    `fork_repository`).
-  On Stop: stop and report the worktree or clone path and branch.
-  Otherwise take `full_name` from the `search_repositories` or
-  `fork_repository` result (GitHub may name the fork differently, e.g.
-  `<repo>-1`); the fork owner is its part before `/`. `git_remote` add
+- If it failed because the repository refused the push for missing
+  permission (HTTP 403, "not allowed", `Permission to <owner>/<repo>.git
+  denied to <user>`) and the host is github.com: ask with the question
+  tool: header "Fork", question "No push access to `<owner>/<repo>`.
+  Push to your fork instead (created if it does not exist)?", options
+  "Use fork" and "Stop". An authentication failure (`Permission denied
+  (publickey)`, `Authentication failed`, `Host key verification failed`)
+  is not this case: stop and report it as an SSH/auth problem. On Stop:
+  stop and report the worktree or clone path and branch. On Use fork:
+  call `fork_repository` (it returns the existing fork when there is
+  one) and take `full_name` from its result (GitHub may name the fork
+  differently, e.g. `<repo>-1`); the fork owner is its part before `/`.
+  `git_remote` add
   `fork` with url `https://github.com/<full_name>.git` if origin is
   HTTPS, else `git@github.com:<full_name>.git`, then `git_push` with
   setUpstream to `fork` and the branch. On failure, stop and report the
