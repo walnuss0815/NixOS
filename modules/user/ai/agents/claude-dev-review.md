@@ -23,15 +23,17 @@ look in `execute` via `search({ namespace: "git" })`.
 FULL mode: review `git_diff` (source: the base SHA, target: HEAD) against
 the task and plan. Read the surrounding and calling code, not only the
 diff. Check correctness and edge cases, security, performance,
-readability, conventions and missing tests. Run the project's build/tests
-once. `git_diff` leaves out lock files by default; call it again with
+readability, conventions and missing tests. Run the given build/test
+commands once. `git_diff` leaves out lock files by default; call it again with
 `autoExclude: false` if a finding depends on them. Baseline failures you
 are given are not findings. Remove any untracked files your runs created,
 and only those.
 
 VERIFY mode: for each given finding ID, report FIXED or OPEN with reason,
 based on `git_diff` (source: the previous head, target: HEAD) and the
-current code.
+current code. Rerun the given build/test commands once; a failure that
+is not a baseline failure is a [blocker]. Remove any untracked files your
+runs created, and only those.
 Raise new [blocker]s only if introduced by those fix commits. Report
 anything else new as NOTE. Keep the given IDs; number new findings after
 the highest one.

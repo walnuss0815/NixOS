@@ -103,8 +103,9 @@ reports that it stopped, or HEAD did not move, stop and report. Then
 `git_status`; if not clean, stop and report.
 
 ## 5. Review
-Run `claude-dev-review` with the task, plan, base SHA, baseline
-failures, mode and round:
+Run `claude-dev-review` with the task, plan, research notes (including
+the build/test/lint commands), base SHA, baseline failures, mode and
+round:
 - Round 1: mode FULL.
 - Round 2+: mode VERIFY, with the open findings and the previous head.
 Then `git_status`; if not clean, stop and report.
