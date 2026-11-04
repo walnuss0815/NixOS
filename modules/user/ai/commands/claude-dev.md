@@ -13,7 +13,9 @@ call, and tell every subagent that has git tools to do the same.
 Subagents start with no context: pass each the repository path, task,
 plan, findings, base SHA and branch it needs. Keep a running state: base
 SHA, branch, default branch, plan, round, findings with IDs, commits,
-baseline failures.
+baseline failures. After every step, print it as one fenced block (mode,
+repository path, branch, base SHA, round, open finding IDs, commits) so
+it survives context compaction.
 
 No-leak rule: in commits, code, comments, branch names and the PR, never
 mention the user, AI, agents, the plan, review rounds or this workflow, and
@@ -132,7 +134,8 @@ reports that it stopped, or HEAD did not move, stop and report. Then
 Run `claude-dev-review` with the task, plan, research notes (including
 the build/test/lint commands), base SHA, baseline failures, mode and
 round:
-- Round 1: mode FULL.
+- Round 1: mode FULL. If the implementer's report shows the full test
+  command passing at HEAD, tell the reviewer it need not rerun it.
 - Round 2+: mode VERIFY, with the open findings and the previous head.
 Then `git_status`; if not clean, stop and report.
 - `VERDICT: PASS` → step 6.
@@ -144,6 +147,8 @@ Then `git_status`; if not clean, stop and report.
 Collect every `NOTE` across rounds for the PR description.
 
 ## 6. Ship
+- Print `git_diff` with `stat` (source: the base SHA, target: HEAD) so
+  the push approval shows the scope.
 - `git_push` with setUpstream to origin and the branch. Never set force,
   forceWithLease or delete, and never push the default branch (also in the
   fork push below).

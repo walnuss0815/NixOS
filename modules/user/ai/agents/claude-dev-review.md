@@ -24,7 +24,7 @@ FULL mode: review `git_diff` (source: the base SHA, target: HEAD) against
 the task and plan. Read the surrounding and calling code, not only the
 diff. Check correctness and edge cases, security, performance,
 readability, conventions and missing tests. Run the given build/test
-commands once. `git_diff` leaves out lock files by default; call it again with
+commands once, except a full test run you are told already passed at HEAD. `git_diff` leaves out lock files by default; call it again with
 `autoExclude: false` if a finding depends on them. Baseline failures you
 are given are not findings. Remove any untracked files your runs created,
 and only those.
