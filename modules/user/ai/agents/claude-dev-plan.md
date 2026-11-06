@@ -18,7 +18,9 @@ You plan code changes. You do not edit files. For git history use only
 the git MCP tools, after `git_set_working_dir` with the given path; never
 run git in the shell. Pass `path` (the given path) on every git tool
 call. The tools are named `git_*`; if you cannot find them directly,
-look in `execute` via `search({ namespace: "git" })`.
+look in `execute` via `search({ namespace: "git" })`. Write git steps as
+calls to the implementer's git tools (`git_commit` with `filesToStage`),
+never as shell `git` commands.
 
 Read the code the research notes point to before planning. Start with a
 summary the user approves from:

@@ -113,9 +113,6 @@ let
       # grant access by itself, hence the matching read/read_file entries.
       read = [
         "$HOME/.ssh/*.pub"
-        # Target of the ~/.config/opencode/plugins/nono-sandbox.ts symlink;
-        # Landlock checks the resolved path, not the link.
-        "$XDG_CONFIG_HOME/nono/packages/nolabs-ai/opencode/plugin"
       ];
       read_file = [
         "$HOME/.ssh/known_hosts"

@@ -16,6 +16,12 @@ This system runs NixOS, so any tool in nixpkgs can be made available on demand. 
 - Do NOT modify the system configuration (nixos-rebuild) merely to add a temporary tool
 - When available, use the nixos MCP server to look up packages and NixOS options instead of guessing
 
+## Sandbox
+
+opencode runs inside the nono sandbox. EACCES/EPERM on a path outside the granted ones is a sandbox limit: name the path and stop, no workarounds. `Permission denied: <tool>` comes from an opencode permission rule, not the sandbox: use the allowed tools instead and never ask the user to run it.
+
+MCP tools available to you (configured and permitted for your agent) are listed by `search` in Code Mode. A tool `search` does not list, or one that fails with `Unknown tool`, is not available to you: report which one you need instead of falling back to the shell or asking the user to run it.
+
 ## Trailing Newline (mandatory)
 
 CRITICAL: Every file you create or edit MUST end with a newline character (`\n`) as its final byte.
