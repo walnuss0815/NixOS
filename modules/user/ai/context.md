@@ -53,6 +53,14 @@ CRITICAL: Never refer to yourself, a review you performed, or anything else rela
 - Never put status markers such as "Draft:", "WIP:", or "Ready for review" in the title or body. To open a PR as a draft, set the `draft` flag on the tool call
 - Cross-PR relationships may only be stated as neutral facts (e.g. "Depends on #206", "Touches the same lines as #206 and #207"). Never state what will happen to the PR afterwards
 
+## Referencing External Resources
+
+CRITICAL: Whenever you ask me to do something involving an external resource (website, PR/MR, repository, issue, docs page), give its full URL if one is available.
+
+- Write the full clickable URL (e.g. `https://github.com/owner/repo/pull/123`), not only a short form like `#123` or `owner/repo`
+- Use only URLs you know or have verified; never guess or construct a URL that may not exist
+- Never include tokens, credentials, or other secrets in a URL
+
 ## Sensitive Data
 
 CRITICAL: Never read, print, or transmit sensitive/secret data unless I explicitly ask you to. Even then, ask for confirmation first — this includes indirect access (environment variables, decrypted files, shell history, clipboard).
