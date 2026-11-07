@@ -141,6 +141,10 @@ Continue (task is a PR/MR URL; work on its branch, never a second PR/MR):
   once plain and once with `include: ["notes"]`). Not open: stop and
   report its state. Branch = head ref / `sourceBranch`; target = base ref
   / `targetBranch`.
+- Feedback: the PR/MR's open feedback (unresolved review threads or
+  discussions, and comments after its last commit that ask for changes).
+  None: ask now, before pr-source and any setup, "Review the PR/MR (fix
+  rounds, then push)" / "Stop", so Stop leaves nothing behind.
 - Find where the branch lives: `claude-dev-setup pr-source <the PR/MR's
   repository URL> <branch> <ref> <candidates>`, ref `refs/pull/<n>/head`
   (github.com) or `refs/merge-requests/<iid>/head` (GitLab); candidates on
@@ -161,15 +165,12 @@ Continue (task is a PR/MR URL; work on its branch, never a second PR/MR):
   path> <branch> <slug> --existing <target>`. Otherwise: `claude-dev-setup
   clone <the PR/MR's repository URL> <branch> <slug> --existing <target>`.
   Exit 2 or 3 as for a fresh run; then `git_set_working_dir` with `path`.
-- The task is the PR/MR's title and description as context, and as work
-  only its open feedback: unresolved review threads or discussions, and
-  comments after its last commit that ask for changes. With feedback: the
-  normal cycle from step 2 with that feedback as the task; tell the
-  planner the branch already implements the PR/MR, so plan only the
-  feedback. Without feedback: ask "Review the PR/MR (fix rounds, then
-  push)" / "Stop"; a review runs like Ship existing from its plan.md step
-  on, without its in-place setup (plan.md with the PR/MR
-  title and description).
+- Then the task is the PR/MR's title and description as context and the
+  feedback as work: with feedback, the normal cycle from step 2 (tell the
+  planner the branch already implements the PR/MR, plan only the
+  feedback); with Review, like Ship existing from its plan.md step on,
+  without its in-place setup (plan.md with the PR/MR title and
+  description).
 
 Resume: read `state.md`, `run.json`, and `research.md` / `plan.md` if
 present from the run's state dir; `git_set_working_dir` with its path;
