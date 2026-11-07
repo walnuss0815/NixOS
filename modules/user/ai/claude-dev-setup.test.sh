@@ -177,4 +177,36 @@ git -C "$pr" worktree remove --force "$e1p"
 check "$(setup cleanup pr-pr-x 2>/dev/null)" '.removed_path == null'
 [ ! -e "$CLAUDE_DEV_ROOT-state/pr-pr-x" ] || fail "cleanup of a gone worktree kept its state dir"
 
+# Fork PR/MRs: up.git (target), fork.git with feat/f at the MR head,
+# fork2.git with feat/f at another commit, feat/s as a same-repo MR.
+git init -q --bare -b main "$work/up.git"
+git clone -q "$work/up.git" "$work/upw" 2>/dev/null
+git -C "$work/upw" commit -q --allow-empty -m base
+git -C "$work/upw" push -q origin main 2>/dev/null
+git -C "$work/upw" checkout -q -b feat/s
+git -C "$work/upw" commit -q --allow-empty -m s
+git -C "$work/upw" push -q origin feat/s feat/s:refs/merge-requests/2/head 2>/dev/null
+git -C "$work/upw" checkout -q -b feat/f main
+git -C "$work/upw" commit -q --allow-empty -m f
+git init -q --bare -b main "$work/fork.git"
+git -C "$work/upw" push -q "$work/fork.git" main feat/f 2>/dev/null
+git -C "$work/upw" push -q origin feat/f:refs/merge-requests/1/head 2>/dev/null
+git init -q --bare -b main "$work/fork2.git"
+git -C "$work/upw" push -q "$work/fork2.git" main main:refs/heads/feat/f 2>/dev/null
+mr1=refs/merge-requests/1/head
+check "$(setup pr-source "$work/up.git" feat/f $mr1 "$work/up.git" "$work/fork2.git" "$work/fork.git")" \
+  ".source_url == \"$work/fork.git\" and .fork"
+expect_exit 2 pr-source "$work/up.git" feat/f $mr1 "$work/fork2.git" "$work/nope.git"
+check "$(setup pr-source "$work/up.git" feat/s refs/merge-requests/2/head "$work/up.git")" \
+  ".source_url == \"$work/up.git\" and (.fork | not)"
+expect_exit 2 pr-source "$work/up.git" feat/f refs/heads/main "$work/fork.git"
+fk="$(setup clone "$work/fork.git" feat/f f --existing main --upstream "$work/up.git")"
+fkp="$(jq -r .path <<<"$fk")"
+[ "$(git -C "$fkp" remote get-url upstream)" = "$work/up.git" ] || fail "fork clone has no upstream remote"
+check "$fk" ".existing and .target == \"main\" and .base == \"$(git -C "$fkp" merge-base upstream/main HEAD)\""
+expect_exit 3 clone "$work/fork.git" feat/f f2 --existing main --upstream "$work/nope.git"
+[ ! -e "$CLAUDE_DEV_ROOT/fork-f2" ] || fail "failed upstream fetch left the clone"
+expect_exit 2 clone "$work/fork.git" feat/f f3 --upstream "$work/up.git"
+expect_exit 2 worktree "$pr" feat/r pr-r2 --existing develop --upstream "$work/up.git"
+
 echo "claude-dev-setup: all checks passed"

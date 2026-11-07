@@ -105,7 +105,8 @@ Existing runs: `claude-dev-setup list`. In worktree mode, `git_fetch`
   worktree mode: probe's `origin_url`, clone mode: the URL from the task,
   bare `owner/repo` = github.com) and `path_exists`: ask "Resume <run>
   (<branch>, <n> commits)" / "Start fresh" / "Stop". In continue mode only
-  a run on the PR/MR's branch counts, and a worktree run offers only
+  a run on the PR/MR's branch whose `origin_url` is pr-source's
+  `source_url` (Hosts rule) counts, and a worktree run offers only
   "Resume" / "Stop" (its worktree holds the branch).
 - Else, in worktree mode (not continue mode), if probe shows `ahead > 0` and a non-empty
   `current_branch` other than `default_branch`: ask "Ship existing work on
@@ -138,9 +139,19 @@ Continue (task is a PR/MR URL; work on its branch, never a second PR/MR):
 - Fetch it: github.com `pull_request_read` (methods `get`, `get_comments`
   and `get_review_comments`); GitLab hosts `get_merge_request` (`url`,
   once plain and once with `include: ["notes"]`). Not open: stop and
-  report its state. github.com head repository different from the base
-  repository: stop, PRs from forks are not supported. Branch = head ref /
-  `sourceBranch`; target = base ref / `targetBranch`.
+  report its state. Branch = head ref / `sourceBranch`; target = base ref
+  / `targetBranch`.
+- Find where the branch lives: `claude-dev-setup pr-source <the PR/MR's
+  repository URL> <branch> <ref> <candidates>`, ref `refs/pull/<n>/head`
+  (github.com) or `refs/merge-requests/<iid>/head` (GitLab); candidates on
+  github.com `https://github.com/<head repository full name>`, on GitLab
+  the PR/MR's repository URL, then `https://<host>/<author
+  username>/<last segment of the repository path>`. It prints
+  `{source_url, fork}`. Exit 2: stop and ask for the fork's URL (rerun
+  with it as the only candidate). Then the existing-runs check above.
+- `fork` true: always `claude-dev-setup clone <source_url> <branch> <slug>
+  --existing <target> --upstream <the PR/MR's repository URL>`; origin is
+  the fork, `upstream` the PR/MR's repository. `fork` false: as follows.
 - If the repository path is a git repository: `git_fetch` (origin) on it,
   then `claude-dev-setup probe <repository path>` (exit 2 only means it is
   not that repository). Probe's origin is the PR/MR's repository (Hosts

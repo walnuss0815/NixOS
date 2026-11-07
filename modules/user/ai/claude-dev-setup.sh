@@ -15,7 +15,7 @@ die() {
 }
 
 usage() {
-  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> [--existing <target>] | clone <url> <branch> <slug> [--existing <target>] | in-place <repo> [--target <target>] | gitlab-url <url> | cleanup <run>"
+  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> [--existing <target>] | clone <url> <branch> <slug> [--existing <target> [--upstream <url>]] | pr-source <target-url> <branch> <pr-ref> <candidate-url>... | in-place <repo> [--target <target>] | gitlab-url <url> | cleanup <run>"
 }
 
 # Prints the top level of <repo>; refuses non-repos and repos without origin.
@@ -42,12 +42,12 @@ init_submodules() {
 # ls-remote is authoritative (origin/HEAD is never updated by fetch);
 # symbolic-ref is the offline fallback.
 default_branch() {
-  local b
-  b="$(git -C "$1" ls-remote --symref origin HEAD 2>/dev/null | sed -n 's|^ref: refs/heads/\(.*\)\tHEAD$|\1|p')"
+  local b remote="${2:-origin}"
+  b="$(git -C "$1" ls-remote --symref "$remote" HEAD 2>/dev/null | sed -n 's|^ref: refs/heads/\(.*\)\tHEAD$|\1|p')"
   if [ -z "$b" ]; then
-    b="$(git -C "$1" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')" || true
+    b="$(git -C "$1" symbolic-ref --short "refs/remotes/$remote/HEAD" 2>/dev/null | sed "s|^$remote/||")" || true
   fi
-  [ -n "$b" ] || die "cannot determine the default branch of origin"
+  [ -n "$b" ] || die "cannot determine the default branch of $remote"
   printf '%s\n' "$b"
 }
 
@@ -76,15 +76,40 @@ check_ref() {
   git check-ref-format --branch "$1" >/dev/null 2>&1 || die "invalid branch name: $1"
 }
 
-# Existing-branch runs: branch and target must exist on origin and differ.
+# Existing-branch runs: the branch must exist on origin and the target on
+# its remote (upstream for fork PR/MRs), and the two must differ.
 check_existing() {
-  local dir="$1" branch="$2" target="$3" default="$4"
+  local dir="$1" branch="$2" target="$3" default="$4" tremote="${5:-origin}"
   [ "$branch" != "$default" ] && [ "$branch" != "$target" ] ||
     die "branch $branch is the default or target branch"
   git -C "$dir" show-ref -q --verify "refs/remotes/origin/$branch" ||
     die "branch $branch not found on origin (PR/MR from a fork?)"
-  git -C "$dir" show-ref -q --verify "refs/remotes/origin/$target" ||
-    die "target branch $target not found on origin"
+  git -C "$dir" show-ref -q --verify "refs/remotes/$tremote/$target" ||
+    die "target branch $target not found on $tremote"
+}
+
+# Finds where a PR/MR's branch lives: the first candidate repository whose
+# <branch> is exactly at the PR/MR head commit (<pr-ref> in the target).
+cmd_pr_source() {
+  local target="$1" branch="$2" ref="$3" turl sha c curl csha
+  shift 3
+  check_ref "$branch"
+  [[ "$ref" =~ ^refs/(pull|merge-requests)/[0-9]+/head$ ]] || die "invalid PR/MR ref: $ref"
+  turl="$(clone_url "$target")"
+  sha="$(git ls-remote "$turl" "$ref")" || exit 3
+  sha="$(awk -v r="$ref" '$2 == r {print $1}' <<<"$sha")"
+  [ -n "$sha" ] || die "PR/MR head $ref not found in $target"
+  for c in "$@"; do
+    curl="$(clone_url "$c")"
+    csha="$(git ls-remote "$curl" "refs/heads/$branch" 2>/dev/null || true)"
+    csha="$(awk -v r="refs/heads/$branch" '$2 == r {print $1}' <<<"$csha")"
+    if [ "$csha" = "$sha" ]; then
+      jq -n --arg u "$curl" --argjson fork "$([ "$curl" = "$turl" ] && echo false || echo true)" \
+        '{source_url: $u, fork: $fork}'
+      return
+    fi
+  done
+  die "no candidate has $branch at the PR/MR head $sha (or retry: PR/MR refs update shortly after a push)"
 }
 
 # Writes run.json into the run's state dir and prints it. A non-empty
@@ -269,8 +294,10 @@ cmd_gitlab_url() {
   printf 'https://%s/%s/-/work_items/%s\n' "$host" "$path" "$iid"
 }
 
+# With an upstream (fork PR/MRs), the clone is the fork and the target
+# branch and base come from the upstream repository.
 cmd_clone() {
-  local url branch="$2" slug="$3" target="${4:-}" name p n=1 b default base
+  local url branch="$2" slug="$3" target="${4:-}" upstream="${5:-}" name p n=1 b default base tremote=origin
   if [ -n "$target" ]; then
     check_slug "$slug"
     check_ref "$branch"
@@ -295,15 +322,23 @@ cmd_clone() {
     rm -rf "$p"
     die "Git LFS is not supported"
   fi
-  default="$(default_branch "$p")"
+  if [ -n "$upstream" ]; then
+    tremote=upstream
+    git -C "$p" remote add upstream "$(clone_url "$upstream")"
+    if ! git -C "$p" fetch -q upstream; then
+      rm -rf "$p"
+      exit 3
+    fi
+  fi
+  default="$(default_branch "$p" "$tremote")"
   if [ -n "$target" ]; then
-    (check_existing "$p" "$branch" "$target" "$default") || {
+    (check_existing "$p" "$branch" "$target" "$default" "$tremote") || {
       rm -rf "$p"
       exit 2
     }
     b="$branch"
     git -C "$p" checkout -q --track -b "$b" "origin/$b"
-    base="$(git -C "$p" merge-base "origin/$target" HEAD)"
+    base="$(git -C "$p" merge-base "$tremote/$target" HEAD)"
   else
     b="$branch"
     n=2
@@ -388,14 +423,20 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     probe) [ $# -eq 2 ] || usage; cmd_probe "$2" ;;
     list) [ $# -eq 1 ] || usage; cmd_list ;;
     worktree | clone)
-      cmd="cmd_$1"
-      if [ $# -eq 6 ] && [ "$5" = --existing ]; then
-        "$cmd" "$2" "$3" "$4" "$6"
-      else
-        [ $# -eq 4 ] || usage
-        "$cmd" "$2" "$3" "$4"
-      fi
+      [ $# -ge 4 ] || usage
+      cmd="cmd_$1" src="$2" br="$3" sl="$4" tg="" up=""
+      shift 4
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --existing) [ $# -ge 2 ] || usage; tg="$2"; shift 2 ;;
+          --upstream) [ "$cmd" = cmd_clone ] && [ $# -ge 2 ] || usage; up="$2"; shift 2 ;;
+          *) usage ;;
+        esac
+      done
+      [ -z "$up" ] || [ -n "$tg" ] || usage
+      "$cmd" "$src" "$br" "$sl" "$tg" "$up"
       ;;
+    pr-source) [ $# -ge 5 ] || usage; shift; cmd_pr_source "$@" ;;
     in-place)
       if [ $# -eq 4 ] && [ "$3" = --target ]; then
         cmd_in_place "$2" "$4"
