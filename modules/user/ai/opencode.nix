@@ -17,6 +17,24 @@ let
   rule = effect: action: resource: { inherit action resource effect; };
   tool = effect: action: rule effect action "*";
 
+  # Model IDs for every agent below; bump here only.
+  opus = "anthropic/claude-opus-5-5";
+  sonnet = "anthropic/claude-sonnet-5-5";
+
+  # Workspace setup for the claude-dev agents (./agents/claude-dev.md).
+  # Test: nix shell nixpkgs#jq -c bash modules/user/ai/claude-dev-setup.test.sh
+  claudeDevSetup = pkgs.writeShellApplication {
+    name = "claude-dev-setup";
+    runtimeInputs = with pkgs; [
+      git
+      jq
+      coreutils
+      gnused
+      gnugrep
+    ];
+    text = builtins.readFile ./claude-dev-setup.sh;
+  };
+
   # Kernel-enforced (Landlock) sandbox profile for opencode. Modeled on
   # nono's own bundled "opencode" preset (see nono.sh/docs/cli/features/
   # profiles-groups#opencode) but hand-written here because the nixpkgs-
@@ -256,8 +274,9 @@ in
     enable = true;
     enableMcpIntegration = true;
     package = sandboxedOpencode;
-    extraPackages = with pkgs; [
-      nodejs_24
+    extraPackages = [
+      pkgs.nodejs_24
+      claudeDevSetup
     ];
 
     # Terminal client settings (~/.config/opencode/cli.json; OpenCode 2
@@ -274,11 +293,27 @@ in
     };
 
     settings = {
-      # Default models for the built-in primary agents: Opus for
-      # planning, Sonnet for implementation (via opencode-claude-auth).
+      # Models per agent: Opus for planning and review, Sonnet for
+      # coordination and implementation (via opencode-claude-auth). The
+      # claude-dev agents' prompts and permissions live in ./agents.
       agents = {
-        plan.model = "anthropic/claude-opus-5-5";
-        build.model = "anthropic/claude-sonnet-5-5";
+        plan.model = opus;
+        build.model = sonnet;
+        claude-dev.model = sonnet;
+        claude-dev-plan.model = opus;
+        claude-dev-implement.model = sonnet;
+        claude-dev-review.model = opus;
+        # explore gets the git MCP tools directly (no Code Mode); keep it
+        # read-only instead of falling through to the global "ask" rules.
+        explore.permissions = [
+          (tool "deny" "git_*")
+          (tool "allow" "git_git_set_working_dir")
+          (tool "allow" "git_git_status")
+          (tool "allow" "git_git_log")
+          (tool "allow" "git_git_show")
+          (tool "allow" "git_git_diff")
+          (tool "allow" "git_git_blame")
+        ];
       };
 
       # Ordered rules, last match wins: each broad rule below comes before
