@@ -112,7 +112,9 @@ Existing runs: `claude-dev-setup list`. In worktree mode, `git_fetch`
   <branch>" / "Start
   fresh from origin/<default>" / "Stop". A dirty tree is reported in the
   question; ship-existing needs it committed.
-- `submodules_or_lfs`: stop, they are not supported.
+- probe's `lfs`: stop, Git LFS is not supported. `submodules`: use clone
+  mode with probe's `origin_url` instead of a worktree (also in continue
+  mode); submodules are read-only.
 
 Fresh run: `claude-dev-setup worktree <repository path> <branch> <slug>`
 or `claude-dev-setup clone <url> <branch> <slug>`. It returns `{run,
@@ -144,7 +146,7 @@ Continue (task is a PR/MR URL; work on its branch, never a second PR/MR):
   not that repository). Probe's origin is the PR/MR's repository (Hosts
   rule) and `current_branch` is the branch: `claude-dev-setup in-place
   <repository path> --target <target>` (dirty tree: ask to commit first).
-  Same repository, other branch: `claude-dev-setup worktree <repository
+  Same repository, other branch, no submodules: `claude-dev-setup worktree <repository
   path> <branch> <slug> --existing <target>`. Otherwise: `claude-dev-setup
   clone <the PR/MR's repository URL> <branch> <slug> --existing <target>`.
   Exit 2 or 3 as for a fresh run; then `git_set_working_dir` with `path`.

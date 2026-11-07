@@ -26,8 +26,17 @@ top_of() {
   printf '%s\n' "$top"
 }
 
-has_submodules_or_lfs() {
-  [ -f "$1/.gitmodules" ] || grep -qs 'filter=lfs' "$1/.gitattributes"
+has_submodules() {
+  [ -f "$1/.gitmodules" ]
+}
+
+has_lfs() {
+  grep -qs 'filter=lfs' "$1/.gitattributes"
+}
+
+# Submodules are checked out read-only for builds and tests.
+init_submodules() {
+  git -C "$1" submodule update -q --init --recursive
 }
 
 # ls-remote is authoritative (origin/HEAD is never updated by fetch);
@@ -109,20 +118,21 @@ emit_run() {
 }
 
 cmd_probe() {
-  local top origin default current ahead dirty=false sub=false
+  local top origin default current ahead dirty=false sub=false lfs=false
   top="$(top_of "$1")"
   origin="$(git -C "$top" remote get-url origin)"
   default="$(default_branch "$top")"
   current="$(git -C "$top" branch --show-current)"
   ahead="$(git -C "$top" rev-list --count "origin/$default..HEAD" 2>/dev/null || echo 0)"
   is_dirty "$top" && dirty=true
-  has_submodules_or_lfs "$top" && sub=true
+  has_submodules "$top" && sub=true
+  has_lfs "$top" && lfs=true
   jq -n --arg path "$top" --arg origin_url "$origin" --arg default_branch "$default" \
     --arg current_branch "$current" --argjson ahead "$ahead" \
-    --argjson dirty "$dirty" --argjson sub "$sub" \
+    --argjson dirty "$dirty" --argjson sub "$sub" --argjson lfs "$lfs" \
     '{path: $path, origin_url: $origin_url, default_branch: $default_branch,
       current_branch: $current_branch, ahead: $ahead, dirty: $dirty,
-      submodules_or_lfs: $sub}'
+      submodules: $sub, lfs: $lfs}'
 }
 
 cmd_list() {
@@ -164,7 +174,9 @@ cmd_worktree() {
     check_names "$branch" "$slug"
   fi
   top="$(top_of "$repo")"
-  has_submodules_or_lfs "$top" && die "submodules and Git LFS are not supported"
+  # git-worktree's own docs call submodule support in worktrees incomplete.
+  has_submodules "$top" && die "repository has submodules; use clone mode"
+  has_lfs "$top" && die "Git LFS is not supported"
   origin="$(git -C "$top" remote get-url origin)"
   git -C "$top" fetch -q origin || exit 3
   default="$(default_branch "$top")"
@@ -270,9 +282,9 @@ cmd_clone() {
   done
   mkdir -p "$root"
   git clone -q "$url" "$p" || exit 3
-  if has_submodules_or_lfs "$p"; then
+  if has_lfs "$p"; then
     rm -rf "$p"
-    die "submodules and Git LFS are not supported"
+    die "Git LFS is not supported"
   fi
   default="$(default_branch "$p")"
   if [ -n "$target" ]; then
@@ -293,6 +305,10 @@ cmd_clone() {
     git -C "$p" checkout -q -b "$b"
     base="$(git -C "$p" rev-parse HEAD)"
   fi
+  if has_submodules "$p" && ! init_submodules "$p"; then
+    rm -rf "$p"
+    exit 3
+  fi
   emit_run clone "$p" "$b" "$base" "$default" "$url" "$target"
 }
 
@@ -300,8 +316,9 @@ cmd_clone() {
 # one (a PR/MR into another branch), ahead of that branch.
 cmd_in_place() {
   local target="${2:-}" top origin default current ahead against
+  local warnings=()
   top="$(top_of "$1")"
-  has_submodules_or_lfs "$top" && die "submodules and Git LFS are not supported"
+  has_lfs "$top" && die "Git LFS is not supported"
   is_dirty "$top" && die "the checkout has uncommitted changes; commit or stash them first"
   current="$(git -C "$top" branch --show-current)"
   [ -n "$current" ] || die "HEAD is detached; check out a branch first"
@@ -318,7 +335,11 @@ cmd_in_place() {
   fi
   ahead="$(git -C "$top" rev-list --count "origin/$against..HEAD" 2>/dev/null || echo 0)"
   [ "$ahead" -gt 0 ] || die "no commits ahead of origin/$against"
-  emit_run in-place "$top" "$current" "$(git -C "$top" merge-base "origin/$against" HEAD)" "$default" "$origin" "$target"
+  if has_submodules "$top" && git -C "$top" submodule status --recursive | grep -q '^-'; then
+    init_submodules "$top" || exit 3
+    warnings+=("submodules were initialized in the checkout")
+  fi
+  emit_run in-place "$top" "$current" "$(git -C "$top" merge-base "origin/$against" HEAD)" "$default" "$origin" "$target" "${warnings[@]}"
 }
 
 # Sourcing (the test does) only defines the functions.

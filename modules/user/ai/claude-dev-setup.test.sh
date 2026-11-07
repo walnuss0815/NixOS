@@ -119,4 +119,21 @@ git -C "$pr" commit -q --allow-empty -m y
 check "$(setup in-place "$pr" --target develop)" ".existing and .target == \"develop\" and .base == \"$(git -C "$pr" merge-base origin/develop HEAD)\""
 expect_exit 2 in-place "$pr" --target nope
 
+# Submodules: local file:// submodules are allowed for this test only.
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.file.allow GIT_CONFIG_VALUE_0=always
+git init -q --bare -b main "$work/sub.git"
+git clone -q "$work/sub.git" "$work/subw" 2>/dev/null
+git -C "$work/subw" commit -q --allow-empty -m sub
+git -C "$work/subw" push -q origin main 2>/dev/null
+git init -q --bare -b main "$work/sup.git"
+git clone -q "$work/sup.git" "$work/sup" 2>/dev/null
+git -C "$work/sup" submodule add -q "$work/sub.git" ext 2>/dev/null
+git -C "$work/sup" commit -q -m "add submodule"
+git -C "$work/sup" push -q -u origin main 2>/dev/null
+check "$(setup probe "$work/sup")" '.submodules and (.lfs | not)'
+err="$(setup worktree "$work/sup" feat/s s 2>&1 >/dev/null)" && fail "worktree with submodules not refused"
+[[ "$err" == *"use clone mode"* ]] || fail "worktree refusal without clone hint: $err"
+s="$(setup clone "$work/sup.git" feat/s s)"
+git -C "$(jq -r .path <<<"$s")/ext" rev-parse -q --verify HEAD >/dev/null || fail "submodule not checked out in clone"
+
 echo "claude-dev-setup: all checks passed"
