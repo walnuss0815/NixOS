@@ -249,8 +249,7 @@ Collect every `NOTE` across rounds for the final report.
   Verification. Write them only from `git_diff` stat, the commit messages
   (`git_log` base..HEAD) and the task's goal, never from plan.md,
   research.md or reviewer output. Verification lists the repository's own
-  commands, relative to its root. Follow the no-leak rule; describe only
-  the change: no future promises. Never merge.
+  commands, relative to its root. Follow the no-leak rule. Never merge.
   - github.com: if `list_pull_requests` on the upstream with `head`
     `<owner>:<branch>` (the fork owner when pushed to the fork) and state
     open finds a PR, do not create or edit one (the push updated it);

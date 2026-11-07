@@ -132,8 +132,9 @@ let
       #    `read_file` takes no wildcards.
       #  - known_hosts, read-only, so sandboxed ssh/git can verify already
       #    trusted hosts. Only the file present at sandbox start stays
-      #    readable (ssh replaces it on rewrite), so github.com is also
-      #    pinned system-wide, see ../../system/common. Deliberately not
+      #    readable (ssh replaces it on rewrite), so github.com and the
+      #    GitLab hosts are also pinned system-wide, see
+      #    ../../system/common. Deliberately not
       #    writable: a compromised agent
       #    could otherwise plant host keys that stay trusted outside the
       #    sandbox. New hosts must be added from outside opencode.
@@ -164,7 +165,7 @@ let
         "$XDG_RUNTIME_DIR/gcr/ssh"
       ];
     };
-    network.block = false; # LLM provider APIs and MCP servers (GitHub, k8s) need it
+    network.block = false; # LLM provider APIs and MCP servers (GitHub, GitLab, k8s) need it
     session_hooks.before = {
       # Runs host-privileged, before the sandbox is applied - this is
       # deliberately outside the profile's filesystem grants above. It
