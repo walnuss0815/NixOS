@@ -42,6 +42,12 @@ expect_exit() {
   done
 )
 
+ocd=https://gitlab.opencode.de/walnuss0815/opendesk-backup
+[ "$(setup gitlab-url "$ocd/-/work_items?sort=created_date&state=opened&show=eyJpaWQiOiIxIiwiZnVsbF9wYXRoIjoid2FsbnVzczA4MTUvb3BlbmRlc2stYmFja3VwIiwiaWQiOjE0MjU2NH0%3D")" = "$ocd/-/work_items/1" ] ||
+  fail "gitlab-url did not decode show="
+[ "$(setup gitlab-url "$ocd/-/issues/7?x=1")" = "$ocd/-/issues/7" ] || fail "gitlab-url changed a direct URL"
+expect_exit 2 gitlab-url "$ocd/-/work_items?show=bm90IGpzb24"
+
 git init -q --bare -b main "$work/origin.git"
 git clone -q "$work/origin.git" "$work/repo" 2>/dev/null
 repo="$work/repo"

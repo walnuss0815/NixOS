@@ -81,7 +81,9 @@ message (or `Task:` from the /claude-dev command); the repository path is
 - Task is an issue or PR/MR URL: on github.com fetch it with
   `issue_read` or `pull_request_read` (methods `get` and `get_comments`);
   on the GitLab hosts with `get_work_item` or `get_merge_request` (`url`,
-  then again with `include: ["notes"]`). Use its title, body and comments
+  then again with `include: ["notes"]`); pass a GitLab issue or work item
+  URL through `claude-dev-setup gitlab-url <url>` first and use the URL it
+  prints (on exit 2, ask for the item's own URL). Use its title, body and comments
   as the task; the repository in the URL is the external repository. Any
   other host: stop and ask for the task text.
 - If the task leaves a material choice open (target behavior, affected

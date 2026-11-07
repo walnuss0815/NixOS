@@ -15,7 +15,7 @@ die() {
 }
 
 usage() {
-  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> | clone <url> <branch> <slug> | in-place <repo>"
+  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> | clone <url> <branch> <slug> | in-place <repo> | gitlab-url <url>"
 }
 
 # Prints the top level of <repo>; refuses non-repos and repos without origin.
@@ -174,6 +174,28 @@ clone_url() {
   fi
 }
 
+# GitLab's work item list opens an item in a side panel and only names it
+# in `show=` (base64 JSON with iid and full_path); the MCP tools need the
+# item's own URL. Direct item URLs pass through unchanged.
+cmd_gitlab_url() {
+  local u="$1" host show json iid path
+  if [[ "$u" =~ ^https://[^/]+/.+/-/(work_items|issues|epics)/[0-9]+([?#].*)?$ ]]; then
+    printf '%s\n' "${u%%[?#]*}"
+    return
+  fi
+  [[ "$u" =~ ^https://([^/]+)/.*[?\&]show=([^\&#]+) ]] || die "not a GitLab work item URL: $u"
+  host="${BASH_REMATCH[1]}"
+  show="${BASH_REMATCH[2]//%3D/=}"
+  show="${show//%2B/+}"
+  show="${show//%2F//}"
+  while [ $((${#show} % 4)) -ne 0 ]; do show="$show="; done
+  json="$(printf '%s' "$show" | base64 -d 2>/dev/null)" || die "cannot decode show= in $u"
+  iid="$(jq -r '.iid // empty' <<<"$json" 2>/dev/null)" || true
+  path="$(jq -r '.full_path // empty' <<<"$json" 2>/dev/null)" || true
+  [[ "$iid" =~ ^[0-9]+$ && -n "$path" ]] || die "no iid/full_path in show= of $u"
+  printf 'https://%s/%s/-/work_items/%s\n' "$host" "$path" "$iid"
+}
+
 cmd_clone() {
   local url branch="$2" slug="$3" name p n=1 b default
   check_names "$branch" "$slug"
@@ -228,6 +250,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     worktree) [ $# -eq 4 ] || usage; cmd_worktree "$2" "$3" "$4" ;;
     clone) [ $# -eq 4 ] || usage; cmd_clone "$2" "$3" "$4" ;;
     in-place) [ $# -eq 2 ] || usage; cmd_in_place "$2" ;;
+    gitlab-url) [ $# -eq 2 ] || usage; cmd_gitlab_url "$2" ;;
     *) usage ;;
   esac
 fi
