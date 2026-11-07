@@ -156,7 +156,8 @@ Continue (task is a PR/MR URL; work on its branch, never a second PR/MR):
   normal cycle from step 2 with that feedback as the task; tell the
   planner the branch already implements the PR/MR, so plan only the
   feedback. Without feedback: ask "Review the PR/MR (fix rounds, then
-  push)" / "Stop"; a review runs like Ship existing (plan.md with the PR/MR
+  push)" / "Stop"; a review runs like Ship existing from its plan.md step
+  on, without its in-place setup (plan.md with the PR/MR
   title and description).
 
 Resume: read `state.md`, `run.json`, and `research.md` / `plan.md` if
@@ -305,7 +306,7 @@ Collect every `NOTE` across rounds for the final report.
 Path, branch, commits, review rounds used, PR/MR URL, whether the branch went
 to origin or the fork, open findings and suggestions, NOTEs (rephrased
 into plain observations), split leftovers. Set `"done": true` in
-run.json. Cleanup: worktree mode `git worktree remove <path>` from the
-original checkout (the branch stays); clone mode `rm -rf <path>`; all
-modes `rm -rf <state_dir>`. Remind the user this session is now on the
+run.json. Cleanup: `claude-dev-setup cleanup <run>` removes the worktree
+(the branch stays) or clone and the state dir, never an in-place
+checkout; run it when the user asks. Remind the user this session is now on the
 `claude-dev` agent.

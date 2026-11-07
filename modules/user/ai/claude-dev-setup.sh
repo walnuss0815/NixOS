@@ -15,7 +15,7 @@ die() {
 }
 
 usage() {
-  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> [--existing <target>] | clone <url> <branch> <slug> [--existing <target>] | in-place <repo> [--target <target>] | gitlab-url <url>"
+  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> [--existing <target>] | clone <url> <branch> <slug> [--existing <target>] | in-place <repo> [--target <target>] | gitlab-url <url> | cleanup <run>"
 }
 
 # Prints the top level of <repo>; refuses non-repos and repos without origin.
@@ -164,7 +164,7 @@ worktree_of() {
 # With a target, works on the existing branch <branch> (a PR/MR) instead
 # of creating one; only the path then gets a collision suffix.
 cmd_worktree() {
-  local repo="$1" branch="$2" slug="$3" target="${4:-}" top origin default name p b n=1 suffix held base
+  local repo="$1" branch="$2" slug="$3" target="${4:-}" top origin default name p b n=1 suffix held base created
   local warnings=()
   if [ -n "$target" ]; then
     check_slug "$slug"
@@ -197,20 +197,29 @@ cmd_worktree() {
     break
   done
   mkdir -p "$root"
+  created=true
   if [ -z "$target" ]; then
-    git -C "$top" worktree add -q --detach "$p" "origin/$default"
-    git -C "$p" checkout -q -b "$b"
+    git -C "$top" worktree add -q --detach "$p" "origin/$default" || die "git worktree add failed for $p"
+    git -C "$p" checkout -q -b "$b" || die "cannot create branch $b"
+  elif git -C "$top" show-ref -q --verify "refs/heads/$b"; then
+    created=false
+    held="$(worktree_of "$top" "$b")"
+    [ -z "$held" ] || die "branch $b is checked out in $held; run from there"
+    [ "$(git -C "$top" rev-parse "$b")" = "$(git -C "$top" rev-parse "origin/$b")" ] ||
+      die "local $b differs from origin/$b"
+    git -C "$top" worktree add -q "$p" "$b" || die "git worktree add failed for $p"
+  else
+    git -C "$top" worktree add -q --track -b "$b" "$p" "origin/$b" || die "git worktree add failed for $p"
+  fi
+  # The checked-out branch may add submodules the original checkout lacks.
+  if has_submodules "$p"; then
+    git -C "$top" worktree remove --force "$p"
+    [ "$created" = true ] && git -C "$top" branch -q -D "$b"
+    die "repository has submodules; use clone mode"
+  fi
+  if [ -z "$target" ]; then
     base="$(git -C "$p" rev-parse HEAD)"
   else
-    if git -C "$top" show-ref -q --verify "refs/heads/$b"; then
-      held="$(worktree_of "$top" "$b")"
-      [ -z "$held" ] || die "branch $b is checked out in $held; run from there"
-      [ "$(git -C "$top" rev-parse "$b")" = "$(git -C "$top" rev-parse "origin/$b")" ] ||
-        die "local $b differs from origin/$b"
-      git -C "$top" worktree add -q "$p" "$b"
-    else
-      git -C "$top" worktree add -q --track -b "$b" "$p" "origin/$b"
-    fi
     base="$(git -C "$p" merge-base "origin/$target" HEAD)"
   fi
   is_dirty "$top" && warnings+=("the original checkout has uncommitted changes; they are not included")
@@ -342,6 +351,37 @@ cmd_in_place() {
   emit_run in-place "$top" "$current" "$(git -C "$top" merge-base "origin/$against" HEAD)" "$default" "$origin" "$target" "${warnings[@]}"
 }
 
+# Removes a run's worktree or clone and its state dir. Only paths below
+# the root are ever deleted; an in-place run's path is the user's own
+# checkout and is never touched.
+cmd_cleanup() {
+  local run="$1" f mode path rroot rpath common removed=""
+  [[ "$run" =~ ^[A-Za-z0-9._-]+$ && "$run" != . && "$run" != .. ]] || die "invalid run name: $run"
+  f="$state_root/$run/run.json"
+  [ -f "$f" ] || die "no such run: $run"
+  mode="$(jq -r .mode "$f")"
+  path="$(jq -r .path "$f")"
+  if [ "$mode" != in-place ]; then
+    rroot="$(realpath -m "$root")"
+    rpath="$(realpath -m "$path")"
+    [[ "$rpath" == "$rroot/"* ]] || die "run path $path is outside $root; nothing removed"
+    if [ "$mode" = worktree ]; then
+      if [ -d "$rpath" ]; then
+        common="$(git -C "$rpath" rev-parse --path-format=absolute --git-common-dir)"
+        git -C "${common%/.git}" worktree remove --force "$rpath"
+        removed="$rpath"
+      else
+        echo "claude-dev-setup: worktree $path is gone; git worktree prune in the original checkout clears its entry" >&2
+      fi
+    elif [ -d "$rpath" ]; then
+      rm -rf "$rpath"
+      removed="$rpath"
+    fi
+  fi
+  rm -rf "${state_root:?}/$run"
+  jq -n --arg run "$run" --arg removed "$removed" '{run: $run, removed_path: (if $removed == "" then null else $removed end)}'
+}
+
 # Sourcing (the test does) only defines the functions.
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case "${1:-}" in
@@ -365,6 +405,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       fi
       ;;
     gitlab-url) [ $# -eq 2 ] || usage; cmd_gitlab_url "$2" ;;
+    cleanup) [ $# -eq 2 ] || usage; cmd_cleanup "$2" ;;
     *) usage ;;
   esac
 fi

@@ -136,4 +136,45 @@ err="$(setup worktree "$work/sup" feat/s s 2>&1 >/dev/null)" && fail "worktree w
 s="$(setup clone "$work/sup.git" feat/s s)"
 git -C "$(jq -r .path <<<"$s")/ext" rev-parse -q --verify HEAD >/dev/null || fail "submodule not checked out in clone"
 
+# A submodule that cannot be fetched fails the clone without leftovers.
+git clone -q "$work/sup.git" "$work/sup2w" 2>/dev/null
+git -C "$work/sup2w" config -f .gitmodules submodule.ext.url "$work/missing.git"
+git -C "$work/sup2w" commit -q -am "break submodule url"
+git init -q --bare -b main "$work/sup2.git"
+git -C "$work/sup2w" push -q "$work/sup2.git" HEAD:main 2>/dev/null
+expect_exit 3 clone "$work/sup2.git" feat/u u
+[ ! -e "$CLAUDE_DEV_ROOT/sup2-u" ] || fail "failed submodule clone left its directory"
+
+# Existing local branches: reused when equal to origin, refused when ahead.
+git -C "$pr" push -q origin origin/main:refs/heads/feat/r origin/main:refs/heads/feat/q 2>/dev/null
+git -C "$pr" fetch -q origin
+git -C "$pr" branch -q feat/r origin/feat/r
+git -C "$pr" branch -q feat/q origin/feat/q
+git -C "$pr" update-ref refs/heads/feat/q "$(git -C "$pr" commit-tree -p feat/q -m ahead 'feat/q^{tree}')"
+check "$(setup worktree "$pr" feat/r pr-r --existing develop)" '.branch == "feat/r"'
+err="$(setup worktree "$pr" feat/q pr-q --existing develop 2>&1 >/dev/null)" && fail "local branch ahead of origin not refused"
+[[ "$err" == *differs* ]] || fail "unexpected refusal: $err"
+
+# cleanup: worktree (branch stays), clone, in-place (checkout stays),
+# unknown run, path outside the root, worktree already gone.
+w2p="$(jq -r .path <<<"$w2")"
+setup cleanup origin-x-slug-2 >/dev/null
+[ ! -e "$w2p" ] && [ ! -e "$CLAUDE_DEV_ROOT-state/origin-x-slug-2" ] || fail "cleanup left the worktree run"
+git -C "$repo" show-ref -q --verify refs/heads/feat/x-2 || fail "cleanup deleted the worktree's branch"
+cp="$(jq -r .path <<<"$c")"
+setup cleanup origin-z >/dev/null
+[ ! -e "$cp" ] || fail "cleanup left the clone"
+expect_exit 2 cleanup no-such-run
+expect_exit 2 cleanup ../x
+setup cleanup origin-feat-y >/dev/null
+[ -d "$repo/.git" ] && [ ! -e "$CLAUDE_DEV_ROOT-state/origin-feat-y" ] || fail "cleanup of an in-place run touched the checkout"
+mkdir "$work/outside"
+f="$CLAUDE_DEV_ROOT-state/pr-pr-x2/run.json"
+jq --arg p "$work/outside" '.path = $p' "$f" >"$f.new" && mv "$f.new" "$f"
+expect_exit 2 cleanup pr-pr-x2
+[ -d "$work/outside" ] && [ -f "$f" ] || fail "refused cleanup changed something"
+git -C "$pr" worktree remove --force "$e1p"
+check "$(setup cleanup pr-pr-x 2>/dev/null)" '.removed_path == null'
+[ ! -e "$CLAUDE_DEV_ROOT-state/pr-pr-x" ] || fail "cleanup of a gone worktree kept its state dir"
+
 echo "claude-dev-setup: all checks passed"
