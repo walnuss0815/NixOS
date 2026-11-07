@@ -209,4 +209,34 @@ expect_exit 3 clone "$work/fork.git" feat/f f2 --existing main --upstream "$work
 expect_exit 2 clone "$work/fork.git" feat/f f3 --upstream "$work/up.git"
 expect_exit 2 worktree "$pr" feat/r pr-r2 --existing develop --upstream "$work/up.git"
 
+# A fork whose default branch is the PR/MR branch.
+git init -q --bare -b dev "$work/fork3.git"
+git -C "$work/upw" push -q "$work/fork3.git" feat/f:refs/heads/dev 2>/dev/null
+check "$(setup clone "$work/fork3.git" dev f4 --existing main --upstream "$work/up.git")" '.branch == "dev"'
+
+# A PR/MR branch that adds .gitmodules refuses a worktree and removes only
+# what this run created: an existing local branch stays, a new one goes.
+git clone -q "$work/pr.git" "$work/prw" 2>/dev/null
+git -C "$work/prw" checkout -q -b feat/sm
+printf '[submodule "x"]\n\tpath = x\n\turl = ../x.git\n' >"$work/prw/.gitmodules"
+git -C "$work/prw" add .gitmodules
+git -C "$work/prw" commit -q -m "add .gitmodules"
+git -C "$work/prw" push -q origin feat/sm feat/sm:refs/heads/feat/sm2 2>/dev/null
+git -C "$pr" fetch -q origin
+git -C "$pr" branch -q feat/sm origin/feat/sm
+err="$(setup worktree "$pr" feat/sm pr-sm --existing main 2>&1 >/dev/null)" && fail "worktree of a branch adding submodules not refused"
+[[ "$err" == *"use clone mode"* ]] || fail "unexpected refusal: $err"
+[ ! -e "$CLAUDE_DEV_ROOT/pr-pr-sm" ] || fail "refused worktree left its directory"
+git -C "$pr" show-ref -q --verify refs/heads/feat/sm || fail "refusal deleted an existing local branch"
+expect_exit 2 worktree "$pr" feat/sm2 pr-sm2 --existing main
+! git -C "$pr" show-ref -q --verify refs/heads/feat/sm2 || fail "refusal kept the branch it created"
+[ ! -e "$CLAUDE_DEV_ROOT/pr-pr-sm2" ] || fail "refused worktree left its directory"
+
+# cleanup refuses run.json files it cannot trust.
+mkdir -p "$CLAUDE_DEV_ROOT-state/bad"
+echo '{"mode":"other","path":"/tmp"}' >"$CLAUDE_DEV_ROOT-state/bad/run.json"
+expect_exit 2 cleanup bad
+echo '{"mode":"clone","path":""}' >"$CLAUDE_DEV_ROOT-state/bad/run.json"
+expect_exit 2 cleanup bad
+
 echo "claude-dev-setup: all checks passed"

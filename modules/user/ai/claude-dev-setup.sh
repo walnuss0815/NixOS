@@ -101,7 +101,7 @@ cmd_pr_source() {
   [ -n "$sha" ] || die "PR/MR head $ref not found in $target"
   for c in "$@"; do
     curl="$(clone_url "$c")"
-    csha="$(git ls-remote "$curl" "refs/heads/$branch" 2>/dev/null || true)"
+    csha="$(git ls-remote "$curl" "refs/heads/$branch" || true)"
     csha="$(awk -v r="refs/heads/$branch" '$2 == r {print $1}' <<<"$csha")"
     if [ "$csha" = "$sha" ]; then
       jq -n --arg u "$curl" --argjson fork "$([ "$curl" = "$turl" ] && echo false || echo true)" \
@@ -337,7 +337,8 @@ cmd_clone() {
       exit 2
     }
     b="$branch"
-    git -C "$p" checkout -q --track -b "$b" "origin/$b"
+    # -B: a fork's default branch can be the PR/MR branch, already local.
+    git -C "$p" checkout -q -B "$b" --track "origin/$b"
     base="$(git -C "$p" merge-base "$tremote/$target" HEAD)"
   else
     b="$branch"
@@ -396,6 +397,11 @@ cmd_cleanup() {
   [ -f "$f" ] || die "no such run: $run"
   mode="$(jq -r .mode "$f")"
   path="$(jq -r .path "$f")"
+  case "$mode" in
+    worktree | clone) [ -n "$path" ] && [ "$path" != null ] || die "run $run has no path" ;;
+    in-place) ;;
+    *) die "run $run has an unknown mode: $mode" ;;
+  esac
   if [ "$mode" != in-place ]; then
     rroot="$(realpath -m "$root")"
     rpath="$(realpath -m "$path")"
