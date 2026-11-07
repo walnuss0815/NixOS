@@ -30,7 +30,16 @@ expect_exit() {
   for u in https://github.com/o/r https://github.com/o/r.git https://github.com/o/r/tree/main o/r; do
     [ "$(clone_url "$u")" = git@github.com:o/r.git ] || fail "clone_url $u -> $(clone_url "$u")"
   done
-  [ "$(clone_url https://gitlab.example/o/r.git)" = https://gitlab.example/o/r.git ] || fail "non-github URL rewritten"
+  [ "$(clone_url https://gitlab.example/o/r.git)" = https://gitlab.example/o/r.git ] || fail "unknown host rewritten"
+  for c in \
+    "https://gitlab.com/g/s/p git@gitlab.com:g/s/p.git" \
+    "https://gitlab.com/g/p.git git@gitlab.com:g/p.git" \
+    "https://gitlab.com/g/p/ git@gitlab.com:g/p.git" \
+    "https://gitlab.opencode.de/g/p/-/tree/main git@gitlab.opencode.de:g/p.git" \
+    "https://gitlab.opencode.de/g/s/p/-/merge_requests/3 git@gitlab.opencode.de:g/s/p.git"; do
+    set -- $c
+    [ "$(clone_url "$1")" = "$2" ] || fail "clone_url $1 -> $(clone_url "$1")"
+  done
 )
 
 git init -q --bare -b main "$work/origin.git"

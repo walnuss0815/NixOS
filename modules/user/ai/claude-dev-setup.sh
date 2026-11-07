@@ -155,12 +155,18 @@ cmd_worktree() {
   emit_run worktree "$p" "$b" "$(git -C "$p" rev-parse HEAD)" "$default" "$origin" "${warnings[@]}"
 }
 
-# GitHub HTTPS cannot authenticate non-interactively, so it becomes SSH;
-# a path after owner/repo (e.g. /tree/main) is dropped. Other hosts as given.
+# HTTPS cannot authenticate non-interactively, so GitHub and the GitLab
+# hosts with MCP servers become SSH; a path after the project (GitHub:
+# after owner/repo, GitLab: from /-/ on, groups may be nested) is
+# dropped. Other hosts as given.
 clone_url() {
-  local u="$1"
+  local u="$1" p
   if [[ "$u" =~ ^https://github\.com/([^/]+)/([^/]+) ]]; then
     printf 'git@github.com:%s/%s.git\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]%.git}"
+  elif [[ "$u" =~ ^https://(gitlab\.com|gitlab\.opencode\.de)/(.+)$ ]]; then
+    p="${BASH_REMATCH[2]%%/-/*}"
+    p="${p%/}"
+    printf 'git@%s:%s.git\n' "${BASH_REMATCH[1]}" "${p%.git}"
   elif [[ "$u" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] && [ ! -e "$u" ]; then
     printf 'git@github.com:%s.git\n' "${u%.git}"
   else
