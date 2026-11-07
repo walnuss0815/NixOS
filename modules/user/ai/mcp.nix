@@ -2,7 +2,31 @@
 # merged into opencode's config via programs.opencode.enableMcpIntegration
 # (see ./opencode.nix); the per-tool permission rules for them live next
 # to that setting.
-{ pkgs, ... }: {
+{ pkgs, lib, ... }:
+let
+  # Official GitLab MCP server, built into every GitLab instance. Remote
+  # with OAuth: sign in once per server via `/mcps`, so no token lives in
+  # Nix or the vault. Like GITHUB_TOOLS below, the header is an exact
+  # allowlist, so merge tools (accept_merge_request) do not exist in the
+  # session. Approval rules live in ./opencode.nix (gitlabRules). New
+  # instances must be named "gitlab-*": the claude-dev subagents deny
+  # that pattern.
+  gitlabTools = [
+    "get_project"
+    "get_work_item"
+    "get_merge_request"
+    "list_merge_requests"
+    "save_merge_request"
+    "list_pipelines"
+    "get_pipeline"
+    "get_job"
+  ];
+  gitlab = host: {
+    url = "https://${host}/api/v4/mcp";
+    headers."X-Gitlab-Enabled-Mcp-Server-Tools" = lib.concatStringsSep "," gitlabTools;
+  };
+in
+{
   programs.mcp = {
     enable = true;
     servers = {
@@ -107,6 +131,9 @@
       git = {
         command = "${pkgs.callPackage ../../../pkgs/git-mcp-server { }}/bin/git-mcp-server";
       };
+
+      gitlab-com = gitlab "gitlab.com";
+      gitlab-ocd = gitlab "gitlab.opencode.de";
     };
   };
 }

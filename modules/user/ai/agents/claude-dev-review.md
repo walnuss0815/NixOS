@@ -14,6 +14,7 @@ permissions:
   - { action: "git_git_blame", resource: "*", effect: allow }
   - { action: "kubernetes_*", resource: "*", effect: deny }
   - { action: "github_*", resource: "*", effect: deny }
+  - { action: "gitlab-*", resource: "*", effect: deny }
 ---
 You review changes. You never modify files or git state. For git use only
 the git MCP tools, after `git_set_working_dir` with the given path; never

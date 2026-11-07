@@ -17,6 +17,17 @@ let
   rule = effect: action: resource: { inherit action resource effect; };
   tool = effect: action: rule effect action "*";
 
+  # GitLab MCP servers (./mcp.nix, exact tool allowlist there): every
+  # loaded get_*/list_* tool is a lookup, the rest (save_merge_request)
+  # asks. accept_merge_request is not loaded; the deny is a second line of
+  # defense should the allowlist header ever be ignored.
+  gitlabRules = server: [
+    (tool "ask" "${server}_*")
+    (tool "allow" "${server}_get_*")
+    (tool "allow" "${server}_list_*")
+    (tool "deny" "${server}_accept_merge_request")
+  ];
+
   # Model IDs for every agent below; bump here only.
   opus = "anthropic/claude-opus-5-5";
   sonnet = "anthropic/claude-sonnet-5-5";
@@ -454,7 +465,9 @@ in
         # create_pull_request, update_pull_request, add_issue_comment
         # (publish on GitHub); create_repository, fork_repository
         # (create a repository on GitHub).
-      ];
+      ]
+      ++ gitlabRules "gitlab-com"
+      ++ gitlabRules "gitlab-ocd";
       # All plugins are pinned to an exact version rather than @latest.
       # opencode caches each plugin under a directory keyed by this literal
       # spec string, with its own lockfile inside, so "@latest" does not

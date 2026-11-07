@@ -15,6 +15,7 @@ permissions:
   - { action: "git_git_blame", resource: "*", effect: allow }
   - { action: "kubernetes_*", resource: "*", effect: deny }
   - { action: "github_*", resource: "*", effect: deny }
+  - { action: "gitlab-*", resource: "*", effect: deny }
 ---
 You plan code changes. You do not edit repository files; the only file
 you write is the given `plan.md`. For git history use only the git MCP

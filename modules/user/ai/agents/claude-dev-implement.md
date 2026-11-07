@@ -12,6 +12,7 @@ permissions:
   - { action: "git_git_commit", resource: "*", effect: allow }
   - { action: "kubernetes_*", resource: "*", effect: deny }
   - { action: "github_*", resource: "*", effect: deny }
+  - { action: "gitlab-*", resource: "*", effect: deny }
 ---
 You implement a given plan on the given branch, step by step. Read the
 plan from the given `plan.md` and the research notes from the given
