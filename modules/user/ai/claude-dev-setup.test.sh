@@ -85,4 +85,38 @@ f="$CLAUDE_DEV_ROOT-state/origin-x-slug/run.json"
 jq '.done = true' "$f" >"$f.new" && mv "$f.new" "$f"
 check "$(setup list)" 'length == 4 and all(.path_exists)'
 
+# Existing PR/MR branches: main, develop (+1) and feat/x (on develop, +1).
+git init -q --bare -b main "$work/pr.git"
+git clone -q "$work/pr.git" "$work/pr" 2>/dev/null
+pr="$work/pr"
+git -C "$pr" commit -q --allow-empty -m one
+git -C "$pr" push -q -u origin main 2>/dev/null
+git -C "$pr" checkout -q -b develop
+git -C "$pr" commit -q --allow-empty -m dev
+git -C "$pr" checkout -q -b feat/x
+git -C "$pr" commit -q --allow-empty -m x
+git -C "$pr" push -q origin develop feat/x 2>/dev/null
+git -C "$pr" checkout -q main
+git -C "$pr" branch -q -D feat/x develop
+
+e1="$(setup worktree "$pr" feat/x pr-x --existing main)"
+e1p="$(jq -r .path <<<"$e1")"
+check "$e1" ".branch == \"feat/x\" and .existing and .target == \"main\" and .base == \"$(git -C "$pr" merge-base origin/main origin/feat/x)\""
+[ "$(git -C "$e1p" rev-parse HEAD)" = "$(git -C "$pr" rev-parse origin/feat/x)" ] || fail "existing worktree not at origin/feat/x"
+expect_exit 2 worktree "$pr" feat/x pr-x --existing main
+expect_exit 2 worktree "$pr" feat/none pr-none --existing main
+expect_exit 2 worktree "$pr" main pr-main --existing develop
+
+e2="$(setup clone "$work/pr.git" feat/x pr-x2 --existing develop)"
+e2p="$(jq -r .path <<<"$e2")"
+check "$e2" ".target == \"develop\" and .base == \"$(git -C "$e2p" merge-base origin/develop HEAD)\""
+[ "$(git -C "$e2p" rev-parse --abbrev-ref '@{upstream}')" = origin/feat/x ] || fail "existing clone does not track origin/feat/x"
+expect_exit 2 clone "$work/pr.git" feat/none pr-miss --existing main
+[ ! -e "$CLAUDE_DEV_ROOT/pr-pr-miss" ] || fail "failed existing clone left its directory"
+
+git -C "$pr" checkout -q -b feat/y origin/develop
+git -C "$pr" commit -q --allow-empty -m y
+check "$(setup in-place "$pr" --target develop)" ".existing and .target == \"develop\" and .base == \"$(git -C "$pr" merge-base origin/develop HEAD)\""
+expect_exit 2 in-place "$pr" --target nope
+
 echo "claude-dev-setup: all checks passed"

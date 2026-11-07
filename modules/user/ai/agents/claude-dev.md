@@ -78,14 +78,15 @@ message (or `Task:` from the /claude-dev command); the repository path is
 
 ## 1. Setup (stop and explain on any failure)
 - No task: stop.
-- Task is an issue or PR/MR URL: on github.com fetch it with
-  `issue_read` or `pull_request_read` (methods `get` and `get_comments`);
-  on the GitLab hosts with `get_work_item` or `get_merge_request` (`url`,
-  then again with `include: ["notes"]`); pass a GitLab issue or work item
-  URL through `claude-dev-setup gitlab-url <url>` first and use the URL it
-  prints (on exit 2, ask for the item's own URL). Use its title, body and comments
-  as the task; the repository in the URL is the external repository. Any
-  other host: stop and ask for the task text.
+- Task is an issue URL: on github.com fetch it with `issue_read` (methods
+  `get` and `get_comments`); on the GitLab hosts pass it through
+  `claude-dev-setup gitlab-url <url>` first (on exit 2, ask for the item's
+  own URL), then `get_work_item` with the URL it prints, once plain and
+  once with `include: ["notes"]`. Use its title, body and comments as the
+  task; the repository in the URL is the external repository. Any other
+  host: stop and ask for the task text.
+- Task is a PR/MR URL: continue mode, see Continue below; it replaces the
+  rest of this section's mode choice.
 - If the task leaves a material choice open (target behavior, affected
   area, acceptance criteria), ask with the question tool: one round of at
   most 3 questions; append questions and answers below the task. A clear
@@ -103,8 +104,10 @@ Existing runs: `claude-dev-setup list`. In worktree mode, `git_fetch`
 - A listed run with the same host and repository path (see Hosts;
   worktree mode: probe's `origin_url`, clone mode: the URL from the task,
   bare `owner/repo` = github.com) and `path_exists`: ask "Resume <run>
-  (<branch>, <n> commits)" / "Start fresh" / "Stop".
-- Else, in worktree mode, if probe shows `ahead > 0` and a non-empty
+  (<branch>, <n> commits)" / "Start fresh" / "Stop". In continue mode only
+  a run on the PR/MR's branch counts, and a worktree run offers only
+  "Resume" / "Stop" (its worktree holds the branch).
+- Else, in worktree mode (not continue mode), if probe shows `ahead > 0` and a non-empty
   `current_branch` other than `default_branch`: ask "Ship existing work on
   <branch>" / "Start
   fresh from origin/<default>" / "Stop". A dirty tree is reported in the
@@ -116,7 +119,9 @@ or `claude-dev-setup clone <url> <branch> <slug>`. It returns `{run,
 mode, path, state_dir, branch, base, default_branch, origin_url,
 warnings}`; print the warnings. Exit 2 or 3: stop and print its stderr; on
 `Host key verification failed` add that the host must be added to
-`~/.ssh/known_hosts` outside opencode. Then `git_set_working_dir` with
+`~/.ssh/known_hosts` outside opencode, on `Permission denied (publickey)`
+that the SSH key is not registered on that host (user settings → SSH
+keys). Then `git_set_working_dir` with
 `path`. From here on, "path" means that worktree or clone; every subagent
 works only inside it (shell workdir, absolute file paths).
 
@@ -126,6 +131,31 @@ failures are an unknown baseline. Write `<state_dir>/plan.md` yourself:
 `Approved: yes (existing work)`, the task, and `git_diff` with `stat`
 (source: base, target: HEAD). Go to step 5, round 1. Fix rounds commit on
 this branch in the original checkout.
+
+Continue (task is a PR/MR URL; work on its branch, never a second PR/MR):
+- Fetch it: github.com `pull_request_read` (methods `get`, `get_comments`
+  and `get_review_comments`); GitLab hosts `get_merge_request` (`url`,
+  once plain and once with `include: ["notes"]`). Not open: stop and
+  report its state. github.com head repository different from the base
+  repository: stop, PRs from forks are not supported. Branch = head ref /
+  `sourceBranch`; target = base ref / `targetBranch`.
+- If the repository path is a git repository: `git_fetch` (origin) on it,
+  then `claude-dev-setup probe <repository path>` (exit 2 only means it is
+  not that repository). Probe's origin is the PR/MR's repository (Hosts
+  rule) and `current_branch` is the branch: `claude-dev-setup in-place
+  <repository path> --target <target>` (dirty tree: ask to commit first).
+  Same repository, other branch: `claude-dev-setup worktree <repository
+  path> <branch> <slug> --existing <target>`. Otherwise: `claude-dev-setup
+  clone <the PR/MR's repository URL> <branch> <slug> --existing <target>`.
+  Exit 2 or 3 as for a fresh run; then `git_set_working_dir` with `path`.
+- The task is the PR/MR's title and description as context, and as work
+  only its open feedback: unresolved review threads or discussions, and
+  comments after its last commit that ask for changes. With feedback: the
+  normal cycle from step 2 with that feedback as the task; tell the
+  planner the branch already implements the PR/MR, so plan only the
+  feedback. Without feedback: ask "Review the PR/MR (fix rounds, then
+  push)" / "Stop"; a review runs like Ship existing (plan.md with the PR/MR
+  title and description).
 
 Resume: read `state.md`, `run.json`, and `research.md` / `plan.md` if
 present from the run's state dir; `git_set_working_dir` with its path;
@@ -230,7 +260,8 @@ Collect every `NOTE` across rounds for the final report.
   forceWithLease or delete, and never push the default branch.
 - If the push was refused for missing permission (HTTP 403, "not
   allowed", `Permission to <owner>/<repo>.git denied to <user>`) and the
-  host is github.com: ask with the question tool: header "Fork",
+  host is github.com (not in continue mode, where it stops like on
+  GitLab): ask with the question tool: header "Fork",
   question "No push access to `<owner>/<repo>`. Push to your fork instead
   (created if it does not exist)?", options "Use fork" and "Stop". An
   authentication failure (`Permission denied (publickey)`,
@@ -246,6 +277,9 @@ Collect every `NOTE` across rounds for the final report.
 - Any other push error: stop and report, do not retry. Host without PR/MR
   tools (see Hosts): stop after the push and report the branch (open the
   PR/MR manually).
+- run.json has `"existing": true` (continue mode, also after a resume):
+  the push updated the PR/MR; never create or edit one, report its URL and
+  skip the rest of this step.
 - Open a draft PR/MR into the default branch. Title: Conventional Commits
   style summary, ≤72 chars. Body: exactly the sections Summary, Changes,
   Verification. Write them only from `git_diff` stat, the commit messages
