@@ -9,6 +9,7 @@
           "explorer.confirmDelete" = false;
           "git.autofetch" = true;
           "git.confirmSync" = false;
+          "git.pullTags" = false;
           "git.terminalAuthentication" = false;
           "files.eol" = "\n";
           "files.insertFinalNewline" = true;
