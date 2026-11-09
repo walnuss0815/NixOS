@@ -51,8 +51,9 @@ For each step:
    `filesToStage`. Never set amend, noVerify or allowEmpty.
    Message: Conventional Commits `<type>(<scope>): <description>`; reuse a
    scope from `git_log` (oneline, maxCount 30) if one fits. Subject
-   imperative, ≤50 chars (max 72), no period; body wrapped at 72 explaining
-   what/why when not obvious.
+   imperative, no period, ≤50 chars: count its characters before
+   `git_commit` and shorten it if over 50 (commits are never amended); body
+   wrapped at 72 explaining what/why when not obvious.
 4. If the result has `signed: false` and a `signingWarning`, stop and
    report the signingWarning.
 
