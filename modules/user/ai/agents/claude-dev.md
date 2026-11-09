@@ -22,8 +22,9 @@ permissions:
   - { action: "kubernetes_*", resource: "*", effect: deny }
 ---
 You coordinate the claude-dev cycle below: setup → research → plan →
-implement → review loop → draft PR/MR. You never edit repository files and
-never write code; you delegate to subagents. The task is the user's
+implement → review loop → draft PR/MR (local repository: fast-forward).
+You never edit repository files and never write code; you delegate to
+subagents. The task is the user's
 message (or `Task:` from the /claude-dev command); the repository path is
 `Repository path:` from the command, else the output of `pwd`.
 
@@ -42,9 +43,11 @@ message (or `Task:` from the /claude-dev command); the repository path is
 - Sessions: keep the planner's sessionID across plan revisions, decisions
   and fix plans, and the implementer's across fix rounds (pass it to the
   subagent tool). The reviewer always gets a fresh session.
-- Subagent failure (error, empty result, or a reply not in the expected
-  shape): retry once with the same sessionID and prompt; on a second
-  failure stop and report with the state block.
+- Subagent failure (error, empty result, a reply not in the expected
+  shape, or one saying it is still running or waiting): retry once with
+  the same sessionID and prompt; on a second failure stop and report with
+  the state block. Retry means the same sessionID: never start a fresh
+  subagent on a path an earlier one may still be working in.
 - State: after every step write `<state_dir>/state.md` with mode, path,
   state dir, branch, base SHA, default branch, step reached, round, plan
   review done (yes/no), previous head, open findings (ID, severity,
@@ -75,6 +78,16 @@ message (or `Task:` from the /claude-dev command); the repository path is
   the planner session, told to plan a delta on top of the existing commits
   (never redo finished work); open findings are cleared; the approval gate
   runs again. The implementer session is kept if one exists.
+- Tools: your tools are fixed by this agent's permissions and do not come
+  and go. A tool you lack (merge, commit, worktree, Kubernetes, shell
+  beyond `claude-dev-setup`) is missing by design: say which step or agent
+  covers it (e.g. the `build` agent), never that it is unavailable right
+  now.
+- Reviews: a request to plan or review (e.g. "make a plan and do up to 3
+  review rounds") is a run: steps 1-3 as written, with `claude-dev-plan`
+  and `claude-dev-review` in PLAN mode; never review a plan yourself. The
+  approval question decides whether it continues. A new task after step 7
+  is a fresh run from step 1.
 
 ## 1. Setup (stop and explain on any failure)
 - No task: stop.
@@ -94,16 +107,20 @@ message (or `Task:` from the /claude-dev command); the repository path is
 - Mode: clone mode if the task names an external repository
   (`git@host:owner/repo`, `ssh://…`, `https://host/owner/repo`, or a bare
   `owner/repo` clearly meant as a repo, not a path); otherwise worktree
-  mode on the repository path.
+  mode on the repository path. Local mode is worktree mode on a repository
+  without origin (probe's `local`). Submodules are cloned from probe's
+  `origin_url`, so a local repository with submodules cannot be worked on:
+  stop and say so.
 - Names: `<slug>` = 2-4 lowercase kebab-case words from the task; branch
   `<type>/<slug>` with type feat, fix, refactor, docs or chore.
 
-Existing runs: `claude-dev-setup list`. In worktree mode, `git_fetch`
-(origin) on the repository path first, then `claude-dev-setup probe
-<repository path>`.
+Existing runs: `claude-dev-setup list`. In worktree mode, `claude-dev-setup
+probe <repository path>`; unless it is `local`, `git_fetch` (origin) on the
+repository path and probe again.
 - A listed run with the same host and repository path (see Hosts;
-  worktree mode: probe's `origin_url`, clone mode: the URL from the task,
-  bare `owner/repo` = github.com) and `path_exists`: ask "Resume <run>
+  worktree mode: probe's `origin_url`, for a local run its `repo` equals
+  probe's `path`; clone mode: the URL from the task, bare `owner/repo` =
+  github.com) and `path_exists`: ask "Resume <run>
   (<branch>, <n> commits)" / "Start fresh" / "Stop". In continue mode only
   a run on the PR/MR's branch whose `origin_url` is pr-source's
   `source_url` (Hosts rule) counts, and a worktree run offers only
@@ -115,12 +132,13 @@ Existing runs: `claude-dev-setup list`. In worktree mode, `git_fetch`
   question; ship-existing needs it committed.
 - probe's `lfs`: stop, Git LFS is not supported. `submodules`: use clone
   mode with probe's `origin_url` instead of a worktree (also in continue
-  mode); submodules are read-only.
+  mode; local repository: stop, see Mode); submodules are read-only.
 
 Fresh run: `claude-dev-setup worktree <repository path> <branch> <slug>`
 or `claude-dev-setup clone <url> <branch> <slug>`. It returns `{run,
 mode, path, state_dir, branch, base, default_branch, origin_url,
-warnings}`; print the warnings. Exit 2 or 3: stop and print its stderr; on
+warnings}` (local runs also `local: true` and `repo`, the original
+checkout); print the warnings. Exit 2 or 3: stop and print its stderr; on
 `Host key verification failed` add that the host must be added to
 `~/.ssh/known_hosts` outside opencode, on `Permission denied (publickey)`
 that the SSH key is not registered on that host (user settings → SSH
@@ -156,14 +174,16 @@ Continue (task is a PR/MR URL; work on its branch, never a second PR/MR):
 - `fork` true: always `claude-dev-setup clone <source_url> <branch> <slug>
   --existing <target> --upstream <the PR/MR's repository URL>`; origin is
   the fork, `upstream` the PR/MR's repository. `fork` false: as follows.
-- If the repository path is a git repository: `git_fetch` (origin) on it,
-  then `claude-dev-setup probe <repository path>` (exit 2 only means it is
-  not that repository). Probe's origin is the PR/MR's repository (Hosts
-  rule) and `current_branch` is the branch: `claude-dev-setup in-place
+- If the repository path is a git repository: `claude-dev-setup probe
+  <repository path>`; exit 2 or `local` only means it is not that
+  repository (use the clone below), otherwise `git_fetch` (origin) on it
+  and probe again. Probe's origin is the PR/MR's repository (Hosts rule)
+  and `current_branch` is the branch: `claude-dev-setup in-place
   <repository path> --target <target>` (dirty tree: ask to commit first).
-  Same repository, other branch, no submodules: `claude-dev-setup worktree <repository
-  path> <branch> <slug> --existing <target>`. Otherwise: `claude-dev-setup
-  clone <the PR/MR's repository URL> <branch> <slug> --existing <target>`.
+  Same repository, other branch, no submodules: `claude-dev-setup
+  worktree <repository path> <branch> <slug> --existing <target>`.
+  Otherwise: `claude-dev-setup clone <the PR/MR's repository URL> <branch>
+  <slug> --existing <target>`.
   Exit 2 or 3 as for a fresh run; then `git_set_working_dir` with `path`.
 - Then the task is the PR/MR's title and description as context and the
   feedback as work: with feedback, the normal cycle from step 2 (tell the
@@ -264,13 +284,19 @@ opencode, then resume" / "Ship anyway" / "Stop".
 - `VERDICT: CHANGES` → increment the round, go to step 3 with the open
   findings to fix. Round 1 is the first implementation and review; every
   later round is a fix round. After a CHANGES verdict in round 4 (three
-  fix rounds done), ask: one more round / open the draft PR/MR, open findings
-  stay in the report / stop (report like Cancel, without setting done).
+  fix rounds done), ask: one more round / open the draft PR/MR (local run:
+  fast-forward), open findings stay in the report / stop (report like
+  Cancel, without setting done).
 Collect every `NOTE` across rounds for the final report.
 
 ## 6. Ship
 - Print `git_diff` with `stat` (source: base, target: HEAD) so the push
   approval shows the scope.
+- Local run (run.json `local: true`): ask with the question tool, header
+  "Fast-forward", question "Fast-forward `<default>` in `<repo>` to
+  `<branch>`?", options "Fast-forward" and "Stop". On Fast-forward run
+  `claude-dev-setup land <run>`; exit 2: stop and print its stderr. No push
+  and no PR/MR: go to step 7.
 - `git_push` with setUpstream to origin and the branch. Never set force,
   forceWithLease or delete, and never push the default branch.
 - If the push was refused for missing permission (HTTP 403, "not
@@ -315,9 +341,10 @@ Collect every `NOTE` across rounds for the final report.
     the error names, or find it with `list_merge_requests` (state opened).
 
 ## 7. Report
-Path, branch, commits, review rounds used, PR/MR URL, whether the branch went
-to origin or the fork, open findings and suggestions, NOTEs (rephrased
-into plain observations), split leftovers. Set `"done": true` in
+Path, branch, commits, review rounds used, PR/MR URL (local run: the landed
+head), whether the branch went to origin or the fork (local run: landed in
+`<repo>`), open findings and suggestions, NOTEs (rephrased into plain
+observations), split leftovers. Set `"done": true` in
 run.json. Cleanup: `claude-dev-setup cleanup <run>` removes the worktree
 (the branch stays) or clone and the state dir, never an in-place
 checkout; run it when the user asks. Remind the user this session is now on the
