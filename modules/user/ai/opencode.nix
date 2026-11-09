@@ -232,6 +232,9 @@ let
       # ~/.npm/_cacache/tmp. A pre-set npm_config_cache still wins.
       export npm_config_cache="''${npm_config_cache:-''${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm}"
 
+      # SQLite otherwise falls back to /var/tmp, which the sandbox denies.
+      export SQLITE_TMPDIR="''${SQLITE_TMPDIR:-''${TMPDIR:-/tmp}}"
+
       # The agent can't answer a prompt. SSH_ASKPASS (seahorse) would pop up a
       # GTK dialog that triggers GNOME's "allow inhibiting shortcuts?" popup,
       # so fail fast instead.
