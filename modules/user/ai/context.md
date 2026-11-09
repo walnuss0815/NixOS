@@ -22,6 +22,10 @@ opencode runs inside the nono sandbox. EACCES/EPERM on a path outside the grante
 
 MCP tools available to you (configured and permitted for your agent) are listed by `search` in Code Mode. A tool `search` does not list, or one that fails with `Unknown tool`, is not available to you: report which one you need instead of falling back to the shell or asking the user to run it.
 
+Shell deny rules (`git`, `kubectl`, `rm -rf`, …) match every command in a compound line such as `cd x && git log`. Set the shell tool's `workdir` instead of `cd x &&`, and keep denied commands out of the shell instead of retrying variants.
+
+The glob tool takes the directory in `path` and a relative `pattern`; an absolute pattern finds nothing.
+
 ## Trailing Newline (mandatory)
 
 CRITICAL: Every file you create or edit MUST end with a newline character (`\n`) as its final byte.
@@ -77,6 +81,8 @@ Break the task down into independent subtasks. For every independent subtask, la
 
 ## Long-running Commands
 
-- Don't detach processes from the shell (`&`, `nohup`, `setsid`, `disown`). Use the shell tool's `background` option so the harness tracks the process.
+- Don't detach processes from the shell (`&`, `nohup`, `setsid`, `disown`).
+- Subagents: never use the shell tool's `background` option and never end a reply while a command you started is still running; your caller is told you finished the moment you stop. Run long commands in the foreground with the shell tool's `timeout` above the command's own `timeout`.
+- Primary agents: use the shell tool's `background` option so the harness tracks the process.
 - Wrap long or loop-heavy commands in `timeout` (e.g. `timeout 15m ./script.sh`). Builtins and pipelines need a shell wrapper: `timeout 15m sh -c '...'`. On exit code 124 (timeout hit), report it instead of silently retrying.
 - Before finishing a task, check with `pgrep`/`ps` that no processes you started are still running, and stop any strays.
