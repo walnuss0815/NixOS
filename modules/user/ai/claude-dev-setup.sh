@@ -15,15 +15,27 @@ die() {
 }
 
 usage() {
-  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> [--existing <target>] | clone <url> <branch> <slug> [--existing <target> [--upstream <url>]] | pr-source <target-url> <branch> <pr-ref> <candidate-url>... | in-place <repo> [--target <target>] | gitlab-url <url> | cleanup <run>"
+  die "usage: claude-dev-setup probe <repo> | list | worktree <repo> <branch> <slug> [--existing <target>] | clone <url> <branch> <slug> [--existing <target> [--upstream <url>]] | pr-source <target-url> <branch> <pr-ref> <candidate-url>... | in-place <repo> [--target <target>] | gitlab-url <url> | land <run> | cleanup <run>"
 }
 
-# Prints the top level of <repo>; refuses non-repos and repos without origin.
+# Prints the top level of <repo>; refuses non-repos.
 top_of() {
   local top
   top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || die "not a git repository: $1"
-  git -C "$top" remote get-url origin >/dev/null 2>&1 || die "no origin remote in $top"
   printf '%s\n' "$top"
+}
+
+# Prints the origin URL, or nothing for a repository without origin (local mode).
+origin_of() {
+  git -C "$1" remote get-url origin 2>/dev/null || true
+}
+
+# Without origin, the default branch is the one checked out in the original checkout.
+local_default() {
+  local b
+  b="$(git -C "$1" branch --show-current)"
+  [ -n "$b" ] || die "HEAD is detached in $1; check out the default branch first"
+  printf '%s\n' "$b"
 }
 
 has_submodules() {
@@ -113,10 +125,11 @@ cmd_pr_source() {
 }
 
 # Writes run.json into the run's state dir and prints it. A non-empty
-# target marks a run on an existing PR/MR branch.
+# target marks a run on an existing PR/MR branch; an empty origin marks a
+# local run, landed by `land` in <repo> (the original checkout).
 emit_run() {
-  local mode="$1" path="$2" branch="$3" base="$4" default="$5" origin="$6" target="$7"
-  shift 7
+  local mode="$1" path="$2" branch="$3" base="$4" default="$5" origin="$6" target="$7" repo="$8"
+  shift 8
   local run state_dir json n=2
   run="$(basename "$path")"
   if [ "$mode" = in-place ]; then
@@ -133,31 +146,38 @@ emit_run() {
   json="$(jq -n \
     --arg run "$run" --arg mode "$mode" --arg path "$path" --arg state_dir "$state_dir" \
     --arg branch "$branch" --arg base "$base" --arg default_branch "$default" \
-    --arg origin_url "$origin" --arg target "$target" \
+    --arg origin_url "$origin" --arg target "$target" --arg repo "$repo" \
     '{run: $run, mode: $mode, path: $path, state_dir: $state_dir, branch: $branch,
       base: $base, default_branch: $default_branch, origin_url: $origin_url,
       warnings: $ARGS.positional}
-      + if $target == "" then {} else {existing: true, target: $target} end' --args "$@")"
+      + if $target == "" then {} else {existing: true, target: $target} end
+      + if $origin_url == "" then {"local": true, repo: $repo} else {} end' --args "$@")"
   printf '%s\n' "$json" >"$state_dir/run.json"
   printf '%s\n' "$json"
 }
 
 cmd_probe() {
-  local top origin default current ahead dirty=false sub=false lfs=false
+  local top origin default current ahead=0 dirty=false sub=false lfs=false is_local=false
   top="$(top_of "$1")"
-  origin="$(git -C "$top" remote get-url origin)"
-  default="$(default_branch "$top")"
+  origin="$(origin_of "$top")"
+  if [ -n "$origin" ]; then
+    default="$(default_branch "$top")"
+    ahead="$(git -C "$top" rev-list --count "origin/$default..HEAD" 2>/dev/null || echo 0)"
+  else
+    default="$(local_default "$top")"
+    is_local=true
+  fi
   current="$(git -C "$top" branch --show-current)"
-  ahead="$(git -C "$top" rev-list --count "origin/$default..HEAD" 2>/dev/null || echo 0)"
   is_dirty "$top" && dirty=true
   has_submodules "$top" && sub=true
   has_lfs "$top" && lfs=true
   jq -n --arg path "$top" --arg origin_url "$origin" --arg default_branch "$default" \
     --arg current_branch "$current" --argjson ahead "$ahead" \
     --argjson dirty "$dirty" --argjson sub "$sub" --argjson lfs "$lfs" \
+    --argjson is_local "$is_local" \
     '{path: $path, origin_url: $origin_url, default_branch: $default_branch,
       current_branch: $current_branch, ahead: $ahead, dirty: $dirty,
-      submodules: $sub, lfs: $lfs}'
+      submodules: $sub, lfs: $lfs, "local": $is_local}'
 }
 
 cmd_list() {
@@ -175,7 +195,7 @@ cmd_list() {
     fi
     out="$(jq --slurpfile r "$f" --argjson exists "$exists" --argjson ahead "$ahead" \
       '. + [$r[0] | {run, mode, path, path_exists: $exists, branch, origin_url,
-        commits_ahead_of_base: $ahead}]' <<<"$out")"
+        "local": (.local // false), repo, commits_ahead_of_base: $ahead}]' <<<"$out")"
   done
   printf '%s\n' "$out"
 }
@@ -189,8 +209,8 @@ worktree_of() {
 # With a target, works on the existing branch <branch> (a PR/MR) instead
 # of creating one; only the path then gets a collision suffix.
 cmd_worktree() {
-  local repo="$1" branch="$2" slug="$3" target="${4:-}" top origin default name p b n=1 suffix held base created
-  local warnings=()
+  local repo="$1" branch="$2" slug="$3" target="${4:-}" top origin default name p b n=1 suffix held base created startref
+  local warnings=() submsg="repository has submodules; use clone mode"
   if [ -n "$target" ]; then
     check_slug "$slug"
     check_ref "$branch"
@@ -199,14 +219,22 @@ cmd_worktree() {
     check_names "$branch" "$slug"
   fi
   top="$(top_of "$repo")"
+  origin="$(origin_of "$top")"
+  [ -n "$origin" ] || submsg="repository has submodules; clone mode needs an origin"
   # git-worktree's own docs call submodule support in worktrees incomplete.
-  has_submodules "$top" && die "repository has submodules; use clone mode"
+  has_submodules "$top" && die "$submsg"
   has_lfs "$top" && die "Git LFS is not supported"
-  origin="$(git -C "$top" remote get-url origin)"
-  git -C "$top" fetch -q origin || exit 3
-  default="$(default_branch "$top")"
+  if [ -n "$origin" ]; then
+    git -C "$top" fetch -q origin || exit 3
+    default="$(default_branch "$top")"
+    startref="origin/$default"
+  else
+    [ -z "$target" ] || die "no origin remote in $top; PR/MR runs need one"
+    default="$(local_default "$top")"
+    startref="$default"
+  fi
   [ -n "$target" ] && check_existing "$top" "$branch" "$target" "$default"
-  name="$(repo_name "$origin")"
+  name="$(repo_name "${origin:-$top}")"
   while :; do
     suffix=""
     [ "$n" -gt 1 ] && suffix="-$n"
@@ -224,7 +252,7 @@ cmd_worktree() {
   mkdir -p "$root"
   created=true
   if [ -z "$target" ]; then
-    git -C "$top" worktree add -q --detach "$p" "origin/$default" || die "git worktree add failed for $p"
+    git -C "$top" worktree add -q --detach "$p" "$startref" || die "git worktree add failed for $p"
     git -C "$p" checkout -q -b "$b" || die "cannot create branch $b"
   elif git -C "$top" show-ref -q --verify "refs/heads/$b"; then
     created=false
@@ -240,7 +268,7 @@ cmd_worktree() {
   if has_submodules "$p"; then
     git -C "$top" worktree remove --force "$p"
     [ "$created" = true ] && git -C "$top" branch -q -D "$b"
-    die "repository has submodules; use clone mode"
+    die "$submsg"
   fi
   if [ -z "$target" ]; then
     base="$(git -C "$p" rev-parse HEAD)"
@@ -248,9 +276,10 @@ cmd_worktree() {
     base="$(git -C "$p" merge-base "origin/$target" HEAD)"
   fi
   is_dirty "$top" && warnings+=("the original checkout has uncommitted changes; they are not included")
-  [ "$(git -C "$top" rev-list --count HEAD --not --remotes=origin)" -gt 0 ] &&
+  if [ -n "$origin" ] && [ "$(git -C "$top" rev-list --count HEAD --not --remotes=origin)" -gt 0 ]; then
     warnings+=("the original checkout has unpushed commits; they are not included")
-  emit_run worktree "$p" "$b" "$base" "$default" "$origin" "$target" "${warnings[@]}"
+  fi
+  emit_run worktree "$p" "$b" "$base" "$default" "$origin" "$target" "$top" "${warnings[@]}"
 }
 
 # HTTPS cannot authenticate non-interactively, so GitHub and the GitLab
@@ -354,7 +383,7 @@ cmd_clone() {
     rm -rf "$p"
     exit 3
   fi
-  emit_run clone "$p" "$b" "$base" "$default" "$url" "$target"
+  emit_run clone "$p" "$b" "$base" "$default" "$url" "$target" ""
 }
 
 # Without a target, the work must be ahead of the default branch; with
@@ -363,11 +392,12 @@ cmd_in_place() {
   local target="${2:-}" top origin default current ahead against
   local warnings=()
   top="$(top_of "$1")"
+  origin="$(origin_of "$top")"
+  [ -n "$origin" ] || die "no origin remote in $top"
   has_lfs "$top" && die "Git LFS is not supported"
   is_dirty "$top" && die "the checkout has uncommitted changes; commit or stash them first"
   current="$(git -C "$top" branch --show-current)"
   [ -n "$current" ] || die "HEAD is detached; check out a branch first"
-  origin="$(git -C "$top" remote get-url origin)"
   default="$(default_branch "$top")"
   [ "$current" != "$default" ] || die "on the default branch $default; work must be on a feature branch"
   against="$default"
@@ -384,7 +414,29 @@ cmd_in_place() {
     init_submodules "$top" || exit 3
     warnings+=("submodules were initialized in the checkout")
   fi
-  emit_run in-place "$top" "$current" "$(git -C "$top" merge-base "origin/$against" HEAD)" "$default" "$origin" "$target" "${warnings[@]}"
+  emit_run in-place "$top" "$current" "$(git -C "$top" merge-base "origin/$against" HEAD)" "$default" "$origin" "$target" "" "${warnings[@]}"
+}
+
+# Fast-forwards the default branch of a local run's original checkout to the
+# run's branch. Nothing else is touched; any other state is refused.
+cmd_land() {
+  local run="$1" f repo branch default
+  [[ "$run" =~ ^[A-Za-z0-9._-]+$ && "$run" != . && "$run" != .. ]] || die "invalid run name: $run"
+  f="$state_root/$run/run.json"
+  [ -f "$f" ] || die "no such run: $run"
+  [ "$(jq -r '.local // false' "$f")" = true ] || die "run $run is not local"
+  repo="$(jq -r .repo "$f")"
+  branch="$(jq -r .branch "$f")"
+  default="$(jq -r .default_branch "$f")"
+  [ "$(git -C "$repo" branch --show-current)" = "$default" ] || die "check out $default in $repo first"
+  [ -z "$(git -C "$repo" status --porcelain --untracked-files=no)" ] ||
+    die "$repo has uncommitted changes to tracked files"
+  git -C "$repo" show-ref -q --verify "refs/heads/$branch" || die "branch $branch not found in $repo"
+  git -C "$repo" merge-base --is-ancestor "$default" "$branch" ||
+    die "$default has moved past the run's base; not a fast-forward"
+  git -C "$repo" merge -q --ff-only "$branch" || die "fast-forward of $default failed in $repo"
+  jq -n --arg run "$run" --arg default_branch "$default" --arg head "$(git -C "$repo" rev-parse HEAD)" \
+    '{run: $run, default_branch: $default_branch, head: $head}'
 }
 
 # Removes a run's worktree or clone and its state dir. Only paths below
@@ -452,6 +504,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       fi
       ;;
     gitlab-url) [ $# -eq 2 ] || usage; cmd_gitlab_url "$2" ;;
+    land) [ $# -eq 2 ] || usage; cmd_land "$2" ;;
     cleanup) [ $# -eq 2 ] || usage; cmd_cleanup "$2" ;;
     *) usage ;;
   esac

@@ -85,6 +85,43 @@ f="$CLAUDE_DEV_ROOT-state/origin-x-slug/run.json"
 jq '.done = true' "$f" >"$f.new" && mv "$f.new" "$f"
 check "$(setup list)" 'length == 4 and all(.path_exists)'
 
+# Local mode: a repository without origin. Runs branch from the checked-out
+# branch and are landed by fast-forward.
+loc="$work/loc"
+git init -q -b main "$loc"
+git -C "$loc" commit -q --allow-empty -m one
+git -C "$loc" commit -q --allow-empty -m two
+check "$(setup probe "$loc")" '.local and .default_branch == "main" and .origin_url == "" and .ahead == 0'
+check "$(setup probe "$repo")" '(.local | not) and .origin_url != ""'
+lw="$(setup worktree "$loc" feat/l l)"
+lwp="$(jq -r .path <<<"$lw")"
+check "$lw" ".local and .repo == \"$loc\" and .base == \"$(git -C "$loc" rev-parse main)\" and .default_branch == \"main\" and .branch == \"feat/l\" and (.path | endswith(\"/loc-l\"))"
+[ "$(git -C "$lwp" branch --show-current)" = feat/l ] || fail "local worktree branch not checked out"
+expect_exit 2 worktree "$loc" feat/l2 l2 --existing main
+err="$(setup in-place "$loc" 2>&1 >/dev/null)" && fail "in-place without origin not refused"
+[[ "$err" == *"no origin"* ]] || fail "in-place refusal without origin hint: $err"
+git init -q -b main "$work/locsub"
+printf '[submodule "x"]\n\tpath = x\n\turl = ../x.git\n' >"$work/locsub/.gitmodules"
+git -C "$work/locsub" add .gitmodules
+git -C "$work/locsub" commit -q -m sub
+err="$(setup worktree "$work/locsub" feat/s2 s2 2>&1 >/dev/null)" && fail "local worktree with submodules not refused"
+[[ "$err" == *"needs an origin"* ]] || fail "local submodule refusal without origin hint: $err"
+git -C "$lwp" commit -q --allow-empty -m local-work
+git -C "$loc" checkout -q -b other
+expect_exit 2 land loc-l
+git -C "$loc" checkout -q main
+check "$(setup land loc-l)" ".run == \"loc-l\" and .default_branch == \"main\" and .head == \"$(git -C "$lwp" rev-parse HEAD)\""
+[ "$(git -C "$loc" rev-parse main)" = "$(git -C "$lwp" rev-parse HEAD)" ] || fail "land did not fast-forward"
+lm="$(setup worktree "$loc" feat/m m)"
+git -C "$(jq -r .path <<<"$lm")" commit -q --allow-empty -m m-work
+git -C "$loc" commit -q --allow-empty -m moved
+moved="$(git -C "$loc" rev-parse main)"
+err="$(setup land loc-m 2>&1 >/dev/null)" && fail "land of a diverged branch not refused"
+[[ "$err" == *"not a fast-forward"* ]] || fail "unexpected land refusal: $err"
+[ "$(git -C "$loc" rev-parse main)" = "$moved" ] || fail "refused land moved the branch"
+expect_exit 2 land origin-x-slug-2
+check "$(setup list)" 'any(.[]; .run == "loc-m" and .local and .repo != null) and any(.[]; .run == "origin-feat-y" and (.local | not))'
+
 # Existing PR/MR branches: main, develop (+1) and feat/x (on develop, +1).
 git init -q --bare -b main "$work/pr.git"
 git clone -q "$work/pr.git" "$work/pr" 2>/dev/null
@@ -135,6 +172,12 @@ err="$(setup worktree "$work/sup" feat/s s 2>&1 >/dev/null)" && fail "worktree w
 [[ "$err" == *"use clone mode"* ]] || fail "worktree refusal without clone hint: $err"
 s="$(setup clone "$work/sup.git" feat/s s)"
 git -C "$(jq -r .path <<<"$s")/ext" rev-parse -q --verify HEAD >/dev/null || fail "submodule not checked out in clone"
+
+# In-place initializes missing submodules and says so.
+git -C "$work/sup" checkout -q -b feat/w
+git -C "$work/sup" commit -q --allow-empty -m w
+git -C "$work/sup" submodule deinit -q -f ext
+check "$(setup in-place "$work/sup")" '.warnings | index("submodules were initialized in the checkout") != null'
 
 # A submodule that cannot be fetched fails the clone without leftovers.
 git clone -q "$work/sup.git" "$work/sup2w" 2>/dev/null
