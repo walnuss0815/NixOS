@@ -8,9 +8,7 @@ let
   # with OAuth: sign in once per server via `/mcps`, so no token lives in
   # Nix or the vault. Like GITHUB_TOOLS below, the header is an exact
   # allowlist, so merge tools (accept_merge_request) do not exist in the
-  # session. Approval rules live in ./opencode.nix (gitlabRules). New
-  # instances must be named "gitlab-*": the claude-dev subagents deny
-  # that pattern.
+  # session. Approval rules live in ./opencode.nix (gitlabRules).
   gitlabTools = [
     "get_project"
     "get_work_item"

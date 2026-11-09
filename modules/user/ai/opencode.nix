@@ -32,20 +32,6 @@ let
   opus = "anthropic/claude-opus-5-5";
   sonnet = "anthropic/claude-sonnet-5-5";
 
-  # Workspace setup for the claude-dev agents (./agents/claude-dev.md).
-  # Test: nix shell nixpkgs#jq -c bash modules/user/ai/claude-dev-setup.test.sh
-  claudeDevSetup = pkgs.writeShellApplication {
-    name = "claude-dev-setup";
-    runtimeInputs = with pkgs; [
-      git
-      jq
-      coreutils
-      gnused
-      gnugrep
-    ];
-    text = builtins.readFile ./claude-dev-setup.sh;
-  };
-
   # Kernel-enforced (Landlock) sandbox profile for opencode. Modeled on
   # nono's own bundled "opencode" preset (see nono.sh/docs/cli/features/
   # profiles-groups#opencode) but hand-written here because the nixpkgs-
@@ -291,7 +277,6 @@ in
     package = sandboxedOpencode;
     extraPackages = [
       pkgs.nodejs_24
-      claudeDevSetup
     ];
 
     # Terminal client settings (~/.config/opencode/cli.json; OpenCode 2
@@ -308,16 +293,11 @@ in
     };
 
     settings = {
-      # Models per agent: Opus for planning and review, Sonnet for
-      # coordination and implementation (via opencode-claude-auth). The
-      # claude-dev agents' prompts and permissions live in ./agents.
+      # Models per agent: Opus for planning, Sonnet for building (via
+      # opencode-claude-auth).
       agents = {
         plan.model = opus;
         build.model = sonnet;
-        claude-dev.model = sonnet;
-        claude-dev-plan.model = opus;
-        claude-dev-implement.model = sonnet;
-        claude-dev-review.model = opus;
         # explore gets the git MCP tools directly (no Code Mode); keep it
         # read-only instead of falling through to the global "ask" rules.
         explore.permissions = [
@@ -627,13 +607,6 @@ in
       git-commit = ./skills/git-commit.md;
       create-agents-file = ./skills/create-agents-file.md;
     };
-    agents = {
-      claude-dev = ./agents/claude-dev.md;
-      claude-dev-plan = ./agents/claude-dev-plan.md;
-      claude-dev-implement = ./agents/claude-dev-implement.md;
-      claude-dev-review = ./agents/claude-dev-review.md;
-    };
-    commands.claude-dev = ./commands/claude-dev.md;
     context = ./context.md;
   };
 
