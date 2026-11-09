@@ -232,6 +232,10 @@ let
       # need an extra sandbox grant. A pre-set value still wins.
       export PONYTAIL_DEFAULT_MODE="''${PONYTAIL_DEFAULT_MODE:-full}"
 
+      # Stops superpowers' brainstorming visual companion from loading its
+      # logo from primeradiant.com (usage telemetry). A pre-set value wins.
+      export SUPERPOWERS_DISABLE_TELEMETRY="''${SUPERPOWERS_DISABLE_TELEMETRY:-1}"
+
       # nono refuses to grant $HOME or its ancestors (Landlock can't enforce the
       # credential denies beneath them), so start in a fixed private dir instead.
       # It must be stable: opencode scopes sessions by directory, so a random dir
@@ -452,7 +456,8 @@ in
       ]
       ++ gitlabRules "gitlab-com"
       ++ gitlabRules "gitlab-ocd";
-      # All plugins are pinned to an exact version rather than @latest.
+      # All plugins are pinned to an exact version (npm) or git tag rather
+      # than @latest.
       # opencode caches each plugin under a directory keyed by this literal
       # spec string, with its own lockfile inside, so "@latest" does not
       # track anything: it resolves once on first install and then stays
@@ -479,6 +484,14 @@ in
         # overrides it persistently via ~/.config/opencode/.ponytail-active,
         # which lies inside the already-granted opencode config dir.
         "@dietrichgebert/ponytail@5.3.2"
+        # superpowers (obra/superpowers): a skills library (brainstorming,
+        # writing-plans, subagent-driven-development, TDD, debugging, ...)
+        # plus ~1.1k tokens of bootstrap prepended to the first message of
+        # every top-level session (subagent sessions are skipped). Not on
+        # npm, so pinned by git tag; OpenCode 2 needs v6.4.1 or later.
+        # Runs alongside ponytail on purpose: ponytail limits the size of a
+        # change, superpowers drives the process around it.
+        "superpowers@git+https://github.com/obra/superpowers.git#v7.0.2"
       ];
       "providers" = {
         "rpp-ai-proxy" = {

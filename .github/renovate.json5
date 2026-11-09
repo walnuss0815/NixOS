@@ -16,7 +16,7 @@
   //    git-mcp-server, claude-swap), tracked below via customManagers
   //    instead.
   //  - the opencode plugin versions in modules/user/ai/opencode.nix,
-  //    which are npm specs opencode resolves at runtime rather than
+  //    which are npm or git-tag specs opencode resolves at runtime rather than
   //    anything Nix builds, also tracked via customManagers below.
   nix: {
     enabled: false,
@@ -46,8 +46,8 @@
   // (e.g. `nix-prefetch-npm-deps`) only when those runtime dependencies
   // change.
   //
-  // The opencode plugin managers at the end are plain npm spec strings
-  // that Nix never builds or hashes, so those PRs are mergeable as-is once
+  // The opencode plugin managers at the end are plain npm or git-tag spec
+  // strings that Nix never builds or hashes, so those PRs are mergeable as-is once
   // CI is green.
   customManagers: [
     {
@@ -110,6 +110,14 @@
       matchStrings: ['"@dietrichgebert/ponytail@(?<currentValue>[^"]+)"'],
       datasourceTemplate: 'npm',
       depNameTemplate: '@dietrichgebert/ponytail',
+    },
+    {
+      customType: 'regex',
+      description: 'superpowers opencode plugin pin (git tag)',
+      managerFilePatterns: ['/^modules/user/ai/opencode\\.nix$/'],
+      matchStrings: ['"superpowers@git\\+https://github\\.com/obra/superpowers\\.git#(?<currentValue>v[^"]+)"'],
+      datasourceTemplate: 'github-tags',
+      depNameTemplate: 'obra/superpowers',
     },
   ],
 }
