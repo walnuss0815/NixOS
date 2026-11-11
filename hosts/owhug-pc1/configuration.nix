@@ -206,14 +206,6 @@
     "1"
   ];
 
-  # Onboard RTL8125D 2.5GbE NIC (enp6s0): link negotiates fine but DHCP
-  # never completes under the in-tree r8169 driver (high rx_missed count,
-  # "invalid VPD tag ... assume missing optional EEPROM" warning) on every
-  # boot. Swap to Realtek's out-of-tree r8125 driver, a known workaround
-  # for this chip revision (XID 688 / rev C0).
-  boot.extraModulePackages = [ config.boot.kernelPackages.r8125 ];
-  boot.blacklistedKernelModules = [ "r8169" ];
-
   # zram as fast primary swap; a declaratively-sized swapfile on the
   # ext4 root (see hardware-configuration.nix's swapDevices) acts as an
   # additional OOM safety net / future hibernation headroom.
