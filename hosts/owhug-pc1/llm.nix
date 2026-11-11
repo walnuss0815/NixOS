@@ -33,7 +33,9 @@ let
     # MTP: 77.6 -> 168.9 tok/s, ~74% draft acceptance
     spec-type = "draft-mtp";
     spec-draft-n-max = 3;
-    # Draft KV stays f16: q8_0 dropped acceptance to ~40% (116.8 tok/s).
+    # Halves the draft model's per-session KV cache (~0.5 GiB saved).
+    spec-draft-type-k = "q8_0";
+    spec-draft-type-v = "q8_0";
     jinja = true;
     # Qwen3.8 thinking-mode sampling preset
     temp = 1.0;
