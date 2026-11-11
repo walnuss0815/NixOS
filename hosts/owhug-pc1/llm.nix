@@ -16,12 +16,14 @@ let
   });
 
   # Every session gets the full native context: -c is split per slot.
+  # Measured on owhug-pc1 (llama.cpp v0.8.0, CUDA 13.4).
   settingsFor = parallel: {
     host = "0.0.0.0";
     port = 8080;
     model = "/var/lib/llm/models/Huihui-Qwen3.8-27B-abliterated-Q8_0.gguf";
     alias = "qwen3.8-27b";
     api-key-file = "/var/lib/llm/api-key.txt";
+    # tensor vs layer: perplexity 3.7166 vs 3.7162 at q8_0 KV
     split-mode = "tensor";
     n-gpu-layers = 999;
     flash-attn = "on";
@@ -29,6 +31,12 @@ let
     ctx-size = parallel * 262144;
     cache-type-k = "q8_0";
     cache-type-v = "q8_0";
+    # MTP: 77.6 -> 168.9 tok/s, ~74% draft acceptance
+    spec-type = "draft-mtp";
+    spec-draft-n-max = 3;
+    # Halves the draft model's per-session KV cache (~0.5 GiB saved).
+    spec-draft-type-k = "q8_0";
+    spec-draft-type-v = "q8_0";
     jinja = true;
     # Qwen3.8 thinking-mode sampling preset
     temp = 1.0;
