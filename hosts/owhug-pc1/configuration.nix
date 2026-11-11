@@ -67,6 +67,7 @@
     # Declarative disk layout; generates fileSystems."/",
     # fileSystems."/boot" and boot.initrd.luks.devices.cryptroot.
     ./disko.nix
+    ./llm.nix
   ];
 
   # Bootloader.
@@ -149,6 +150,7 @@
     "dialout"
     "netbird-personal"
     "video"
+    "llm"
   ];
 
   # Automatic login is disabled; GDM always prompts.

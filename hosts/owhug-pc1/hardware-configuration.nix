@@ -44,7 +44,7 @@
   swapDevices = [
     {
       device = "/swapfile";
-      size = 32 * 1024;
+      size = 96 * 1024;
     } # MiB — keep in sync with installed RAM
   ];
 
