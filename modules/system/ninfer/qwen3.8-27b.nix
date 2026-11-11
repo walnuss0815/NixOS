@@ -1,5 +1,5 @@
-# Shared NInfer deployment for the RTX 5090 hosts (owhug-pc1,
-# alexander-pc2): an abliterated (uncensored) Qwen3.8-27B NVFP4 artifact.
+# NInfer deployment for the RTX 5090 host (owhug-pc1): an abliterated
+# (uncensored) Qwen3.8-27B NVFP4 artifact.
 # See hosts/owhug-pc1/NINFER-SETUP.md for the setup this depends on, why
 # this replaced the official artifact, and for generating apiKeyFile's
 # contents. The artifact also contains Vision weights, but --vision is

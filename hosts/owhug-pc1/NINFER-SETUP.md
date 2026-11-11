@@ -6,15 +6,10 @@ from nothing to a working local LLM server on this host. If this file and
 the module/host comments ever disagree, the `.nix` files are the source
 of truth.
 
-The deployment (artifact, port, API key file, flags) is shared with the
-headless `alexander-pc2` via `modules/system/ninfer/qwen3.8-27b.nix`; the
-per-host differences are `services.ninfer.onDemand` (on here, off on
-alexander-pc2) and `--max-concurrency` (1 here, 2 on alexander-pc2,
-which has no desktop session on its GPU), both set in each host's
-`configuration.nix`. See `../alexander-pc2/README.md` for that host's setup.
-Wherever this file says to edit `extraFlags` or `artifactPath` in
-`./configuration.nix`, that now means the shared file, and changes apply
-to both hosts.
+The deployment (artifact, port, API key file, flags) lives in
+`modules/system/ninfer/qwen3.8-27b.nix`. Wherever this file says to edit
+`extraFlags` or `artifactPath` in `./configuration.nix`, that now means
+`qwen3.8-27b.nix`.
 
 Serving: an abliterated (uncensored) Qwen3.8-27B, NVFP4 + FP8 text weights
 + MTP speculative decoding, at `qwen3.8-27b` (see "Swapping to an
@@ -222,9 +217,8 @@ While the service is stopped:
 ## Deploying a config change
 
 1. Edit `services.ninfer.extraFlags` (or other options) in
-   `../../modules/system/ninfer/qwen3.8-27b.nix` (shared with
-   alexander-pc2; per-host overrides go in each host's
-   `configuration.nix`).
+   `../../modules/system/ninfer/qwen3.8-27b.nix` (per-host overrides go
+   in `configuration.nix`).
 2. `sudo nixos-rebuild switch --flake .#owhug-pc1`.
 3. `systemctl status ninfer --no-pager` / `journalctl -u ninfer -n 40
    --no-pager` — look for `engine ready` and `listening on

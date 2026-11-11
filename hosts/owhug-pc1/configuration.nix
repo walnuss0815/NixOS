@@ -189,9 +189,8 @@
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Local LLM: NInfer serving an abliterated (uncensored) Qwen3.8-27B NVFP4
-  # artifact. The deployment itself (artifact, port, API key, flags) is
-  # shared with alexander-pc2 and lives in
-  # modules/system/ninfer/qwen3.8-27b.nix (imported via flake.nix); see
+  # artifact. The deployment itself (artifact, port, API key, flags) lives
+  # in modules/system/ninfer/qwen3.8-27b.nix (imported via flake.nix); see
   # ./NINFER-SETUP.md for how it was set up.
   #
   # On-demand only: the unit is defined but not wanted by
