@@ -156,7 +156,7 @@ let
       # Runs host-privileged, before the sandbox is applied - this is
       # deliberately outside the profile's filesystem grants above. It
       # fetches the GitHub MCP server's token and the API keys of the
-      # owhug-pc1 NInfer and walnuss0815 LiteLLM providers from the
+      # owhug-pc1 llama.cpp and walnuss0815 LiteLLM providers from the
       # Bitwarden vault via rbw (possibly prompting through
       # GNOME pinentry) and hands only the resulting bare values to the
       # sandboxed process as env vars. This means the sandbox itself never
@@ -648,7 +648,7 @@ in
       token="$(${pkgs.rbw}/bin/rbw get github-mcp-server)"
       printf 'GITHUB_PERSONAL_ACCESS_TOKEN=%s\n' "$token" >> "$NONO_ENV_FILE"
 
-      # Best-effort: API key for the "owhug-pc1" NInfer provider. A missing
+      # Best-effort: API key for the "owhug-pc1" llama.cpp provider. A missing
       # vault entry only disables that provider instead of blocking startup.
       if ninfer_key="$(${pkgs.rbw}/bin/rbw get owhug-pc1-ninfer-key 2>/dev/null)"; then
         printf 'OWHUG_PC1_NINFER_API_KEY=%s\n' "$ninfer_key" >> "$NONO_ENV_FILE"

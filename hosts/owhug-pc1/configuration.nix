@@ -179,7 +179,6 @@
   systemd.services.nvidia-power-limit = {
     description = "Set NVIDIA GPU power limit";
     wantedBy = [ "multi-user.target" ];
-    before = [ "ninfer.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -189,24 +188,6 @@
 
   # Latest Linux kernel (needed for current-gen CPU/GPU driver support).
   boot.kernelPackages = pkgs.linuxPackages_latest;
-
-  # Local LLM: NInfer serving an abliterated (uncensored) Qwen3.8-27B NVFP4
-  # artifact. The deployment itself (artifact, port, API key, flags) lives
-  # in modules/system/ninfer/qwen3.8-27b.nix (imported via flake.nix); see
-  # ./NINFER-SETUP.md for how it was set up.
-  #
-  # On-demand only: the unit is defined but not wanted by
-  # multi-user.target, so it does not start at boot - run `systemctl start
-  # ninfer` before using the model and `systemctl stop ninfer` to release
-  # the VRAM for the desktop - see the "On-demand operation" section in
-  # ./NINFER-SETUP.md for the cold-start caveats.
-  services.ninfer.onDemand = true;
-  # The desktop session shares the GPU; concurrency 2 fell short by
-  # ~250-320MiB here (see ./NINFER-SETUP.md, "Why not full context").
-  services.ninfer.extraFlags = [
-    "--max-concurrency"
-    "1"
-  ];
 
   # zram as fast primary swap; a declaratively-sized swapfile on the
   # ext4 root (see hardware-configuration.nix's swapDevices) acts as an
