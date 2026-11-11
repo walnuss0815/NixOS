@@ -554,12 +554,12 @@ in
             };
           };
         };
-        # owhug-pc1's NInfer server, serving an abliterated (uncensored)
-        # Qwen3.8-27B NVFP4 artifact. See hosts/owhug-pc1/NINFER-SETUP.md
-        # for the server-side setup and why this replaced the official
-        # artifact. The API key (same value as owhug-pc1's
-        # /var/lib/ninfer/api-key.txt) lives in the Bitwarden vault as
-        # "owhug-pc1-ninfer-key" and is injected as an env var by the nono
+        # owhug-pc1's llama.cpp server ("LLM Server" launcher), serving an
+        # abliterated (uncensored) Qwen3.8-27B Q8_0 GGUF across both GPUs.
+        # See hosts/owhug-pc1/LLM-SETUP.md for the server-side setup. The
+        # API key (same value as owhug-pc1's /var/lib/llm/api-key.txt;
+        # the env var keeps its old NInfer name) lives in the Bitwarden
+        # vault as "owhug-pc1-ninfer-key" and is injected by the nono
         # session hook (fetch-tokens.sh below): a {file:...} reference
         # can't work here, since nono's required deny_credentials group
         # blocks ~/.secrets and similar dirs inside the sandbox. If the
@@ -574,15 +574,11 @@ in
           };
           "models" = {
             "qwen3.8-27b" = {
-              "name" = "Qwen3.8-27B abliterated (owhug-pc1, NVFP4+MTP)";
+              "name" = "Qwen3.8-27B abliterated (owhug-pc1, llama.cpp Q8_0)";
               "limit" = {
-                # Matches the server's actual --max-context (see
-                # modules/system/ninfer/qwen3.8-27b.nix's
-                # services.ninfer.extraFlags). --vision is disabled there
-                # (not needed for this use case); context is trimmed below
-                # the native 262144 ceiling to fit the 32GB card alongside
-                # this artifact's weights.
-                "context" = 245760;
+                # Full native context: each of the server's 2 slots gets
+                # 262144 tokens (hosts/owhug-pc1/llm.nix).
+                "context" = 262144;
                 "output" = 65536;
               };
             };
