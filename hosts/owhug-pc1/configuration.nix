@@ -179,7 +179,7 @@
   systemd.services.nvidia-power-limit = {
     description = "Set NVIDIA GPU power limit";
     wantedBy = [ "multi-user.target" ];
-    before = [ "llama-cpp.service" ];
+    before = [ "ninfer.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

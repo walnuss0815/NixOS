@@ -85,16 +85,4 @@ in
   ];
 
   networking.firewall.allowedTCPPorts = [ 8080 ];
-
-  # Headless boot entry: no GDM, so both GPUs are fully free for the model.
-  specialisation.llm.configuration = {
-    system.nixos.tags = [ "llm" ];
-    systemd.defaultUnit = lib.mkForce "multi-user.target";
-    services.llama-cpp = {
-      enable = true;
-      package = llamaCpp;
-      settings = settingsFor 3;
-    };
-    systemd.services.llama-cpp.serviceConfig.SupplementaryGroups = [ "llm" ];
-  };
 }
