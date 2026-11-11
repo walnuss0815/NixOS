@@ -1,8 +1,7 @@
 # Local LLM: llama.cpp serving an abliterated Qwen3.8-27B (Q8_0 GGUF),
-# split across both RTX 5090s. One flag set (settingsFor) feeds both ways
-# of running it: the "LLM Server" GNOME launcher in the desktop entry and
-# the llama-cpp service in the headless "llm" boot entry. The model file
-# and API key are placed by hand; see ./LLM-SETUP.md.
+# split across both RTX 5090s, started from the "LLM Server" GNOME
+# launcher. The model file and API key are placed by hand; see
+# ./LLM-SETUP.md.
 {
   lib,
   pkgs,
@@ -76,8 +75,7 @@ in
     })
   ];
 
-  # Model and key must be readable by both alexander (launcher) and the
-  # service's DynamicUser; the key only via the llm group.
+  # The key is readable only via the llm group (alexander is a member).
   users.groups.llm = { };
   systemd.tmpfiles.rules = [
     "d /var/lib/llm 0755 root root -"
