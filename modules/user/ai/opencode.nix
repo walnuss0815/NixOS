@@ -30,7 +30,6 @@ let
 
   # Model IDs for every agent below; bump here only.
   opus = "anthropic/claude-opus-5-5";
-  sonnet = "anthropic/claude-sonnet-5-5";
 
   # Kernel-enforced (Landlock) sandbox profile for opencode. Modeled on
   # nono's own bundled "opencode" preset (see nono.sh/docs/cli/features/
@@ -297,11 +296,11 @@ in
     };
 
     settings = {
-      # Models per agent: Opus for planning, Sonnet for building (via
+      # Models per agent: Opus for planning and building (via
       # opencode-claude-auth).
       agents = {
         plan.model = opus;
-        build.model = sonnet;
+        build.model = opus;
         # explore gets the git MCP tools directly (no Code Mode); keep it
         # read-only instead of falling through to the global "ask" rules.
         explore.permissions = [
