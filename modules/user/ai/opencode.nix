@@ -292,7 +292,10 @@ in
         sound = true;
       };
       tabs.mode = "off";
-      terminal.title = true;
+      # Off so it doesn't fight the title plugin, which writes the same
+      # "OC | <title>" plus a "● " prefix while the session is running.
+      terminal.title = false;
+      plugins = [ "${./opencode-title}" ];
     };
 
     settings = {
