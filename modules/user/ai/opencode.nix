@@ -421,16 +421,26 @@ in
         # fetch only updates remote-tracking refs, it never touches your
         # current branch/working tree (unlike pull, which merges)
         (tool "allow" "git_git_fetch")
+        # pull merges/rebases into the current branch; allowed since the
+        # unprompted shell rule can already run `git pull`, and a bad
+        # merge/rebase is recoverable via reflog
+        (tool "allow" "git_git_pull")
+        # clone/init only create new repos: git refuses to clone into a
+        # non-empty dir, and set_working_dir can already `git init`
+        (tool "allow" "git_git_clone")
+        (tool "allow" "git_git_init")
+        # worktree: list/add/move/prune are harmless; a forced remove can
+        # drop a worktree's uncommitted changes (committed work survives)
+        (tool "allow" "git_git_worktree")
         # session/context bookkeeping only, no repository mutation
         (tool "allow" "git_git_set_working_dir")
         (tool "allow" "git_git_clear_working_dir")
         (tool "allow" "git_git_wrapup_instructions")
-        # Stays on "ask": git_init/git_clone (create); git_add/git_commit
-        # (modify); git_clean/git_reset (destructive); git_branch/
-        # git_tag/git_remote/git_stash/git_worktree (each bundles list+
-        # create+delete in one tool, treated conservatively); git_
-        # checkout/git_merge/git_rebase/git_cherry_pick (modify); git_
-        # pull/git_push (modify/publish).
+        # Stays on "ask": git_add/git_commit (modify); git_clean/git_reset
+        # (destructive); git_branch/git_tag/git_remote/git_stash (each
+        # bundles list+create+delete in one tool, and rules match tool
+        # names only, not arguments); git_checkout/git_merge/git_rebase/
+        # git_cherry_pick (modify); git_push (publish).
 
         # github-mcp-server (github:github/github-mcp-server). Only the
         # GITHUB_TOOLS allowlist in ./mcp.nix is loaded at all; tools
