@@ -22,7 +22,7 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
 
 1. **Scope.** Confirm the repo root. Ask with the question tool whether to run the live phase (default: no). If yes, ask which kubeconfig, talosconfig and IaC wrapper (e.g. `hack/tofu.sh`) to use; never open them.
 2. **Stack detection.** Record in a short stack summary: GitOps tool (Argo CD, Flux), manifest tooling (Helm, Kustomize, Jsonnet, plain YAML), IaC (Terraform/OpenTofu, providers, modules, backend), cluster type (Talos, kubeadm, k3s, EKS/GKE/AKS), CI (GitHub Actions, GitLab CI), tenancy (Capsule, HNC, namespace-per-team, none), identity (OIDC issuers, IdPs). Read the repo's README, design docs and runbooks: every security assumption they state ("port X is firewalled", "only operators can ...") goes into an **assumptions list** for the checks to verify.
-3. **Inventory.** List every component with its exact pinned version and where it is pinned (`path:line`): vendir locks, `Chart.yaml`/`Chart.lock`, image tags, `.terraform.lock.hcl`, module `ref=`, Talos/Kubernetes versions in IaC, `flake.lock`, Renovate config. If the repo has an offline render or check script that needs no credentials, run it to get rendered manifests and image tags.
+3. **Inventory.** List every component with its exact pinned version and where it is pinned (`path:line`): vendir locks, `Chart.yaml`/`Chart.lock`, image tags, `.terraform.lock.hcl`, module `ref=`, Talos/Kubernetes versions in IaC, `flake.lock`, Renovate config. If the repo has an offline render or check script that needs no credentials, run it to get rendered manifests and image tags. Rendering may fetch public chart and kustomize sources anonymously; never with credentials. A remote module or source you cannot fetch anonymously goes under "Not checked".
    **Vendored code:** audit what gets deployed, including vendored parts that are rendered into manifests. Tag such findings `Upstream: <owner/repo>`. Skip the vendored repo's own CI, docs and nested vendor trees, but keep its components in the inventory.
 4. **Checks.** Choose the check files:
 
@@ -42,10 +42,12 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
 
 ## Severity
 
+"Untrusted party" means the least trusted party that can reach the component in this setup: the internet, a tenant, or, for clusters on a private network, anyone on that network. State which one in each finding's Impact.
+
 | Severity | Meaning in this setup |
 |---|---|
-| Critical | Unauthenticated internet attacker, or any tenant, gets cluster-admin, node access, other tenants' data or secrets |
-| High | A tenant or internet attacker crosses a tenant/platform boundary, or a pre-auth exploitable CVE is reachable |
+| Critical | An unauthenticated untrusted party gets cluster-admin, node access, other tenants' data or secrets |
+| High | An untrusted party crosses a tenant/platform boundary, or a pre-auth exploitable CVE is reachable by one |
 | Medium | Boundary crossing needs a stolen operator credential or an extra precondition; exposure that widens attack surface |
 | Low | Defense-in-depth gap with no known path today |
 | Info | Hygiene, removable workarounds, notes |

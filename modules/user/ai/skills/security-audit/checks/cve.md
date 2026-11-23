@@ -6,7 +6,7 @@ Input: the inventory from `SKILL.md` step 3. Only component names and versions l
 
 ## 1. Advisories per component
 
-Query in this order and stop at the first source that knows the component:
+Query in this order and stop at the first source that knows the component. OSV "knows" a package when a query for it *without* a version returns at least one advisory; an empty result with a version from a known package means no advisories for that version, an empty result for an unknown package means go to the next source:
 
 1. **OSV.dev** (includes GitHub Security Advisories):
 
@@ -38,7 +38,7 @@ Status, exactly one:
 | not applicable | affected version, but feature not used or not reachable |
 | fixed in pinned version | the pinned version is outside the affected range |
 
-Severity in the report follows reachability: an exploitable CVE reachable by tenants or the internet is High or Critical regardless of CVSS; operator-only is at most Medium.
+Severity in the report follows reachability: an exploitable CVE reachable by an untrusted party (see Severity in `SKILL.md`) is High or Critical regardless of CVSS; operator-only is at most Medium.
 
 **Workaround removable:** for every CVE mentioned in commits or config, also check whether the pinned version still is affected. If it is not, add an Info finding "workaround removable" citing the workaround (`path:line` and commit) and the fixing version. Status in the CVE table: fixed in pinned version.
 
