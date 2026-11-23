@@ -10,8 +10,10 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
 ## Never
 
 - Read, print or send secret values. Do not open `secrets.yaml`, `*.secrets.env`, `*.tfvars`, tfstate files, `.terraform/`, kubeconfig, talosconfig, Kubernetes Secret `data`, `.env` files. Report *that* and *where* a secret is exposed (path, line, type), never the value. Redact anything secret-like in tool output before it reaches the report.
+- Run any command whose path arguments or globs can reach those paths. Enumerate files with `git ls-files` and search content with `git grep` (tracked files only); the redacting scanners in `checks/secrets.md` are the only tools that look at untracked files.
+- Guess a version. A version you cannot find pinned in the repo goes under "Not checked".
 - Mutate anything: no `tofu apply`, `tofu init`, `tofu plan -out=<repo path>`, `kubectl apply|create|patch|delete|edit|exec|port-forward`, `talosctl apply-config|upgrade|reset|edit|patch`, no state locks.
-- Call GitHub/GitLab APIs outside the live phase.
+- Call GitHub/GitLab APIs outside the live phase, for any repository. Advisory data comes from the sources in `checks/cve.md` only.
 - Put repo content into web searches or advisory queries. Only component names and versions leave the machine.
 - Work around a sandbox denial (EACCES/EPERM) or a 401/403. List the item under "Not checked" with the reason.
 - Report a finding without evidence: `path:line` for repo findings, the command and its (redacted) output for live findings.
@@ -34,7 +36,7 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
    | `checks/k8s-rbac-tenancy.md` | Kubernetes manifests exist |
    | `checks/live.md` | the user enabled the live phase |
 
-   Dispatch one subagent per chosen repo check file, all in one batch. Give each: the repo root, the stack summary, the assumptions list, the inventory, the absolute path of its check file and of `report-template.md`, and the **Never** list above verbatim. Each returns findings in the template's finding format plus its "Not checked" items.
+   Dispatch one subagent per chosen repo check file, all in one batch. Give each: the repo root, the stack summary, the assumptions list, the inventory, the absolute path of its check file and of `report-template.md`, and the **Never** list above verbatim. Each returns findings in the template's finding format plus its "Not checked" items. Without a subagent tool, work through the same check files yourself, one after another.
 5. **Live phase** (only if enabled): after the repo checks, follow `checks/live.md` yourself, using the repo findings as hypotheses to confirm or refute.
 6. **Report.** Merge: one finding per root cause (merge duplicates, keep all evidence), severity by impact in this setup (who can exploit it, what they get), OWASP IDs on every finding, coverage table complete, "Not checked" complete. Write it following `report-template.md` to `docs/security/YYYY-MM-DD-security-audit.md` in the audited repo. If that file exists, use `-2`, `-3`, ... — never overwrite. Do not commit. Reply with the report path and the top 5 findings.
 
