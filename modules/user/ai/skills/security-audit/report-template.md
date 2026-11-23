@@ -45,6 +45,13 @@ Top 5: one line each, ID and title.
 ### Low
 ### Info
 
+## Exposure
+
+The exposure table from `checks/iac.md`:
+
+| Port | Component | Open to | Auth required | Evidence |
+|---|---|---|---|---|
+
 ## CVEs
 
 | Component | Version | Pinned at | CVE | CVSS | Status | Reason | Fixed in |
@@ -52,12 +59,14 @@ Top 5: one line each, ID and title.
 
 Status is one of: exploitable, mitigated, not applicable, fixed in pinned version.
 
+Every inventory component appears here: one row per affecting CVE, or one row with CVE `none` after a successful query. A component that was not queried is listed under "Not checked" instead; a partial inventory is never presented as complete.
+
 ## Container images (Trivy)
 
 | Image | Critical | High | Scan status |
 |---|---|---|---|
 
-Scan status: scanned, not scanned (<reason>).
+Scan status: scanned, not scanned (<reason>). One row per image in the inventory.
 
 ## Coverage
 

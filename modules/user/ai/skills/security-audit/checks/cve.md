@@ -47,7 +47,12 @@ Severity in the report follows reachability: an exploitable CVE reachable by ten
 For each image in the inventory (rendered manifests, chart values, kustomize images):
 
 ```bash
-nix shell nixpkgs#trivy -c trivy image --severity HIGH,CRITICAL --quiet --format json --output /tmp/opencode/trivy-<n>.json <image:tag>
+mkdir -p /tmp/opencode/trivy-docker /tmp/opencode/trivy-cache
+DOCKER_CONFIG=/tmp/opencode/trivy-docker nix shell nixpkgs#trivy -c trivy image \
+  --cache-dir /tmp/opencode/trivy-cache --severity HIGH,CRITICAL --quiet \
+  --format json --output /tmp/opencode/trivy-<n>.json <image:tag>
 ```
+
+The empty `DOCKER_CONFIG` keeps Trivy away from the user's registry credentials; images are pulled anonymously.
 
 Summarise per image: count of Critical and High, and up to three notable CVEs with fixed versions. An image that cannot be pulled (private registry, no credentials, rate limit) gets scan status "not scanned (<reason>)"; do not log in to registries. Trivy results go to the appendix only; promote a Trivy CVE to a finding only after the impact check in section 2.
