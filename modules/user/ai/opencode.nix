@@ -627,6 +627,7 @@ in
       code-review = ./skills/code-review.md;
       git-commit = ./skills/git-commit.md;
       create-agents-file = ./skills/create-agents-file.md;
+      security-audit = ./skills/security-audit;
     };
     context = ./context.md;
   };
