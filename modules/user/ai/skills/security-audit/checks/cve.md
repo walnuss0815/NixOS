@@ -17,7 +17,7 @@ Query in this order and stop at the first source that knows the component. OSV "
 
    Map components to their source package: Go projects to their Go module (e.g. `github.com/argoproj/argo-cd/v3`), Keycloak to Maven `org.keycloak:keycloak-services`. For images, use the upstream project, not the image name.
 2. **Kubernetes feed** for Kubernetes itself (kube-apiserver, kubelet, ...): `https://kubernetes.io/docs/reference/issues-security/official-cve-feed/index.json`; match by affected version ranges in each entry.
-3. **Vendor security pages and release notes** (GitHub Security tab, release notes between the pinned and the latest version) for components OSV doesn't know (e.g. Talos, some operators).
+3. **Vendor security pages and release notes** (web pages such as `github.com/<org>/<repo>/security/advisories` and `/releases`, never `api.github.com`; release notes between the pinned and the latest version) for components OSV doesn't know (e.g. Talos, some operators).
 
 If a source is unreachable, rate-limited or returns an error for a component, list that component under **Not checked** with the reason. Never write "no CVEs" for a component you could not query.
 
@@ -27,7 +27,7 @@ For each advisory whose affected range includes the pinned version:
 
 - **Feature used?** Is the vulnerable feature, endpoint or code path enabled in this repo's config? Cite `path:line`.
 - **Who can reach it?** Internet (cross-check the exposure table from `iac.md`), tenant, operator only, nobody.
-- **Mitigation?** Search commit messages and config for the CVE ID (`git log --all --oneline -i --grep=<CVE-ID>`, `grep -rn <CVE-ID>`). A mitigation counts only if its config is still present at HEAD.
+- **Mitigation?** Search commit messages and config for the CVE ID (`git log --all --oneline -i --grep=<CVE-ID>`, `git grep -n <CVE-ID>`). A mitigation counts only if its config is still present at HEAD.
 
 Status, exactly one:
 
@@ -49,7 +49,7 @@ For each image in the inventory (rendered manifests, chart values, kustomize ima
 ```bash
 mkdir -p /tmp/opencode/trivy-docker /tmp/opencode/trivy-cache
 DOCKER_CONFIG=/tmp/opencode/trivy-docker nix shell nixpkgs#trivy -c trivy image \
-  --cache-dir /tmp/opencode/trivy-cache --severity HIGH,CRITICAL --quiet \
+  --cache-dir /tmp/opencode/trivy-cache --scanners vuln --severity HIGH,CRITICAL --quiet \
   --format json --output /tmp/opencode/trivy-<n>.json <image:tag>
 ```
 
