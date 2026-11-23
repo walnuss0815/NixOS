@@ -56,6 +56,7 @@ CRITICAL: Never refer to yourself, a review you performed, or anything else rela
 - Never write promises, plans, or statements about future actions (e.g. "I will rebase once X is merged", "will follow up", "will update later"), in any voice
 - Never put status markers such as "Draft:", "WIP:", or "Ready for review" in the title or body. To open a PR as a draft, set the `draft` flag on the tool call; GitLab's MR tools have no such flag, there the `Draft:` title prefix is that flag
 - Cross-PR relationships may only be stated as neutral facts (e.g. "Depends on #206", "Touches the same lines as #206 and #207"). Never state what will happen to the PR afterwards
+- Don't hard-wrap PR/MR titles, descriptions or comments: put each paragraph and list item on one line. The 50/72 rule applies to commit messages only.
 
 ## Referencing External Resources
 
