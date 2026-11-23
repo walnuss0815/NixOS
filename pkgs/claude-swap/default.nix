@@ -19,7 +19,7 @@ python3.pkgs.buildPythonApplication rec {
     owner = "realiti4";
     repo = "claude-swap";
     tag = "v${version}";
-    hash = "sha256-hg8Dlhsea/crMxVJCdTKOPNMAH/JJxnXG6MEgKGg6n4=";
+    hash = "sha256-zAZxuvQohCRg5pmRmUTYoVthxWQpcZOqlCFN45N+jkw=";
   };
 
   build-system = with python3.pkgs; [ hatchling ];
