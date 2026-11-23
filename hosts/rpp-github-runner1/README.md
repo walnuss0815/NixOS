@@ -99,8 +99,12 @@ ssh alexander@192.168.13.12 'journalctl -u github-runner-rpp -n 20'
 
 The token is only needed again when the runner has to register again:
 when the token file's content or one of the registration settings
-(name, labels, URL, work directory) changes, or after a reinstall. Put a
-fresh token in place before deploying such a change.
+(name, labels, URL, work directory) changes, or after a reinstall. The
+runner registers again on its next start, and the token must still be
+valid then. Deploy such a change by hand (see below), then place a fresh
+token and restart the runner within the hour. Never leave it to the
+nightly upgrade: a reboot would start the runner with the old, expired
+token, and it would stay offline.
 
 ## Updates
 
