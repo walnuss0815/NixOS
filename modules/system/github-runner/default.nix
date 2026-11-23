@@ -2,15 +2,19 @@
 # on a Proxmox VM (see hosts/rpp-github-runner*/README.md for the VM setup
 # and install runbook).
 #
-# Goal: behave like GitHub's ubuntu-latest runner as far as the workflows
-# are concerned, because those workflows (and the third-party actions they
-# use) were written against it:
+# Goal: offer the platform features of GitHub's ubuntu-latest runner,
+# because workflows and third-party actions were written against them,
+# plus Nix. Job tools (kubectl, helm, kind, ...) come from the flake of the
+# repository a job runs for, loaded with the nix-develop action of
+# RocketPadPlatforms/github-actions; jobs that need it ask for the `nix`
+# label. The runner itself only provides:
 #   - rootful Docker that the job user can reach (kind needs privileged
 #     containers, which rootless Docker cannot provide)
 #   - passwordless sudo (setup actions run `sudo install ... /usr/local/bin`)
 #   - a job-writable /usr/local/bin on PATH (e.g. `curl -o /usr/local/bin/yq`)
 #   - /bin/bash and other FHS paths (envfs) and a dynamic loader for
 #     downloaded binaries (nix-ld, imported via modules/system/nix-ld)
+#   - Nix with flakes, and the basic tools actions and glue steps expect
 #
 # A VM is used instead of an LXC container on purpose: inside an
 # unprivileged container the kubelet of kind's nodes runs in a user
@@ -58,6 +62,10 @@ in
     enable = true;
     url = "https://github.com/RocketPadPlatforms";
     name = config.networking.hostName;
+    # Added to the default self-hosted, Linux, X64. Part of the
+    # registration settings: changing it needs a fresh registration token
+    # (see tokenFile).
+    extraLabels = [ "nix" ];
     # Take over a stale registration with the same name, e.g. after a
     # reinstall of the VM.
     replace = true;
@@ -77,37 +85,6 @@ in
       ACTIONS_RUNNER_HOOK_JOB_STARTED = "${jobHook}";
       ACTIONS_RUNNER_HOOK_JOB_COMPLETED = "${jobHook}";
     };
-    extraPackages = with pkgs; [
-      bashInteractive
-      curl
-      diffutils
-      docker
-      docker-buildx
-      file
-      findutils
-      gawk
-      getent
-      gnugrep
-      gnumake
-      gnused
-      gnutar
-      gzip
-      hostname
-      iproute2
-      jq
-      kubectl
-      openssh
-      openssl
-      procps
-      python3
-      unzip
-      util-linux
-      wget
-      which
-      xz
-      zip
-      zstd
-    ];
     # The module sandboxes the service heavily. Jobs here need root via
     # sudo (setuid), Docker, mounts and arbitrary namespaces, so turn the
     # sandbox off. Isolation comes from the VM itself, like on
@@ -146,8 +123,9 @@ in
   systemd.services.${runnerService} = {
     # PATH order: the job-writable /usr/local/bin first (tools installed by
     # setup actions win, as on ubuntu-latest), then the setuid wrappers so
-    # `sudo` resolves to the real one, then the module's packages, then the
-    # system profile as a fallback.
+    # `sudo` resolves to the real one, then the runner module's own packages
+    # (bash, coreutils, git, ...), then the system profile with the job
+    # tools (environment.systemPackages below).
     path = lib.mkMerge [
       (lib.mkBefore [
         "/usr/local"
@@ -162,6 +140,44 @@ in
     after = [ "docker.service" ];
     wants = [ "docker.service" ];
   };
+
+  # Tools for jobs, found through the /run/current-system/sw entry of the
+  # runner's PATH. Unlike the runner module's extraPackages, which are
+  # fixed when the runner starts, changes here reach the next job right
+  # after a switch, without restarting the runner.
+  environment.systemPackages = with pkgs; [
+    bashInteractive
+    curl
+    diffutils
+    docker
+    docker-buildx
+    file
+    findutils
+    gawk
+    getent
+    gh
+    gnugrep
+    gnumake
+    gnused
+    gnutar
+    gzip
+    hostname
+    iproute2
+    jq
+    kubectl
+    nodejs
+    openssh
+    openssl
+    procps
+    python3
+    unzip
+    util-linux
+    wget
+    which
+    xz
+    zip
+    zstd
+  ];
 
   # The runner module would set HOME to workDir; extraEnvironment above
   # points it to homeDir instead.

@@ -8,7 +8,7 @@ as a VM on server1 (Proxmox).
 |---|---|
 | Proxmox VMID | 122 |
 | Address | 192.168.13.14/24 (VLAN 130), gateway and DNS 192.168.13.254 |
-| Runner name | `rpp-github-runner3` (labels `self-hosted`, `Linux`, `X64`) |
+| Runner name | `rpp-github-runner3` (labels `self-hosted`, `Linux`, `X64`, `nix`) |
 | Runner service | `github-runner-rpp.service` |
 
 Runner, Docker and update settings are shared by all runner hosts and
