@@ -157,19 +157,15 @@ in
     getent
     gh
     gnugrep
-    gnumake
     gnused
     gnutar
     gzip
     hostname
     iproute2
-    jq
-    kubectl
     nodejs
     openssh
     openssl
     procps
-    python3
     unzip
     util-linux
     wget
@@ -212,7 +208,7 @@ in
     "d /usr/local/bin 0755 ${runnerUser} ${runnerUser} -"
   ];
 
-  # /bin/bash, /usr/bin/python3, ... for scripts with FHS shebangs.
+  # /bin/bash, /usr/bin/bash, ... for scripts with FHS shebangs.
   services.envfs.enable = true;
 
   # --- Docker -------------------------------------------------------------
