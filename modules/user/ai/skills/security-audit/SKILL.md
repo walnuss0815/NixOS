@@ -51,10 +51,10 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
 
    Dispatch one subagent per chosen repo check file, all in one batch. Give each: the repo root, `<work>` and `<skill-dir>` as absolute paths, the stack summary, the assumptions list, the inventory, the absolute path of its check file and of `report-template.md`, and the **Never** list above verbatim. Each returns findings in the template's finding format plus its "Not checked" items. Without a subagent tool, work through the same check files yourself, one after another.
 5. **Live phase** (only if enabled): after the repo checks, follow `checks/live.md` yourself, using the repo findings as hypotheses to confirm or refute.
-6. **Report.** Merge: one finding per root cause (merge duplicates, keep all evidence), severity by impact in this setup (who can exploit it, what they get), OWASP IDs on every finding, coverage table complete, "Not checked" complete. Write it following `report-template.md` to `docs/security/YYYY-MM-DD-security-audit.md` in the audited repo. If that file exists, use `-2`, `-3`, ... — never overwrite. The image CVE details go to a second file with the same name plus `-image-cves` (e.g. `docs/security/YYYY-MM-DD-security-audit-image-cves.md`), never overwritten, written unread:
+6. **Report.** Merge: one finding per root cause (merge duplicates, keep all evidence), severity by impact in this setup (who can exploit it, what they get), OWASP IDs on every finding, coverage table complete, "Not checked" complete. Write it following `report-template.md` to `docs/security/YYYY-MM-DD-security-audit.md` in the audited repo. The image CVE details go to a second file with the same name plus `-image-cves` (e.g. `docs/security/YYYY-MM-DD-security-audit-image-cves.md`). Use the first suffix (none, `-2`, `-3`, ...) for which **both** files are free — never overwrite either. Write the details file unread; `set -C` makes the shell refuse to overwrite:
 
    ```bash
-   { echo "# Image CVE details: <repo name>, YYYY-MM-DD, commit <sha>"; echo; cat <work>/trivy/fixes.md; } > <details file>
+   (set -C; { echo "# Image CVE details: <repo name>, YYYY-MM-DD, commit <sha>"; echo; cat <work>/trivy/fixes.md; } > <details file>)
    ```
 
    The report's `## Image CVE details` section links that file and gives its row count (`tail -n +2 <work>/trivy/fixes.tsv | wc -l`). If the image scan failed (no `fixes.md`), write "Not scanned: <reason>" there and create no second file. Do not commit.
