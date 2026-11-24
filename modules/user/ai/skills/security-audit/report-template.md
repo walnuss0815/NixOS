@@ -104,7 +104,7 @@ Sources: https://github.com/OWASP/www-project-kubernetes-top-ten, https://owasp.
 
 ## Image CVE details
 
-<the table from fixes.md, appended unchanged by `SKILL.md` step 6>
+<n> Critical and High findings with package, installed and fixed version, per image: [<report name>-image-cves.md](<report name>-image-cves.md)
 ```
 
-The report ends with the `## Image CVE details` heading; step 6 appends `fixes.md` below it with `cat`, so the table is never written by hand.
+The details file is `<report name>-image-cves.md` next to the report: a heading (`# Image CVE details: <repo>, <date>, commit <sha>`) followed by `fixes.md` unchanged (`SKILL.md` step 6), so the table is never written by hand. If the image scan failed, the section says "Not scanned: <reason>" and there is no details file.
