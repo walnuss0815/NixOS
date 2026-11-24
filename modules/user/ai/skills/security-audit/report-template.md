@@ -107,4 +107,4 @@ Sources: https://github.com/OWASP/www-project-kubernetes-top-ten, https://owasp.
 <n> Critical and High findings with package, installed and fixed version, per image: [<report name>-image-cves.md](<report name>-image-cves.md)
 ```
 
-The details file is `<report name>-image-cves.md` next to the report: a heading (`# Image CVE details: <repo>, <date>, commit <sha>`) followed by `fixes.md` unchanged (`SKILL.md` step 6), so the table is never written by hand. If the image scan failed, the section says "Not scanned: <reason>" and there is no details file.
+The details file is `<report name>-image-cves.md` next to the report: a heading (`# Image CVE details: <repo name>, <date>, commit <sha>`) followed by `fixes.md` unchanged (`SKILL.md` step 6), so the table is never written by hand. If the image scan failed, the section says "Not scanned: <reason>" and there is no details file.
