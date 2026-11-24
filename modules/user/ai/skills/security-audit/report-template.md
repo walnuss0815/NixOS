@@ -14,7 +14,8 @@ Each check returns findings in exactly this shape:
 - **Upstream:** <owner/repo> (only for findings from vendored code)
 - **Evidence:** `path:line` (repo) or the command and its redacted output (live); one bullet each
 - **Impact:** who can exploit it here (internet / tenant / operator) and what they get
-- **Fix:** the concrete change, with the file to change
+- **Mitigation:** (CVE findings only) what can be done before a fix is available, from the advisory's workaround, or "none published"
+- **Fix:** for CVE findings "upgrade <component> to <version>", "not available yet" or "none planned (end of life)"; otherwise the concrete change, with the file to change
 ```
 
 IDs: `C1`, `H1`, `M1`, `L1`, `I1`, ... per severity, assigned at merge.
@@ -54,19 +55,19 @@ The exposure table from `checks/iac.md`:
 
 ## CVEs
 
-| Component | Version | Pinned at | CVE | CVSS | Status | Reason | Fixed in |
-|---|---|---|---|---|---|---|---|
+| Component | Version | Pinned at | CVE | CVSS | Status | Reason | Mitigation | Fixed in |
+|---|---|---|---|---|---|---|---|---|
 
-Status is one of: exploitable, mitigated, not applicable, fixed in pinned version.
+Status is one of: exploitable, mitigation applied, not applicable, fixed in pinned version. Mitigation is the published workaround or "none published". Fixed in is a version, "not available yet" or "none planned (end of life)".
 
 Every inventory component appears here: one row per affecting CVE, or one row with CVE `none` after a successful query. A component that was not queried is listed under "Not checked" instead; a partial inventory is never presented as complete.
 
 ## Container images (Trivy)
 
-| Image | Critical | High | Scan status |
-|---|---|---|---|
+| Image | Critical | High | Medium | Low | Fixable | Scan status |
+|---|---|---|---|---|---|---|
 
-Scan status: scanned, not scanned (<reason>). One row per image in the inventory.
+From `summary.tsv`, one row per image in the inventory. Fixable: Critical and High findings with a fixed package version. Scan status: scanned, scanned (login: docker|podman), not scanned (<reason>).
 
 ## Coverage
 
@@ -100,4 +101,10 @@ Result: `findings: <IDs>`, `checked, none`, or `N/A (<reason>)`.
 One bullet per item: what, and why (live phase off, access denied, source unreachable, image not pullable, ...).
 
 Sources: https://github.com/OWASP/www-project-kubernetes-top-ten, https://owasp.org/projects/top-10-cicd-security-risks
+
+## Image CVE details
+
+<the table from fixes.md, appended unchanged by `SKILL.md` step 6>
 ```
+
+The report ends with the `## Image CVE details` heading; step 6 appends `fixes.md` below it with `cat`, so the table is never written by hand.
