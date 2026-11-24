@@ -10,7 +10,7 @@ Print the absolute path of a usable <name> binary on stdout.
 Order: PATH, Nix (nixpkgs), release download (trivy and gitleaks only).
 Nothing is installed system-wide.
 
-Names: trivy gitleaks helm kustomize jsonnet vendir shellcheck
+Names: trivy gitleaks helm kustomize jsonnet vendir zizmor shellcheck
 
 Downloads take the newest stable release that is at least 7 days old
 (override: SECURITY_AUDIT_MIN_RELEASE_AGE_DAYS), check its SHA256 against
@@ -30,7 +30,7 @@ die() {
 name=$1
 case $name in
   -h | --help) usage; exit 0 ;;
-  trivy | gitleaks | kustomize | vendir | shellcheck) attr=$name ;;
+  trivy | gitleaks | kustomize | vendir | zizmor | shellcheck) attr=$name ;;
   helm) attr=kubernetes-helm ;;
   jsonnet) attr=go-jsonnet ;;
   *) echo "tool.sh: unknown name '$name'" >&2; usage >&2; exit 2 ;;
