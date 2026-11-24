@@ -15,9 +15,10 @@ write to <out-dir>:
                (CRITICAL and HIGH only)
   fixes.md     the fixes.tsv rows as a Markdown table
 
-Status: "scanned", "scanned (login: docker|podman)" or
-"not scanned (<reason>)". Images are pulled straight from the registry with
-existing Docker/Podman logins, or anonymously if there are none. Results
+Status: "scanned" (anonymous pull), "scanned (login: docker|podman)" (pulled
+in the pass using that login file) or "not scanned (<reason>)". Images are
+pulled straight from the registry: one pass per existing Docker/Podman login
+file, then an anonymous pass for whatever is left. Results
 already in <out-dir>/raw/ are reused, so re-running only scans what's missing.
 
 Only one scan runs at a time across audits: a second call waits for the
@@ -69,7 +70,9 @@ trap 'exit 143' TERM
 waited=0
 until mkdir "$lock" 2>/dev/null; do
   owner=$(cat "$lock/owner.pid" 2>/dev/null || true)
-  if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then
+  # Alive means the PID still runs scan-images (not a reused PID); ps needs no
+  # signal permission, so other sandboxes' scans count as alive too.
+  if [ -n "$owner" ] && ps -p "$owner" -o args= 2>/dev/null | grep -q scan-images; then
     if [ $((waited % 60)) -eq 0 ]; then
       echo "scan-images: waiting for scan lock held by PID $owner" >&2
     fi
@@ -117,10 +120,10 @@ add_login "${DOCKER_CONFIG:-$HOME/.docker}/config.json" docker
 add_login "${REGISTRY_AUTH_FILE:-}" podman
 [ -n "${XDG_RUNTIME_DIR:-}" ] && add_login "$XDG_RUNTIME_DIR/containers/auth.json" podman
 add_login "${XDG_CONFIG_HOME:-$HOME/.config}/containers/auth.json" podman
-if [ ${#dirs[@]} -eq 0 ]; then
-  dirs=("$anon")
-  labels=(anonymous)
-fi
+# Anonymous always comes last: public images still scan when a login file's
+# credential helper is broken or missing.
+dirs+=("$anon")
+labels+=(anonymous)
 clean_env=(-u TRIVY_USERNAME -u TRIVY_PASSWORD -u TRIVY_REGISTRY_TOKEN)
 
 # --- server -----------------------------------------------------------------
@@ -133,10 +136,10 @@ echo "$spid" >"$lock/server.pid"
 # The first start downloads the vulnerability DB; 5 minutes covers slow lines.
 for _ in $(seq 300); do
   kill -0 "$spid" 2>/dev/null || break
-  curl -sf "http://$addr/healthz" >/dev/null 2>&1 && break
+  curl -sf --noproxy "*" "http://$addr/healthz" >/dev/null 2>&1 && break
   sleep 1
 done
-if ! kill -0 "$spid" 2>/dev/null || ! curl -sf "http://$addr/healthz" >/dev/null 2>&1; then
+if ! kill -0 "$spid" 2>/dev/null || ! curl -sf --noproxy "*" "http://$addr/healthz" >/dev/null 2>&1; then
   echo "scan-images: Trivy server did not start; see $out/server.log" >&2
   exit 3
 fi
@@ -202,7 +205,9 @@ while IFS= read -r img; do
       END { printf "%s\t%s\t%d\t%d\t%d\t%d\t%d\n", img, st, n["CRITICAL"], n["HIGH"], n["MEDIUM"], n["LOW"], fx >> s }
     ' "$raw/$k.tsv"
   else
-    reason=$(grep -v '^[[:space:]]*$' "$raw/$k.err" 2>/dev/null | tail -1 | tr '\t' ' ' | cut -d'?' -f1 | cut -c1-120)
+    # Drop URL query strings (signed URLs, token scopes) but keep the error after them.
+    reason=$(grep -v '^[[:space:]]*$' "$raw/$k.err" 2>/dev/null | tail -1 | tr '\t' ' ' |
+      sed -e 's/?[^ ]*//g' -e 's/^[[:space:]]*\*[[:space:]]*//' | cut -c1-160)
     printf '%s\tnot scanned (%s)\t\t\t\t\t\n' "$img" "${reason:-unknown error}" >>"$out/summary.tsv"
     failed+=("$img: ${reason:-unknown error}")
   fi
