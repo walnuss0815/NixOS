@@ -54,6 +54,8 @@ bash <skill-dir>/scripts/scan-images.sh <work>/images.txt <work>/trivy
 
 Never run Trivy for images yourself: parallel Trivy processes block each other on the cache lock.
 
+If the script exits non-zero (1: trivy not available, 3: Trivy server did not start), no image was scanned: list every image under "Not checked" with the reason from stderr, and return "Not scanned: <reason>" for the Image CVE details section. Never report "none" for images that were not scanned.
+
 Read `<work>/trivy/summary.tsv` (status and Critical/High/Medium/Low/fixable counts per image) for the image table. Look into `<work>/trivy/fixes.tsv` only with `grep`/`awk` slices, e.g. one image or one CVE; never read `raw/` or the whole file. `fixes.md` is appended to the report unread (`SKILL.md` step 6). Images with status `not scanned (<reason>)` go under "Not checked" with that reason.
 
 Promote a Trivy CVE to a finding only after the impact check in section 2.
