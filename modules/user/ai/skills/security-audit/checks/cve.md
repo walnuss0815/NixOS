@@ -27,14 +27,16 @@ For each advisory whose affected range includes the pinned version:
 
 - **Feature used?** Is the vulnerable feature, endpoint or code path enabled in this repo's config? Cite `path:line`.
 - **Who can reach it?** Internet (cross-check the exposure table from `iac.md`), tenant, operator only, nobody.
-- **Mitigation?** Search commit messages and config for the CVE ID (`git log --all --oneline -i --grep=<CVE-ID>`, `git grep -n <CVE-ID>`). A mitigation counts only if its config is still present at HEAD.
+- **Mitigation applied?** Search commit messages and config for the CVE ID (`git log --all --oneline -i --grep=<CVE-ID>`, `git grep -n <CVE-ID>`). A mitigation counts only if its config is still present at HEAD.
+- **Mitigation available?** Read the advisory's workaround section (the OSV/GHSA `details` text, usually headed "Workarounds", or the vendor advisory). Record the workaround in one line, or `none published`.
+- **Fixed in:** the first release outside the affected range, `not available yet` if the advisory lists no fixed version, or `none planned (end of life)` if the vendor says so.
 
 Status, exactly one:
 
 | Status | When |
 |---|---|
 | exploitable | affected, feature used, reachable by someone untrusted |
-| mitigated | affected, but a workaround present at HEAD blocks it |
+| mitigation applied | affected, but a workaround present at HEAD blocks it |
 | not applicable | affected version, but feature not used or not reachable |
 | fixed in pinned version | the pinned version is outside the affected range |
 
@@ -44,15 +46,14 @@ Severity in the report follows reachability: an exploitable CVE reachable by an 
 
 ## 3. Container images (Trivy)
 
-For each image in the inventory (rendered manifests, chart values, kustomize images):
+Write every image in the inventory (rendered manifests, chart values, kustomize images), one reference per line, to `<work>/images.txt`. Then run, in the foreground with the shell tool's timeout set to `0` (the scan can take long and may first wait for another audit's scan):
 
 ```bash
-mkdir -p /tmp/opencode/trivy-docker /tmp/opencode/trivy-cache
-DOCKER_CONFIG=/tmp/opencode/trivy-docker nix shell nixpkgs#trivy -c trivy image \
-  --cache-dir /tmp/opencode/trivy-cache --scanners vuln --severity HIGH,CRITICAL --quiet \
-  --format json --output /tmp/opencode/trivy-<n>.json <image:tag>
+bash <skill-dir>/scripts/scan-images.sh <work>/images.txt <work>/trivy
 ```
 
-The empty `DOCKER_CONFIG` keeps Trivy away from the user's registry credentials; images are pulled anonymously.
+Never run Trivy for images yourself: parallel Trivy processes block each other on the cache lock.
 
-Summarise per image: count of Critical and High, and up to three notable CVEs with fixed versions. An image that cannot be pulled (private registry, no credentials, rate limit) gets scan status "not scanned (<reason>)"; do not log in to registries. Trivy results go to the appendix only; promote a Trivy CVE to a finding only after the impact check in section 2.
+Read `<work>/trivy/summary.tsv` (status and Critical/High/Medium/Low/fixable counts per image) for the image table. Look into `<work>/trivy/fixes.tsv` only with `grep`/`awk` slices, e.g. one image or one CVE; never read `raw/` or the whole file. `fixes.md` is appended to the report unread (`SKILL.md` step 6). Images with status `not scanned (<reason>)` go under "Not checked" with that reason.
+
+Promote a Trivy CVE to a finding only after the impact check in section 2.
