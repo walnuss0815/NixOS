@@ -20,6 +20,8 @@ in the pass using that login file) or "not scanned (<reason>)". Images are
 pulled straight from the registry: one pass per existing Docker/Podman login
 file, then an anonymous pass for whatever is left. Results
 already in <out-dir>/raw/ are reused, so re-running only scans what's missing.
+References to the same image (same @sha256 digest, or the same name with or
+without docker.io/library/) are scanned once; each reference keeps its rows.
 
 Only one scan runs at a time across audits: a second call waits for the
 lock /tmp/opencode/trivy-cache.lock. Run it in the foreground without a
@@ -49,14 +51,31 @@ mkdir -p "$out/raw" "$cache"
 out=$(cd "$out" && pwd)
 raw=$out/raw
 
-key() { printf '%s' "$1" | cksum | cut -d' ' -f1; }
+# One result per image: refs with a digest share it, others share the name
+# without Docker Hub's default prefixes.
+# shortcut: tag-only refs are deduplicated by name only; resolving tags to
+# digests would need a registry request per image.
+key() {
+  local r=$1
+  case $r in
+    *@sha256:*) r=${r##*@sha256:} ;;
+    *) r=${r#registry-1.docker.io/}; r=${r#docker.io/}; r=${r#library/} ;;
+  esac
+  printf '%s' "$r" | cksum | cut -d' ' -f1
+}
 
 # --- lock -------------------------------------------------------------------
 owned=0
 spid=
 xpid=
 cleanup() {
-  if [ -n "$xpid" ]; then kill "$xpid" 2>/dev/null || true; fi
+  if [ -n "$xpid" ]; then
+    kill "$xpid" 2>/dev/null || true
+    # xargs doesn't pass the signal on, and a client stuck connecting ignores
+    # SIGTERM. The lock means these clients are ours; the anchor keeps shells
+    # whose command line merely mentions the pattern out of the match.
+    pkill -9 -f "^[^ ]*/trivy image --server http://$addr" 2>/dev/null || true
+  fi
   if [ -n "$spid" ]; then
     kill "$spid" 2>/dev/null || true
     wait "$spid" 2>/dev/null || true
@@ -164,11 +183,18 @@ export trivy addr cache raw
 export tpl=$here/trivy-vulns.tpl
 
 images() { grep -v '^[[:space:]]*\(#\|$\)' "$list"; }
+# First ref of every key that has no result yet.
 pending() {
-  local img
-  while IFS= read -r img; do [ -e "$raw/$(key "$img").tsv" ] || echo "$img"; done < <(images)
+  local img k seen=" "
+  while IFS= read -r img; do
+    k=$(key "$img")
+    case $seen in *" $k "*) continue ;; esac
+    seen="$seen$k "
+    [ -e "$raw/$k.tsv" ] || echo "$img"
+  done < <(images)
 }
-reused=$(($(images | wc -l) - $(pending | wc -l)))
+unique=$(images | while IFS= read -r img; do key "$img"; echo; done | sort -u | grep -c .)
+reused=$((unique - $(pending | wc -l)))
 
 run_pass() {
   pending | xargs -P "$parallel" -I{} bash -c 'scan_one "$@"' _ {} "$1" "$2" "$3" &
@@ -214,7 +240,7 @@ while IFS= read -r img; do
 done < <(images)
 
 total=$(images | wc -l)
-echo "images: $((total)) (reused $reused), scanned $((total - ${#failed[@]})), not scanned ${#failed[@]}"
+echo "images: $((total)) (unique $unique, reused $reused), scanned $((total - ${#failed[@]})), not scanned ${#failed[@]}"
 echo "summary: $out/summary.tsv"
 echo "fixes: $out/fixes.tsv"
 echo "fixes (markdown): $out/fixes.md"
