@@ -1,6 +1,7 @@
 ---
 name: security-audit
 description: Use when asked to audit the security of a repository that deploys Kubernetes with GitOps (Argo CD, Flux) and Terraform/OpenTofu IaC, optionally including its live cluster, or to check such a repo for open CVEs, exposed components, tenant isolation gaps or OWASP Kubernetes / CI/CD Top 10 risks, with a written security audit report.
+compatibility: Requires bash, git, curl, tar and network access; trivy and gitleaks are fetched if missing.
 ---
 
 # Security audit
@@ -13,17 +14,28 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
 - Run any command whose path arguments or globs can reach those paths. Enumerate files with `git ls-files` and search content with `git grep` (tracked files only); the redacting scanners in `checks/secrets.md` are the only tools that look at untracked files.
 - Guess a version. A version you cannot find pinned in the repo goes under "Not checked".
 - Mutate anything: no `tofu`/`terraform` `apply|destroy|init|import|state|force-unlock|plan -out=<repo path>`, `kubectl apply|create|patch|delete|edit|exec|port-forward`, `talosctl apply-config|upgrade|reset|edit|patch`, no state locks.
-- Touch a cluster, node, cloud API or state backend unless the live phase is enabled, even if credentials are in the environment.
-- Call GitHub/GitLab APIs outside the live phase, for any repository. Advisory data comes from the sources in `checks/cve.md` only.
+- Log in anywhere: no `docker login`, `podman login`, `trivy registry login`. Existing registry logins are used only by `scripts/scan-images.sh`.
+- Install tools system-wide or with a package manager. Get every tool through `scripts/tool.sh`.
+- Touch a cluster, node, cloud API or state backend unless the live phase is enabled, even if credentials are in the environment. Exception: image pulls by `scripts/scan-images.sh`, including credential helpers configured in the user's Docker/Podman login files.
+- Call GitHub/GitLab APIs outside the live phase, for any repository. Advisory data comes from the sources in `checks/cve.md` only. Exceptions: `scripts/tool.sh` reading `github.com/<repo>/releases.atom` and release files, and `GITHUB_TOKEN` used for `ghcr.io` image pulls.
 - Put repo content into web searches or advisory queries. Only component names and versions leave the machine.
 - Work around a sandbox denial (EACCES/EPERM) or a 401/403. List the item under "Not checked" with the reason.
 - Report a finding without evidence: `path:line` for repo findings, the command and its (redacted) output for live findings.
 
 ## Workflow
 
-1. **Scope.** Confirm the repo root. Ask with the question tool whether to run the live phase (default: no). If yes, ask which kubeconfig, talosconfig and IaC wrapper (e.g. `hack/tofu.sh`) to use; never open them.
+1. **Scope.** Confirm the repo root. Ask with the question tool whether to run the live phase (default: no). If yes, ask which kubeconfig, talosconfig and IaC wrapper (e.g. `hack/tofu.sh`) to use; never open them. Create the work dir for all audit output: `mkdir -p /tmp/opencode/security-audit && mktemp -d /tmp/opencode/security-audit/<repo-name>.XXXXXX`; `<work>` below is that path, `<skill-dir>` the absolute base directory of this skill.
 2. **Stack detection.** Record in a short stack summary: GitOps tool (Argo CD, Flux), manifest tooling (Helm, Kustomize, Jsonnet, plain YAML), IaC (Terraform/OpenTofu, providers, modules, backend), cluster type (Talos, kubeadm, k3s, EKS/GKE/AKS), CI (GitHub Actions, GitLab CI), tenancy (Capsule, HNC, namespace-per-team, none), identity (OIDC issuers, IdPs). Read the repo's README, design docs and runbooks: every security assumption they state ("port X is firewalled", "only operators can ...") goes into an **assumptions list** for the checks to verify.
-3. **Inventory.** List every component with its exact pinned version and where it is pinned (`path:line`): vendir locks, `Chart.yaml`/`Chart.lock`, image tags, `.terraform.lock.hcl`, module `ref=`, Talos/Kubernetes versions in IaC, `flake.lock`, Renovate config. If the repo has an offline render or check script, read it first; run it only if it writes nothing outside `/tmp`, reads no gitignored files and needs no credentials. Compare `git status --porcelain` before and after: any change means stop and report it. Rendering may fetch public chart and kustomize sources anonymously; never with credentials. A remote module or source you cannot fetch anonymously goes under "Not checked".
+3. **Inventory.** List every component with its exact pinned version and where it is pinned (`path:line`): vendir locks, `Chart.yaml`/`Chart.lock`, image tags, `.terraform.lock.hcl`, module `ref=`, Talos/Kubernetes versions in IaC, `flake.lock`, Renovate config. If the repo has an offline render or check script, read it first; run it only if it writes nothing outside `/tmp`, reads no gitignored files and needs no credentials. Compare `git status --porcelain` before and after: any change means stop and report it. Rendering may fetch public chart and kustomize sources anonymously; never with credentials. Render into `<work>/rendered/`; rendering tools (`helm`, `kustomize`, `jsonnet`, `vendir`) come from `tool.sh`, and a missing one puts that rendering under "Not checked". A remote module or source you cannot fetch anonymously goes under "Not checked".
+   **Misconfiguration scan:** export the tracked files and scan them and the rendered manifests; the template keeps only ID, severity, title, file and line, never code:
+
+   ```bash
+   mkdir -p <work>/src && git archive HEAD | tar -x -C <work>/src
+   "$(bash <skill-dir>/scripts/tool.sh trivy)" config --cache-dir <work>/trivy-config-cache --quiet \
+     --format template --template "@<skill-dir>/scripts/trivy-misconfig.tpl" --output <work>/trivy-config.tsv <work>/src
+   ```
+
+   Repeat with `<work>/rendered` into `<work>/trivy-config-rendered.tsv`. Hand both files to the `iac` and `k8s-rbac-tenancy` subagents as leads: a lead becomes a finding only after the check confirms it.
    **Vendored code:** audit what gets deployed, including vendored parts that are rendered into manifests. Tag such findings `Upstream: <owner/repo>`. Skip the vendored repo's own CI, docs and nested vendor trees, but keep its components in the inventory.
 4. **Checks.** Choose the check files:
 
@@ -37,9 +49,19 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
    | `checks/k8s-rbac-tenancy.md` | Kubernetes manifests exist |
    | `checks/live.md` | the user enabled the live phase |
 
-   Dispatch one subagent per chosen repo check file, all in one batch. Give each: the repo root, the stack summary, the assumptions list, the inventory, the absolute path of its check file and of `report-template.md`, and the **Never** list above verbatim. Each returns findings in the template's finding format plus its "Not checked" items. Without a subagent tool, work through the same check files yourself, one after another.
+   Dispatch one subagent per chosen repo check file, all in one batch. Give each: the repo root, `<work>` and `<skill-dir>` as absolute paths, the stack summary, the assumptions list, the inventory, the absolute path of its check file and of `report-template.md`, and the **Never** list above verbatim. Each returns findings in the template's finding format plus its "Not checked" items. Without a subagent tool, work through the same check files yourself, one after another.
 5. **Live phase** (only if enabled): after the repo checks, follow `checks/live.md` yourself, using the repo findings as hypotheses to confirm or refute.
-6. **Report.** Merge: one finding per root cause (merge duplicates, keep all evidence), severity by impact in this setup (who can exploit it, what they get), OWASP IDs on every finding, coverage table complete, "Not checked" complete. Write it following `report-template.md` to `docs/security/YYYY-MM-DD-security-audit.md` in the audited repo. If that file exists, use `-2`, `-3`, ... — never overwrite. Do not commit. Reply with the report path and the top 5 findings.
+6. **Report.** Merge: one finding per root cause (merge duplicates, keep all evidence), severity by impact in this setup (who can exploit it, what they get), OWASP IDs on every finding, coverage table complete, "Not checked" complete. Write it following `report-template.md` to `docs/security/YYYY-MM-DD-security-audit.md` in the audited repo. If that file exists, use `-2`, `-3`, ... — never overwrite. The report ends with the `## Image CVE details` heading; then append the table: `cat <work>/trivy/fixes.md >> <report>`. Do not commit.
+7. **Clean up.** Delete the work dir: `rm -r <work>` (if denied: `find <work> -delete`). Delete nothing else: `/tmp/opencode/trivy-cache` and `/tmp/opencode/tools` are reused by later audits. Reply with the report path and the top 5 findings.
+
+## Scripts
+
+Call them as `bash <skill-dir>/scripts/<name>`, in the foreground; `--help` shows the interface.
+
+| Script | Purpose | Output |
+|---|---|---|
+| `tool.sh <name>` | Path of `trivy`, `gitleaks`, `helm`, `kustomize`, `jsonnet`, `vendir`, `zizmor`: from PATH, Nix, or (trivy, gitleaks) a checked release download | path on stdout; exit 1 means not available, list it under "Not checked" |
+| `scan-images.sh <list> <out-dir>` | Vulnerability scan of all images through one local Trivy server; uses existing Docker/Podman logins; one scan at a time across audits | `summary.tsv`, `fixes.tsv`, `fixes.md` in `<out-dir>`; set the shell timeout to `0`, it may wait for another audit |
 
 ## Severity
 
@@ -60,3 +82,7 @@ Audit a GitOps + Kubernetes + Terraform/OpenTofu repository and, only if the use
 - Treating a documented workaround as still needed without checking whether the pinned version already fixes the CVE.
 - Citing a file without a line.
 - Reviewing vendored code only where a finding already points to it: rendered manifests from vendored code are deployed and are in scope.
+- Running Trivy yourself, especially several at once: they block each other on the cache lock. Use `scan-images.sh`.
+- Reading raw Trivy JSON or all of `fixes.tsv`: it can hold thousands of rows. Read `summary.tsv` and `grep`/`awk` slices.
+- Calling a script with the shell tool's default 2-minute timeout: the call gets cancelled mid-scan.
+- Writing audit output anywhere but `<work>`, or leaving `<work>` behind.

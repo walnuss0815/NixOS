@@ -13,10 +13,10 @@ OWASP: CICD-SEC-3 Dependency Chain Abuse, CICD-SEC-7 Insecure System Configurati
 - For GitHub Actions run:
 
   ```bash
-  nix shell nixpkgs#zizmor -c zizmor --offline --format plain <repo>/.github/workflows
+  "$(bash <skill-dir>/scripts/tool.sh zizmor)" --offline --format plain <repo>/.github/workflows
   ```
 
-  Report each zizmor finding with its rule and `path:line`. Check by hand as well: `permissions:` (default token scope), `pull_request_target` and `workflow_run` with checkout of untrusted refs, secrets available to PR jobs, self-hosted runners on public repos.
+  If `tool.sh` exits 1, list zizmor under "Not checked" and do the manual checks. Report each zizmor finding with its rule and `path:line`. Check by hand as well: `permissions:` (default token scope), `pull_request_target` and `workflow_run` with checkout of untrusted refs, secrets available to PR jobs, self-hosted runners on public repos.
 - GitLab CI: protected variables and branches, `rules` for forks/MRs, runner tags.
 - Does CI hold cloud or cluster credentials? Which jobs?
 

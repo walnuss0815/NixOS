@@ -9,8 +9,9 @@ Never open the files listed under **Never** in `SKILL.md`. You may test *whether
 Run both with redaction; keep only rule ID, file, line and commit in your notes:
 
 ```bash
-nix shell nixpkgs#gitleaks -c gitleaks git --redact --no-banner --report-format json --report-path /tmp/opencode/gitleaks-git.json <repo>
-nix shell nixpkgs#gitleaks -c gitleaks dir --redact --no-banner --report-format json --report-path /tmp/opencode/gitleaks-dir.json <repo>
+GL=$(bash <skill-dir>/scripts/tool.sh gitleaks)
+"$GL" git --redact --no-banner --report-format json --report-path <work>/gitleaks-git.json <repo>
+"$GL" dir --redact --no-banner --report-format json --report-path <work>/gitleaks-dir.json <repo>
 ```
 
 `gitleaks dir` also sees gitignored local files: report those as "present on the workstation" (Low unless world-readable or synced), not as committed. A match in git history counts as exposed even if a later commit removed it: the fix is rotation, not deletion.
