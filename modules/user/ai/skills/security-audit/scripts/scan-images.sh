@@ -182,7 +182,7 @@ export -f scan_one key
 export trivy addr cache raw
 export tpl=$here/trivy-vulns.tpl
 
-images() { grep -v '^[[:space:]]*\(#\|$\)' "$list"; }
+images() { grep -Ev '^[[:space:]]*(#|$)' "$list"; }
 # First ref of every key that has no result yet.
 pending() {
   local img k seen=" "
