@@ -6,16 +6,19 @@ Input: the inventory from `SKILL.md` step 3. Only component names and versions l
 
 ## 1. Advisories per component
 
-Query in this order and stop at the first source that knows the component. OSV "knows" a package when a query for it *without* a version returns at least one advisory; an empty result with a version from a known package means no advisories for that version, an empty result for an unknown package means go to the next source:
+Query in this order and stop at the first source that knows the component:
 
-1. **OSV.dev** (includes GitHub Security Advisories):
+1. **OSV.dev** (includes GitHub Security Advisories). Write every component to `<work>/components.tsv`, one per line, tab-separated: `component	ecosystem	package	version` (OSV ecosystem names: `Go`, `npm`, `PyPI`, `Maven`, ...). Map components to their source package: Go projects to their Go module (e.g. `github.com/argoproj/argo-cd/v3`), Keycloak to Maven `org.keycloak:keycloak-services`; for images, the upstream project, not the image name. Then run once for the whole inventory, instead of querying OSV by hand:
 
    ```bash
-   curl -s -X POST https://api.osv.dev/v1/query \
-     -d '{"package":{"name":"<module or package>","ecosystem":"<Go|npm|PyPI|Maven|...>"},"version":"<version>"}'
+   bash <skill-dir>/scripts/advisories.sh <work>/components.tsv <work>/osv
    ```
 
-   Map components to their source package: Go projects to their Go module (e.g. `github.com/argoproj/argo-cd/v3`), Keycloak to Maven `org.keycloak:keycloak-services`. For images, use the upstream project, not the image name.
+   - `advisories.tsv`: every advisory affecting the pinned version, with aliases (CVE IDs), severity, fixed versions of that package and the advisory's workaround text. These are the input for section 2.
+   - `unknown.tsv`: OSV has no advisories for that package at any version; check those in source 2 or 3. A package name that looks wrong (no advisories for a well-known project) is a mapping mistake: fix the row and re-run, already fetched advisories are reused.
+   - `errors.tsv` and exit code 3 (OSV unreachable): list under **Not checked**.
+
+   Read `advisories.tsv` with `grep`/`awk` slices per component. A "fixed" value that is a Go pseudo-version or an empty one with a `GO-` ID can mean OSV matched the module path loosely: confirm against the vendor advisory before reporting.
 2. **Kubernetes feed** for Kubernetes itself (kube-apiserver, kubelet, ...): `https://kubernetes.io/docs/reference/issues-security/official-cve-feed/index.json`; match by affected version ranges in each entry.
 3. **Vendor security pages and release notes** (web pages such as `github.com/<org>/<repo>/security/advisories` and `/releases`, never `api.github.com`; release notes between the pinned and the latest version) for components OSV doesn't know (e.g. Talos, some operators).
 
@@ -28,7 +31,7 @@ For each advisory whose affected range includes the pinned version:
 - **Feature used?** Is the vulnerable feature, endpoint or code path enabled in this repo's config? Cite `path:line`.
 - **Who can reach it?** Internet (cross-check the exposure table from `iac.md`), tenant, operator only, nobody.
 - **Mitigation applied?** Search commit messages and config for the CVE ID (`git log --all --oneline -i --grep=<CVE-ID>`, `git grep -n <CVE-ID>`). A mitigation counts only if its config is still present at HEAD.
-- **Mitigation available?** Read the advisory's workaround section (the OSV/GHSA `details` text, usually headed "Workarounds", or the vendor advisory). Record the workaround in one line, or `none published`.
+- **Mitigation available?** For OSV advisories, the `workaround` column of `advisories.tsv` holds the advisory's Workarounds/Mitigation text; otherwise read the vendor advisory. Record the workaround in one line, or `none published` (also when the text only says there is none).
 - **Fixed in:** the first release outside the affected range, `not available yet` if the advisory lists no fixed version, or `none planned (end of life)` if the vendor says so.
 
 Status, exactly one:
