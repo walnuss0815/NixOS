@@ -7,10 +7,11 @@ usage() {
 Usage: bash tool.sh <name>
 
 Print the absolute path of a usable <name> binary on stdout.
-Order: PATH, Nix (nixpkgs), release download (trivy and gitleaks only).
+Order: PATH, Nix (nixpkgs), release download (trivy, gitleaks, jq only).
 Nothing is installed system-wide.
 
-Names: trivy gitleaks helm kustomize jsonnet vendir zizmor shellcheck
+Names: trivy gitleaks jq yq python3 helm kustomize jsonnet vendir zizmor
+       shellcheck
 
 Downloads take the newest stable release that is at least 7 days old
 (override: SECURITY_AUDIT_MIN_RELEASE_AGE_DAYS), check its SHA256 against
@@ -30,7 +31,8 @@ die() {
 name=$1
 case $name in
   -h | --help) usage; exit 0 ;;
-  trivy | gitleaks | kustomize | vendir | zizmor | shellcheck) attr=$name ;;
+  trivy | gitleaks | jq | python3 | kustomize | vendir | zizmor | shellcheck) attr=$name ;;
+  yq) attr=yq-go ;;
   helm) attr=kubernetes-helm ;;
   jsonnet) attr=go-jsonnet ;;
   *) echo "tool.sh: unknown name '$name'" >&2; usage >&2; exit 2 ;;
@@ -50,19 +52,20 @@ if command -v nix >/dev/null; then
 fi
 
 case $name in
-  trivy) repo=aquasecurity/trivy ;;
-  gitleaks) repo=gitleaks/gitleaks ;;
+  trivy) repo=aquasecurity/trivy prefix=v ;;
+  gitleaks) repo=gitleaks/gitleaks prefix=v ;;
+  jq) repo=jqlang/jq prefix=jq- ;;
   *) die "$name not on PATH and not available via Nix; no download source" ;;
 esac
 
 case $(uname -s) in
-  Linux) os_trivy=Linux os_gitleaks=linux ;;
-  Darwin) os_trivy=macOS os_gitleaks=darwin ;;
+  Linux) os_trivy=Linux os_gitleaks=linux os_jq=linux ;;
+  Darwin) os_trivy=macOS os_gitleaks=darwin os_jq=macos ;;
   *) die "unsupported OS $(uname -s)" ;;
 esac
 case $(uname -m) in
-  x86_64 | amd64) arch_trivy=64bit arch_gitleaks=x64 ;;
-  aarch64 | arm64) arch_trivy=ARM64 arch_gitleaks=arm64 ;;
+  x86_64 | amd64) arch_trivy=64bit arch_gitleaks=x64 arch_jq=amd64 ;;
+  aarch64 | arm64) arch_trivy=ARM64 arch_gitleaks=arm64 arch_jq=arm64 ;;
   *) die "unsupported CPU $(uname -m)" ;;
 esac
 
@@ -76,19 +79,18 @@ feed=$(curl -sfL "https://github.com/$repo/releases.atom") || die "cannot read h
 # Each entry has <updated> before its release link; links inside the release
 # notes come later and are skipped by resetting u. Feed dates are ISO 8601 UTC,
 # so string comparison orders them.
-tag=$(printf '%s' "$feed" | grep -oE '<updated>[^<]+|releases/tag/v[0-9]+\.[0-9]+\.[0-9]+"' |
+tag=$(printf '%s' "$feed" | grep -oE "<updated>[^<]+|releases/tag/${prefix}[0-9]+\.[0-9]+\.[0-9]+\"" |
   awk -v cut="$cutoff" '
     /^<updated>/ { u = substr($0, 10); next }
     u != "" { t = $0; sub(/^releases\/tag\//, "", t); sub(/"$/, "", t); if (u <= cut) { print t; exit } u = "" }')
 [ -n "$tag" ] || die "no stable $name release older than $min_age days in the feed"
-v=${tag#v}
+v=${tag#"$prefix"}
 
-if [ "$name" = trivy ]; then
-  asset=trivy_${v}_${os_trivy}-${arch_trivy}.tar.gz
-else
-  asset=gitleaks_${v}_${os_gitleaks}_${arch_gitleaks}.tar.gz
-fi
-sums=${name}_${v}_checksums.txt
+case $name in
+  trivy) asset=trivy_${v}_${os_trivy}-${arch_trivy}.tar.gz sums=trivy_${v}_checksums.txt ;;
+  gitleaks) asset=gitleaks_${v}_${os_gitleaks}_${arch_gitleaks}.tar.gz sums=gitleaks_${v}_checksums.txt ;;
+  jq) asset=jq-${os_jq}-${arch_jq} sums=sha256sum.txt ;;
+esac
 base=https://github.com/$repo/releases/download/$tag
 
 tools=/tmp/opencode/tools
@@ -112,7 +114,10 @@ else
 fi
 [ -n "$want" ] && [ "$want" = "$got" ] || die "checksum mismatch for $asset"
 
-tar -xzf "$tmp/$asset" -C "$tmp" "$name" || die "$name not found in $asset"
+case $asset in
+  *.tar.gz) tar -xzf "$tmp/$asset" -C "$tmp" "$name" || die "$name not found in $asset" ;;
+  *) mv "$tmp/$asset" "$tmp/$name" ;; # released as a plain binary
+esac
 chmod +x "$tmp/$name"
 mkdir -p "$dest"
 # rename() is atomic: a parallel run sees either no binary or a complete one.
