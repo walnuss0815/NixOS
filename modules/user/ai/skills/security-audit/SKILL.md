@@ -66,7 +66,8 @@ Call them as `bash <skill-dir>/scripts/<name>`, in the foreground; `--help` show
 
 | Script | Purpose | Output |
 |---|---|---|
-| `tool.sh <name>` | Path of `trivy`, `gitleaks`, `helm`, `kustomize`, `jsonnet`, `vendir`, `zizmor`: from PATH, Nix, or (trivy, gitleaks) a checked release download | path on stdout; exit 1 means not available, list it under "Not checked" |
+| `tool.sh <name>` | Path of `trivy`, `gitleaks`, `jq`, `yq`, `python3`, `helm`, `kustomize`, `jsonnet`, `vendir`, `zizmor`: from PATH, Nix, or (trivy, gitleaks, jq) a checked release download | path on stdout; exit 1 means not available, list it under "Not checked" |
+| `advisories.sh <components.tsv> <out-dir>` | OSV advisories for every inventory component in one batch, with fixed versions and workaround text | `advisories.tsv`, `unknown.tsv`, `errors.tsv` in `<out-dir>`; see `checks/cve.md` section 1 |
 | `scan-images.sh <list> <out-dir>` | Vulnerability scan of all images through one local Trivy server; uses existing Docker/Podman logins; one scan at a time across audits | `summary.tsv`, `fixes.tsv`, `fixes.md` in `<out-dir>`; set the shell timeout to `0`, it may wait for another audit |
 
 ## Severity
@@ -88,6 +89,7 @@ Call them as `bash <skill-dir>/scripts/<name>`, in the foreground; `--help` show
 - Treating a documented workaround as still needed without checking whether the pinned version already fixes the CVE.
 - Citing a file without a line.
 - Reviewing vendored code only where a finding already points to it: rendered manifests from vendored code are deployed and are in scope.
+- Querying OSV per component or writing advisory scrapers by hand: use `advisories.sh` for everything OSV knows; scrape vendor pages only for `unknown.tsv`.
 - Running Trivy yourself, especially several at once: they block each other on the cache lock. Use `scan-images.sh`.
 - Reading raw Trivy JSON or all of `fixes.tsv`: it can hold thousands of rows. Read `summary.tsv` and `grep`/`awk` slices.
 - Calling a script with the shell tool's default 2-minute timeout: the call gets cancelled mid-scan.
