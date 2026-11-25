@@ -16,7 +16,8 @@ Query in this order and stop at the first source that knows the component:
 
    - `advisories.tsv`: every advisory affecting the pinned version, with aliases (CVE IDs), severity, fixed versions of that package and the advisory's workaround text. These are the input for section 2.
    - `unknown.tsv`: OSV has no advisories for that package at any version; check those in source 2 or 3. A package name that looks wrong (no advisories for a well-known project) is a mapping mistake: fix the row and re-run, already fetched advisories are reused.
-   - `errors.tsv` and exit code 3 (OSV unreachable): list under **Not checked**.
+   - `errors.tsv` and exit code 3 (OSV unreachable): list under **Not checked**. Exit code 2 names the inventory line OSV rejected: fix it and re-run.
+   - A component in none of the three files was checked: OSV knows the package and lists no advisory for that version (CVE table row with CVE `none`).
 
    Read `advisories.tsv` with `grep`/`awk` slices per component. A "fixed" value that is a Go pseudo-version or an empty one with a `GO-` ID can mean OSV matched the module path loosely: confirm against the vendor advisory before reporting.
 2. **Kubernetes feed** for Kubernetes itself (kube-apiserver, kubelet, ...): `https://kubernetes.io/docs/reference/issues-security/official-cve-feed/index.json`; match by affected version ranges in each entry.
@@ -31,7 +32,7 @@ For each advisory whose affected range includes the pinned version:
 - **Feature used?** Is the vulnerable feature, endpoint or code path enabled in this repo's config? Cite `path:line`.
 - **Who can reach it?** Internet (cross-check the exposure table from `iac.md`), tenant, operator only, nobody.
 - **Mitigation applied?** Search commit messages and config for the CVE ID (`git log --all --oneline -i --grep=<CVE-ID>`, `git grep -n <CVE-ID>`). A mitigation counts only if its config is still present at HEAD.
-- **Mitigation available?** For OSV advisories, the `workaround` column of `advisories.tsv` holds the advisory's Workarounds/Mitigation text; otherwise read the vendor advisory. Record the workaround in one line, or `none published` (also when the text only says there is none).
+- **Mitigation available?** For OSV advisories, the `workaround` column of `advisories.tsv` holds the advisory's Workarounds/Mitigation text; otherwise read the vendor advisory. An empty column means none found by the script, not proof that none exists: for exploitable or High/Critical CVEs read the advisory page before writing `none published`. Record the workaround in one line, or `none published` (also when the text only says there is none).
 - **Fixed in:** the first release outside the affected range, `not available yet` if the advisory lists no fixed version, or `none planned (end of life)` if the vendor says so.
 
 Status, exactly one:

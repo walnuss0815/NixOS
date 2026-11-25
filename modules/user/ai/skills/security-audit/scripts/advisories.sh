@@ -42,9 +42,16 @@ osv=${SECURITY_AUDIT_OSV_URL:-https://api.osv.dev}
 mkdir -p "$out/vulns"
 out=$(cd "$out" && pwd)
 
-grep -v '^[[:space:]]*\(#\|$\)' "$inv" >"$out/components.tsv" || true
+grep -Ev '^[[:space:]]*(#|$)' "$inv" >"$out/components.tsv" || true
 n=$(wc -l <"$out/components.tsv")
 [ "$n" -gt 0 ] || { echo "advisories.sh: no components in $inv" >&2; exit 2; }
+# An empty version would make OSV list every advisory of the package.
+bad=$(awk -F'\t' 'NF < 4 || $1 == "" || $2 == "" || $3 == "" || $4 == "" { print "  line " NR ": " $0 }' "$out/components.tsv")
+if [ -n "$bad" ]; then
+  echo "advisories.sh: each line needs 4 non-empty tab-separated fields (component, ecosystem, package, version):" >&2
+  echo "$bad" >&2
+  exit 2
+fi
 # shortcut: one querybatch takes 1000 queries (2 per component); split the
 # inventory into several files if it ever has more than 500 components.
 [ "$n" -le 500 ] || { echo "advisories.sh: more than 500 components; split $inv" >&2; exit 2; }
@@ -54,11 +61,27 @@ n=$(wc -l <"$out/components.tsv")
 "$jq" -R -s '{queries: [split("\n")[] | select(length > 0) | split("\t")
   | ({package: {name: .[2], ecosystem: .[1]}, version: .[3]}, {package: {name: .[2], ecosystem: .[1]}})]}' \
   "$out/components.tsv" >"$out/query.json"
-if ! curl -sf -m 120 -X POST -H 'Content-Type: application/json' --data @"$out/query.json" \
-  "$osv/v1/querybatch" >"$out/batch.json"; then
-  echo "advisories.sh: OSV not reachable at $osv; nothing was checked" >&2
-  exit 3
-fi
+code=$(curl -s -m 120 -o "$out/batch.json" -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+  --data @"$out/query.json" "$osv/v1/querybatch") || code=000
+case $code in
+  200) ;;
+  4??)
+    # OSV rejects the whole batch for one bad query and names its index.
+    msg=$("$jq" -r '.message // empty' "$out/batch.json" 2>/dev/null || true)
+    idx=$(printf '%s' "$msg" | sed -n 's/.*index \([0-9][0-9]*\).*/\1/p')
+    if [ -n "$idx" ]; then
+      line=$((idx / 2 + 1))
+      echo "advisories.sh: OSV rejected line $line ($(sed -n "${line}p" "$out/components.tsv" | tr '\t' ' ')): $msg" >&2
+    else
+      echo "advisories.sh: OSV rejected the query (HTTP $code): $msg" >&2
+    fi
+    exit 2
+    ;;
+  *)
+    echo "advisories.sh: OSV not reachable at $osv (HTTP $code); nothing was checked" >&2
+    exit 3
+    ;;
+esac
 
 fetch() {
   [ -s "$out/vulns/$1.json" ] && return 0
@@ -79,6 +102,8 @@ find "$out/vulns" -name '*.json' -exec cat {} + | "$jq" -s 'map({key: .id, value
 # shellcheck disable=SC2016 # jq program, $vars are jq variables
 "$jq" -r --slurpfile v "$out/vulns.json" --rawfile comps "$out/components.tsv" '
   def clean: tostring | gsub("[\t\r\n]+"; " ") | gsub("^ +| +$"; "");
+  # OSV matches names case-insensitively (PyPI also folds - _ .); so must we.
+  def norm: ascii_downcase | gsub("[-_.]+"; "-");
   def heading: "^\\s*(#+\\s*|\\*\\*)?(workarounds?|mitigations?)\\b";
   # Text of the first Workarounds/Mitigation section, up to the next heading.
   def workaround:
@@ -93,19 +118,25 @@ find "$out/vulns" -name '*.json' -exec cat {} + | "$jq" -s 'map({key: .id, value
   | .results as $r
   | range(0; $c | length) as $i
   | $c[$i] as [$comp, $eco, $pkg, $ver]
-  | if ($r[2 * $i + 1].vulns // [] | length) == 0 then
+  | if ($r[2 * $i + 1].vulns // [] | length) == 0 and $r[2 * $i + 1].next_page_token == null then
       ["U", $comp, $eco, $pkg, $ver] | map(clean) | @tsv
     else
-      $r[2 * $i].vulns[]?.id as $id
+      # shortcut: more pages are reported, not fetched; add page_token
+      # queries if a real component ever has 1000+ affecting advisories.
+      (if $r[2 * $i].next_page_token != null then
+        ["E", $comp, $pkg, $ver, "OSV result truncated (more pages); advisories may be missing"] | map(clean) | @tsv
+      else empty end),
+      ($r[2 * $i].vulns[]?.id as $id
       | $v[0][$id] as $d
       | if $d == null then ["E", $comp, $pkg, $ver, "advisory \($id) could not be fetched"] | map(clean) | @tsv
         elif $d.withdrawn != null then empty
         else ["A", $comp, $pkg, $ver, $id, ($d.aliases // [] | join(",")),
             ($d.database_specific.severity // $d.affected[0].ecosystem_specific.severity // $d.severity[0].score // ""),
-            ([$d.affected[]? | select(.package.name == $pkg) | .ranges[]?.events[]? | .fixed // empty] | unique | join(",")),
+            ([$d.affected[]? | select((.package.ecosystem | norm) == ($eco | norm) and (.package.name | norm) == ($pkg | norm))
+              | .ranges[]?.events[]? | .fixed // empty] | unique | join(",")),
             ($d.summary // "" | clean | .[0:120]),
             ($d | workaround)] | map(clean) | @tsv
-        end
+        end)
     end
 ' "$out/batch.json" >"$out/rows.tsv"
 
