@@ -15,13 +15,20 @@ Query in this order and stop at the first source that knows the component:
    ```
 
    - `advisories.tsv`: every advisory affecting the pinned version, with aliases (CVE IDs), severity, fixed versions of that package and the advisory's workaround text. These are the input for section 2.
-   - `unknown.tsv`: OSV has no advisories for that package at any version; check those in source 2 or 3. A package name that looks wrong (no advisories for a well-known project) is a mapping mistake: fix the row and re-run, already fetched advisories are reused.
+   - `unknown.tsv`: OSV has no advisories for that package at any version. A package name that looks wrong (no advisories for a well-known project) is a mapping mistake: fix the row and re-run, already fetched advisories are reused. Otherwise triage by `github_advisories` (the repo's own published GitHub advisories):
+
+     | `github_advisories` | Action |
+     |---|---|
+     | `0` | No published advisories: CVE `none`, no further research. Exception: if the project's `SECURITY.md` or README names another place for advisories (own website, mailing list), check that instead. |
+     | `N` or `N+` | Review only the listed `ids` (and, for `N+`, further pages of `github.com/<owner>/<repo>/security/advisories`) and only those published after the pinned version. |
+     | `n/a` | No GitHub repo derivable: source 2 or 3. |
+     | `error` | Page didn't load: re-run once, then **Not checked**. |
    - `errors.tsv` and exit code 3 (OSV unreachable): list under **Not checked**. Exit code 2 names the inventory line OSV rejected: fix it and re-run.
    - A component in none of the three files was checked: OSV knows the package and lists no advisory for that version (CVE table row with CVE `none`).
 
    Read `advisories.tsv` with `grep`/`awk` slices per component. A "fixed" value that is a Go pseudo-version or an empty one with a `GO-` ID can mean OSV matched the module path loosely: confirm against the vendor advisory before reporting.
 2. **Kubernetes feed** for Kubernetes itself (kube-apiserver, kubelet, ...): `https://kubernetes.io/docs/reference/issues-security/official-cve-feed/index.json`; match by affected version ranges in each entry.
-3. **Vendor security pages and release notes** (web pages such as `github.com/<org>/<repo>/security/advisories` and `/releases`, never `api.github.com`; release notes between the pinned and the latest version) for components OSV doesn't know (e.g. Talos, some operators).
+3. **Vendor security pages and release notes** (web pages such as `github.com/<org>/<repo>/security/advisories` and `/releases`, never `api.github.com`; release notes between the pinned and the latest version) for components OSV doesn't know and `unknown.tsv` can't settle (software without an ecosystem package such as nginx, HAProxy, Redis, PostgreSQL). Read only advisories published after the pinned version was released, newest first, and stop at the first older one.
 
 If a source is unreachable, rate-limited or returns an error for a component, list that component under **Not checked** with the reason. Never write "no CVEs" for a component you could not query.
 
