@@ -29,7 +29,7 @@ package name and version leave the machine. Writes to <out-dir>:
 Fetched advisories are kept in <out-dir>/vulns/ and reused on re-runs.
 
 Exit codes: 0 done, 1 jq or curl not available, 2 bad arguments,
-3 OSV not reachable (nothing was checked).
+3 OSV not reachable or its data not processable (nothing was checked).
 EOF
 }
 
@@ -135,13 +135,17 @@ find "$out/vulns" -name '*.json' -exec cat {} + | "$jq" -s 'map({key: .id, value
         elif $d.withdrawn != null then empty
         else ["A", $comp, $pkg, $ver, $id, ($d.aliases // [] | join(",")),
             ($d.database_specific.severity // $d.affected[0].ecosystem_specific.severity // $d.severity[0].score // ""),
-            ([$d.affected[]? | select((.package.ecosystem | norm) == ($eco | norm) and (.package.name | norm) == ($pkg | norm))
+            ([$d.affected[]? | select((.package.ecosystem // "" | norm) == ($eco | norm) and (.package.name // "" | norm) == ($pkg | norm))
               | .ranges[]?.events[]? | .fixed // empty] | unique | join(",")),
             ($d.summary // "" | clean | .[0:120]),
             ($d | workaround)] | map(clean) | @tsv
         end)
     end
-' "$out/batch.json" >"$out/rows.tsv"
+' "$out/batch.json" >"$out/rows.tsv" || {
+  # An OSV data shape this script doesn't expect: say so instead of dying silently.
+  echo "advisories.sh: could not process the OSV data (see jq error above); nothing was checked" >&2
+  exit 3
+}
 
 printf 'component\tpackage\tversion\tosv_id\taliases\tseverity\tfixed\tsummary\tworkaround\n' >"$out/advisories.tsv"
 printf 'component\tecosystem\tpackage\tversion\n' >"$out/unknown.tsv"

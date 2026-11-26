@@ -32,7 +32,7 @@ Query in this order and stop at the first source that knows the component:
      | `N` or `N+` | Review only the listed `ids` (and, for `N+`, further pages of `github.com/<owner>/<repo>/security/advisories`): those published after the pinned version, plus any older one whose patched version is newer than the pinned one or missing. |
      | `n/a` | No GitHub repo derivable: source 2 or 3. |
      | `error` | Page didn't load: re-run once, then **Not checked**. |
-   - `errors.tsv` and exit code 3 (OSV unreachable): list under **Not checked**. Exit code 2 names the inventory line OSV rejected: fix it and re-run.
+   - `errors.tsv` and exit code 3 (OSV unreachable or its data not processable; stderr says which): list under **Not checked**. Exit code 2 names the inventory line OSV rejected: fix it and re-run.
    - A component in none of the three files was checked: OSV knows the package and lists no advisory for that version (CVE table row with CVE `none`).
 
    Read `advisories.tsv` with `grep`/`awk` slices per component. A "fixed" value that is a Go pseudo-version or an empty one with a `GO-` ID can mean OSV matched the module path loosely: confirm against the vendor advisory before reporting.
