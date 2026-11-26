@@ -154,17 +154,23 @@ awk -F'\t' -v a="$out/advisories.tsv" -v u="$out/unknown.tsv" -v e="$out/errors.
 # all? Repo-level advisories without an ecosystem mapping never reach OSV.
 gh=${SECURITY_AUDIT_GITHUB_URL:-https://github.com} # overridable for tests only
 mkdir -p "$out/github"
+# GitHub's text on an empty advisory list; without it, a page with no links is
+# not proof of "no advisories" (login wall, error page, layout change).
+empty_list="aren(&#39;|'|’)t any published security advisories"
 ghcheck() {
-  local f=$out/github/${1//\//__}.html
+  local f=$out/github/${1//\//__}.html u
   [ -s "$f" ] && return 0
-  if curl -sfL -m 30 -o "$f.tmp" "$gh/$1/security/advisories?state=published"; then
+  if u=$(curl -sfL -m 30 -o "$f.tmp" -w '%{url_effective}' "$gh/$1/security/advisories?state=published") &&
+    grep -qiE "/security/advisories/GHSA-|$empty_list" "$f.tmp"; then
+    # Renamed repos redirect; links then carry the new owner/repo.
+    printf '%s\n' "$u" >"$f.url"
     mv "$f.tmp" "$f"
   else
     rm -f "$f.tmp"
   fi
 }
 export -f ghcheck
-export gh
+export gh empty_list
 tail -n +2 "$out/unknown.tsv" >"$out/unknown.base"
 # 4 parallel page loads stay well below github.com's anonymous limits.
 # shellcheck disable=SC2016 # $1 belongs to the inner bash
@@ -179,10 +185,18 @@ while IFS=$'\t' read -r c e p v; do
       r=$(printf '%s' "$p" | cut -d/ -f2,3)
       f=$out/github/${r//\//__}.html
       if [ -s "$f" ]; then
-        all=$(grep -ioE "/$r/security/advisories/GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}" "$f" | sed 's|.*/||' | awk '!s[$0]++' || true)
+        er=$(cat "$f.url")
+        er=${er#*://*/}
+        er=${er%%/security/*}
+        all=$(grep -ioE "/${er//./\\.}/security/advisories/GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}" "$f" | sed 's|.*/||' | awk '!s[$0]++' || true)
         count=$(printf '%s' "$all" | grep -c . || true)
-        # Page 1 only; "+" says there are more pages.
-        if grep -qE 'rel="next"|aria-label="Next' "$f"; then count="$count+"; fi
+        more=
+        if grep -qE 'rel="next"|aria-label="Next' "$f"; then more=+; fi
+        if [ "$count" = 0 ] && { [ -n "$more" ] || ! grep -qiE "$empty_list" "$f"; }; then
+          count=error # no readable links, and not GitHub's empty list
+        else
+          count=$count$more # page 1 only; "+" says there are more pages
+        fi
         ids=$(printf '%s\n' "$all" | head -10 | paste -sd, -)
         latest=$(grep -oE 'datetime="[0-9]{4}-[0-9]{2}-[0-9]{2}' "$f" | cut -d'"' -f2 | sort -r | head -1 || true)
       else
@@ -199,7 +213,7 @@ ids=$(tail -n +2 "$out/advisories.tsv" | cut -f4 | sort -u | grep -c . || true)
 unknown=$(($(wc -l <"$out/unknown.tsv") - 1))
 errors=$(($(wc -l <"$out/errors.tsv") - 1))
 triage=$(tail -n +2 "$out/unknown.tsv" | awk -F'\t' '
-  $5 == "0" { z++ } $5 == "n/a" { na++ } $5 == "error" { er++ } $5 ~ /^[1-9][0-9]*\+?$|^0\+$/ { adv++ }
+  $5 == "0" { z++ } $5 == "n/a" { na++ } $5 == "error" { er++ } $5 ~ /^[1-9][0-9]*\+?$/ { adv++ }
   END { printf "github 0: %d, with advisories: %d, no github repo: %d, errors: %d", z, adv, na, er }')
 echo "components: $n, unknown to OSV $unknown, errors $errors"
 echo "advisories: $rows rows, $ids distinct"

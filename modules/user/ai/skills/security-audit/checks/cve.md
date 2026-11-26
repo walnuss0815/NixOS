@@ -19,8 +19,8 @@ Query in this order and stop at the first source that knows the component:
 
      | `github_advisories` | Action |
      |---|---|
-     | `0` | No published advisories: CVE `none`, no further research. Exception: if the project's `SECURITY.md` or README names another place for advisories (own website, mailing list), check that instead. |
-     | `N` or `N+` | Review only the listed `ids` (and, for `N+`, further pages of `github.com/<owner>/<repo>/security/advisories`) and only those published after the pinned version. |
+     | `0` | No published advisories: CVE `none`, no further research, but only if `<owner>/<repo>` is the project's canonical repo (not a fork or mirror). Exception: if the project's `SECURITY.md` or README names another place for advisories (own website, mailing list), check that instead. |
+     | `N` or `N+` | Review only the listed `ids` (and, for `N+`, further pages of `github.com/<owner>/<repo>/security/advisories`): those published after the pinned version, plus any older one whose patched version is newer than the pinned one or missing. |
      | `n/a` | No GitHub repo derivable: source 2 or 3. |
      | `error` | Page didn't load: re-run once, then **Not checked**. |
    - `errors.tsv` and exit code 3 (OSV unreachable): list under **Not checked**. Exit code 2 names the inventory line OSV rejected: fix it and re-run.
@@ -28,7 +28,7 @@ Query in this order and stop at the first source that knows the component:
 
    Read `advisories.tsv` with `grep`/`awk` slices per component. A "fixed" value that is a Go pseudo-version or an empty one with a `GO-` ID can mean OSV matched the module path loosely: confirm against the vendor advisory before reporting.
 2. **Kubernetes feed** for Kubernetes itself (kube-apiserver, kubelet, ...): `https://kubernetes.io/docs/reference/issues-security/official-cve-feed/index.json`; match by affected version ranges in each entry.
-3. **Vendor security pages and release notes** (web pages such as `github.com/<org>/<repo>/security/advisories` and `/releases`, never `api.github.com`; release notes between the pinned and the latest version) for components OSV doesn't know and `unknown.tsv` can't settle (software without an ecosystem package such as nginx, HAProxy, Redis, PostgreSQL). Read only advisories published after the pinned version was released, newest first, and stop at the first older one.
+3. **Vendor security pages and release notes** (web pages such as `github.com/<org>/<repo>/security/advisories` and `/releases`, never `api.github.com`; release notes between the pinned and the latest version) for components OSV doesn't know and `unknown.tsv` can't settle (software without an ecosystem package such as nginx, HAProxy, Redis, PostgreSQL). Read advisories newest first: those published after the pinned version was released, plus any older one whose patched version is newer than the pinned one or missing.
 
 If a source is unreachable, rate-limited or returns an error for a component, list that component under **Not checked** with the reason. Never write "no CVEs" for a component you could not query.
 
