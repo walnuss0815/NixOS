@@ -11,7 +11,7 @@ This check runs as two parallel subagents. Each does only its part:
 | **cve-components** | sections 1 and 2 | `<work>/results/cve-components.md` | CVE table, "workaround removable" findings |
 | **cve-images** | sections 3 and 2 | `<work>/results/cve-images.md` | image table |
 
-cve-images skips Trivy CVEs in a package that is itself an inventory component (e.g. the Argo CD Go module inside the Argo CD image): cve-components covers those.
+cve-images skips a Trivy CVE only if Trivy's package name and installed version exactly match a `package`/`version` row of `<work>/components.tsv` (written by cve-components; read it after your scan): cve-components covers those. If the file doesn't exist yet or nothing matches exactly, keep the CVE.
 
 ## 1. Advisories per component
 
@@ -74,7 +74,7 @@ bash <skill-dir>/scripts/scan-images.sh <work>/images.txt <work>/trivy
 
 Never run Trivy for images yourself: parallel Trivy processes block each other on the cache lock.
 
-If the script exits non-zero (1: trivy not available, 3: Trivy server did not start), no image was scanned: list every image under "Not checked" with the reason from stderr, and return "Not scanned: <reason>" for the Image CVE details section. Never report "none" for images that were not scanned.
+If the script exits non-zero (1: trivy not available, 3: Trivy server did not start), no image was scanned: list every image under "Not checked" with the reason from stderr, and write "Not scanned: <reason>" for the Image CVE details section to your results file. Never report "none" for images that were not scanned.
 
 Read `<work>/trivy/summary.tsv` (status and Critical/High/Medium/Low/fixable counts per image) for the image table. Look into `<work>/trivy/fixes.tsv` only with `grep`/`awk` slices, e.g. one image or one CVE; never read `raw/` or the whole file. `fixes.md` becomes the separate image CVE details file unread (`SKILL.md` step 6). Images with status `not scanned (<reason>)` go under "Not checked" with that reason.
 
