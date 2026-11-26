@@ -19,8 +19,11 @@ package name and version leave the machine. Writes to <out-dir>:
                   fixed (fixed versions of this package, comma-separated),
                   summary, workaround (the advisory's workaround/mitigation
                   text, empty if it has none)
-  unknown.tsv     components OSV has no advisories for at any version:
-                  look them up in the next source of checks/cve.md
+  unknown.tsv     components OSV has no advisories for at any version, plus
+                  for github.com/<owner>/<repo> packages the repo's own
+                  published advisories: github_advisories (count on page 1,
+                  "+" if there are more pages, n/a without a GitHub repo,
+                  error if the page didn't load), latest_published, ids
   errors.tsv      component, package, version, reason: not checked
 
 Fetched advisories are kept in <out-dir>/vulns/ and reused on re-runs.
@@ -147,12 +150,58 @@ awk -F'\t' -v a="$out/advisories.tsv" -v u="$out/unknown.tsv" -v e="$out/errors.
   { t = $1; sub(/^[AUE]\t/, "") }
   t == "A" { print >> a } t == "U" { print >> u } t == "E" { print >> e }' "$out/rows.tsv"
 
+# OSV-unknown packages hosted on GitHub: does the repo publish advisories at
+# all? Repo-level advisories without an ecosystem mapping never reach OSV.
+gh=${SECURITY_AUDIT_GITHUB_URL:-https://github.com} # overridable for tests only
+mkdir -p "$out/github"
+ghcheck() {
+  local f=$out/github/${1//\//__}.html
+  [ -s "$f" ] && return 0
+  if curl -sfL -m 30 -o "$f.tmp" "$gh/$1/security/advisories?state=published"; then
+    mv "$f.tmp" "$f"
+  else
+    rm -f "$f.tmp"
+  fi
+}
+export -f ghcheck
+export gh
+tail -n +2 "$out/unknown.tsv" >"$out/unknown.base"
+# 4 parallel page loads stay well below github.com's anonymous limits.
+# shellcheck disable=SC2016 # $1 belongs to the inner bash
+cut -f3 "$out/unknown.base" | awk -F/ '$1 == "github.com" && NF >= 3 { print $2 "/" $3 }' | sort -u |
+  xargs -P 4 -I{} bash -c 'ghcheck "$1"' _ {}
+printf 'component\tecosystem\tpackage\tversion\tgithub_advisories\tlatest_published\tids\n' >"$out/unknown.tsv"
+while IFS=$'\t' read -r c e p v; do
+  latest=
+  ids=
+  case $p in
+    github.com/*/*)
+      r=$(printf '%s' "$p" | cut -d/ -f2,3)
+      f=$out/github/${r//\//__}.html
+      if [ -s "$f" ]; then
+        all=$(grep -ioE "/$r/security/advisories/GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}" "$f" | sed 's|.*/||' | awk '!s[$0]++' || true)
+        count=$(printf '%s' "$all" | grep -c . || true)
+        # Page 1 only; "+" says there are more pages.
+        if grep -qE 'rel="next"|aria-label="Next' "$f"; then count="$count+"; fi
+        ids=$(printf '%s\n' "$all" | head -10 | paste -sd, -)
+        latest=$(grep -oE 'datetime="[0-9]{4}-[0-9]{2}-[0-9]{2}' "$f" | cut -d'"' -f2 | sort -r | head -1 || true)
+      else
+        count=error
+      fi
+      ;;
+    *) count=n/a ;;
+  esac
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$c" "$e" "$p" "$v" "$count" "$latest" "$ids" >>"$out/unknown.tsv"
+done <"$out/unknown.base"
+
 rows=$(($(wc -l <"$out/advisories.tsv") - 1))
 ids=$(tail -n +2 "$out/advisories.tsv" | cut -f4 | sort -u | grep -c . || true)
 unknown=$(($(wc -l <"$out/unknown.tsv") - 1))
 errors=$(($(wc -l <"$out/errors.tsv") - 1))
+triage=$(tail -n +2 "$out/unknown.tsv" | awk -F'\t' '
+  $5 == "0" { z++ } $5 == "n/a" { na++ } $5 == "error" { er++ } $5 ~ /^[1-9][0-9]*\+?$|^0\+$/ { adv++ }
+  END { printf "github 0: %d, with advisories: %d, no github repo: %d, errors: %d", z, adv, na, er }')
 echo "components: $n, unknown to OSV $unknown, errors $errors"
 echo "advisories: $rows rows, $ids distinct"
-echo "advisories: $out/advisories.tsv"
-echo "unknown: $out/unknown.tsv"
-echo "errors: $out/errors.tsv"
+echo "unknown: $unknown ($triage)"
+echo "files: $out/advisories.tsv $out/unknown.tsv $out/errors.tsv"
