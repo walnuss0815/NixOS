@@ -4,7 +4,7 @@ Fill every section, in this order. Empty sections say "None" — never drop a se
 
 ## Finding format
 
-Each check returns findings in exactly this shape:
+Each check writes findings to its results file in exactly this shape:
 
 ```markdown
 ### <ID>. <Title>
