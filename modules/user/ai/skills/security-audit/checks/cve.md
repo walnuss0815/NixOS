@@ -4,6 +4,15 @@ OWASP: K07 Misconfigured And Vulnerable Cluster Components, CICD-SEC-3 Dependenc
 
 Input: the inventory from `SKILL.md` step 3. Only component names and versions leave the machine.
 
+This check runs as two parallel subagents. Each does only its part:
+
+| Part | Runs | Results file | Owns |
+|---|---|---|---|
+| **cve-components** | sections 1 and 2 | `<work>/results/cve-components.md` | CVE table, "workaround removable" findings |
+| **cve-images** | sections 3 and 2 | `<work>/results/cve-images.md` | image table |
+
+cve-images skips Trivy CVEs in a package that is itself an inventory component (e.g. the Argo CD Go module inside the Argo CD image): cve-components covers those.
+
 ## 1. Advisories per component
 
 Query in this order and stop at the first source that knows the component:
@@ -53,7 +62,7 @@ Status, exactly one:
 
 Severity in the report follows reachability: an exploitable CVE reachable by an untrusted party (see Severity in `SKILL.md`) is High or Critical regardless of CVSS; operator-only is at most Medium.
 
-**Workaround removable:** for every CVE mentioned in commits or config, also check whether the pinned version still is affected. If it is not, add an Info finding "workaround removable" citing the workaround (`path:line` and commit) and the fixing version. Status in the CVE table: fixed in pinned version.
+**Workaround removable** (cve-components only): for every CVE mentioned in commits or config, also check whether the pinned version still is affected. If it is not, add an Info finding "workaround removable" citing the workaround (`path:line` and commit) and the fixing version. Status in the CVE table: fixed in pinned version.
 
 ## 3. Container images (Trivy)
 
